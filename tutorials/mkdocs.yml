@@ -1,0 +1,25 @@
+site_name: My Docs
+docs_dir: "docs"
+nav:
+  - CLAUD: claud.md
+  - GROK: grok2.md
+  - GEMINI: index.md
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.top
+    - content.code.copy
+    - navigation.instant
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
