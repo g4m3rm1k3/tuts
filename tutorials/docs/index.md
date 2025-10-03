@@ -136,29 +136,28 @@ You are now fully set up and ready to start building. We have a plan, we underst
 
 Our first goal is to create the simplest possible web server and have it respond to a request. This confirms our setup is working.
 
-1.  **Create the Backend File:** Inside your `pdm_tutorial` folder, create a new file named `main.py`.
+**Create the Backend File:** Inside your `pdm_tutorial` folder, create a new file named `main.py`.
+**Write the Code:** Open `main.py` and add the following code. We'll break it down line by line.
 
-2.  **Write the Code:** Open `main.py` and add the following code. We'll break it down line by line.
+```python
+# main.py
 
-    ```python
-    # main.py
+# 1. Import the FastAPI class from the fastapi library.
+from fastapi import FastAPI
 
-    # 1. Import the FastAPI class from the fastapi library.
-    from fastapi import FastAPI
+# 2. Create an "instance" of the FastAPI class.
+# This 'app' object is the core of your API.
+app = FastAPI()
 
-    # 2. Create an "instance" of the FastAPI class.
-    # This 'app' object is the core of your API.
-    app = FastAPI()
-
-    # 3. Define a "path operation decorator".
-    # This tells FastAPI that any GET request to the main URL ("/")
-    # should be handled by the function below.
-    @app.get("/")
-    async def read_root():
-        # 4. Return a Python dictionary.
-        # FastAPI will automatically convert this to JSON format for the browser.
-        return {"message": "Hello from the PDM Backend!"}
-    ```
+# 3. Define a "path operation decorator".
+# This tells FastAPI that any GET request to the main URL ("/")
+# should be handled by the function below.
+@app.get("/")
+async def read_root():
+    # 4. Return a Python dictionary.
+    # FastAPI will automatically convert this to JSON format for the browser.
+    return {"message": "Hello from the PDM Backend!"}
+```
 
 ### **Code Explained:**
 
