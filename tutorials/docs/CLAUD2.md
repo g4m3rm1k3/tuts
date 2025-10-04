@@ -2608,123 +2608,141 @@ Create `backend/static/css/style.css`:
    RESET & GLOBAL STYLES
    ============================================ */
 
+/* Apply to every element on the page */
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  margin: 0; /* Remove all default margins (browsers add them by default, e.g., on <p> or <h1>) */
+  padding: 0; /* Remove all default padding */
+  box-sizing: border-box; /* Change box-sizing so width/height includes padding & border (easier sizing control) */
 }
 
+/* Base body styles applied to the whole document */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, sans-serif;
-  line-height: 1.6;
-  color: #333;
-  background-color: #f5f5f5;
+    Ubuntu, Cantarell, sans-serif; /* Use system UI fonts first, fallback to common web-safe fonts */
+  line-height: 1.6; /* Increases readability by spacing lines slightly further apart */
+  color: #333; /* Default text color: dark gray (less harsh than black) */
+  background-color: #f5f5f5; /* Light gray background for the page */
 }
 
 /* ============================================
    HEADER
    ============================================ */
 
+/* Styles for the top header bar */
 header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* Gradient background from bluish-purple to purple, angled diagonally */
   color: white;
-  padding: 2rem;
-  text-align: center;
+  padding: 2rem; /* Add space inside header for breathing room */
+  text-align: center; /* Center text (h1 and p) horizontally */
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  /* Subtle drop shadow below header to lift it visually */
 }
 
+/* The main site title inside the header */
 header h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 2.5rem; /* Large, prominent heading */
+  margin-bottom: 0.5rem; /* Small gap between title and the subtitle paragraph */
 }
 
+/* Subtitle text under the header title */
 header p {
-  font-size: 1.1rem;
-  opacity: 0.9;
+  font-size: 1.1rem; /* Slightly larger than normal body text */
+  opacity: 0.9; /* Slightly faded, less visual weight than the title */
 }
 
 /* ============================================
    MAIN CONTENT
    ============================================ */
 
+/* The <main> wrapper for page content */
 main {
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  max-width: 1200px; /* Restrict content width for readability (no ultra-wide text lines) */
+  margin: 2rem auto; /* Vertical spacing + center horizontally */
+  padding: 0 1rem; /* Small side padding so text doesn’t touch the edges */
 }
 
+/* Any <section> in the page */
 section {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
+  background: white; /* White card-like background */
+  padding: 2rem; /* Spacing inside the section */
+  border-radius: 8px; /* Rounded corners for a modern card look */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for separation from background */
+  margin-bottom: 2rem; /* Space between stacked sections */
 }
 
+/* Section headings (like "Available Files") */
 h2 {
-  color: #667eea;
-  margin-bottom: 1.5rem;
-  font-size: 1.8rem;
+  color: #667eea; /* Match theme color (bluish-purple) */
+  margin-bottom: 1.5rem; /* Space below heading */
+  font-size: 1.8rem; /* Larger than body, smaller than h1 */
 }
 
 /* ============================================
    FILE LIST
    ============================================ */
 
+/* Container for list of files */
 #file-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  display: flex; /* Use flexbox for layout */
+  flex-direction: column; /* Stack items vertically */
+  gap: 1rem; /* Even spacing between each file item */
 }
 
+/* Individual file items */
 .file-item {
-  padding: 1rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.3s ease;
+  padding: 1rem; /* Spacing inside each file box */
+  border: 1px solid #e0e0e0; /* Light gray border around file item */
+  border-radius: 4px; /* Slightly rounded corners */
+  display: flex; /* Flexbox to arrange name + status horizontally */
+  justify-content: space-between; /* Push file name left, status to the far right */
+  align-items: center; /* Vertically align text inside the row */
+  transition: all 0.3s ease; /* Smooth animation for hover effects */
 }
 
+/* Hover state for file items */
 .file-item:hover {
-  background-color: #f9f9f9;
-  border-color: #667eea;
-  transform: translateX(5px);
+  background-color: #f9f9f9; /* Light background highlight */
+  border-color: #667eea; /* Border turns theme color */
+  transform: translateX(5px); /* Nudge item to the right for interactivity */
 }
 
+/* File name text */
 .file-name {
-  font-weight: 600;
-  color: #333;
+  font-weight: 600; /* Bold text for emphasis */
+  color: #333; /* Dark gray, consistent with body text */
 }
 
+/* Status label (e.g., Available, Checked out) */
 .file-status {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  padding: 0.25rem 0.75rem; /* Small pill-like padding around text */
+  border-radius: 12px; /* Rounded capsule shape */
+  font-size: 0.9rem; /* Slightly smaller than normal text */
+  font-weight: 500; /* Medium boldness for visibility */
 }
 
+/* Available file status */
 .status-available {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: #d4edda; /* Soft green background (success/available color) */
+  color: #155724; /* Dark green text */
 }
 
+/* Checked-out file status */
 .status-checked_out {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: #fff3cd; /* Yellow background (warning/attention color) */
+  color: #856404; /* Dark yellow/brown text */
 }
 
 /* ============================================
    FOOTER
    ============================================ */
 
+/* Footer section at the bottom */
 footer {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
-  font-size: 0.9rem;
+  text-align: center; /* Center align footer text */
+  padding: 2rem; /* Spacing inside footer */
+  color: #666; /* Medium gray text color */
+  font-size: 0.9rem; /* Slightly smaller than body text */
 }
 ```
 

@@ -13,6 +13,7 @@ nav:
   - GEMJS: gemsJS.md
   - GEMFinal: final_expansions.md
   - GrokF: grokf.md
+  - newEx: newExp.md
 
 theme:
   name: material
