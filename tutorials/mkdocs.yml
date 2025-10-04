@@ -10,7 +10,8 @@ nav:
   - ClaudCSS: CSS_claud.md
   - GEMCSS: GemsCSS.md
   - Cluadpy: claud.py.md
-  - GEMJS: gemJS.md
+  - GEMJS: gemsJS.md
+  - GEMFinal: final_expansions.md
 
 theme:
   name: material
