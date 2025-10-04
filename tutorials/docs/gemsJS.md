@@ -2914,10 +2914,1424 @@ app.post("/tasks", authenticateToken, async (req, res) => {
 
 Your application is now built on a rock-solid, professional-grade foundation. It's secure, scalable, and reliable. The final step is to share it with the world.
 
-In **Stage 8**, the final stage of our core tutorial, we will focus on **Deployment and Production Readiness**. We will:
+Let's do it. This is the final stage of the core tutorial. Here, we take everything you've built and launch it to the public internet. We'll move from a development setup on your laptop to a professional, scalable production environment in the cloud.
 
-- Prepare your application for a production environment.
-- Containerize the Node.js application itself using Docker.
-- Deploy your backend API to a cloud service like Render or Fly.io.
-- Deploy your React frontend to a static hosting provider like Vercel or Netlify.
-- Set up a CI/CD (Continuous Integration/Continuous Deployment) pipeline with GitHub Actions to automate your deployments.
+---
+
+# **Ultimate JavaScript Mastery: Stage 8 - Deployment & Production**
+
+## **Introduction: The Goal of This Stage**
+
+Your application is a complete, secure, full-stack system that runs perfectly... on your machine. The final and most rewarding step is **deployment**: making your application live on the internet for anyone to use. This stage bridges the gap between local development and a global, production-ready service.
+
+**Analogy: The Restaurant Grand Opening** 🍽️
+
+- **Development (Stages 0-7):** You perfected your recipes in your home kitchen (your laptop).
+- **Deployment (Stage 8):** You're opening a real restaurant. You need a commercial kitchen (a cloud server), a public address (a domain name), and a reliable process to serve thousands of customers (a production environment).
+
+By the end of this stage, you will have mastered:
+
+- Configuring an application for a **production environment**.
+- Deploying a **PostgreSQL database** and a **Node.js backend** to a cloud platform (Render).
+- Deploying a **React frontend** to a global CDN (Vercel).
+- Setting up a **CI/CD pipeline** with GitHub Actions to automate testing and deployments.
+
+**Time Investment:** 4-6 hours
+
+---
+
+## **8.1: Preparing for Production**
+
+A production environment has different needs than your development setup. It must be optimized for performance, security, and reliability.
+
+### **8.1.1 Configuration with Environment Variables**
+
+Hardcoding values like `http://localhost:3000` will not work in production. We must use environment variables.
+
+1.  **Update Frontend API URL:** In your `frontend` project, modify your API calls to use an environment variable that Vite provides.
+
+    ```javascript
+    // src/App.jsx or a new api.js file
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+    ```
+
+    Vite automatically exposes environment variables prefixed with `VITE_`.
+
+2.  **Update Backend CORS:** Your server needs to allow requests from your live frontend URL.
+
+    ```javascript
+    // task-manager/server.js
+    import cors from "cors";
+
+    const corsOptions = {
+      origin: process.env.FRONTEND_URL || "http://localhost:5173", // Your Vercel URL will go in the env var
+    };
+
+    app.use(cors(corsOptions));
+    ```
+
+### **8.1.2 Production Build Scripts**
+
+1.  **Backend:** The `nodemon` tool is for development only. In production, we'll use a simple `node` command. Your `package.json` `start` script is already perfect for this.
+
+    ```json
+    "scripts": {
+      "start": "node server.js",
+      "dev": "nodemon server.js"
+    }
+    ```
+
+2.  **Frontend:** The Vite development server is not for production. We need to create a highly optimized static build.
+
+    ```bash
+    # In your frontend directory
+    npm run build
+    ```
+
+    This command runs Vite's build process, which transpiles, bundles, and minifies your code into a `dist` folder. This small, fast folder is what we will actually deploy.
+
+---
+
+## **8.2: Backend Deployment with Render**
+
+We'll use **Render**, a modern cloud platform (PaaS) that makes deploying web services and databases incredibly simple. It has a generous free tier perfect for our project.
+
+### **8.2.1 Push to GitHub**
+
+Make sure your `task-manager` backend project is in its own GitHub repository and that all your latest changes are pushed.
+
+### **8.2.2 Deploy the PostgreSQL Database**
+
+1.  **Sign up** for a free account at [render.com](https://render.com).
+2.  In the Render Dashboard, click **New + \> PostgreSQL**.
+3.  Give it a unique **Name** (e.g., `task-manager-db`).
+4.  Select a **Region** close to you.
+5.  Click **Create Database**.
+6.  Wait for the database to become available. Once it is, **copy the "Internal Database URL"**. You will need this for your backend service.
+
+### **8.2.3 Deploy the Express API**
+
+1.  In the Render Dashboard, click **New + \> Web Service**.
+2.  **Connect your GitHub account** and select your `task-manager` repository.
+3.  Configure the service:
+    - **Name:** `task-manager-api` (or similar).
+    - **Root Directory:** (leave blank if your `package.json` is in the root).
+    - **Runtime:** `Node`.
+    - **Build Command:** `npm install && npx prisma migrate deploy`
+      - This is crucial: it installs dependencies and then runs the database migrations to create your tables.
+    - **Start Command:** `npm start`
+4.  Click **"Advanced"** to add your Environment Variables.
+    - Click **+ Add Environment Variable**.
+    - `SECRET_KEY`: Generate a new, strong random string for this.
+    - `FRONTEND_URL`: You don't have this yet, but we'll come back and add your Vercel URL here.
+    - `DATABASE_URL`: Click **+ Add from Secret File**, and paste the **Internal Database URL** you copied from your Render database. Render will securely manage this.
+5.  Click **Create Web Service**.
+
+Render will now pull your code from GitHub, install dependencies, run your database migration, and start your server. You can watch the logs live. Once it's done, you'll have a public URL for your API (e.g., `https://task-manager-api.onrender.com`).
+
+---
+
+## **8.3: Frontend Deployment with Vercel**
+
+We'll use **Vercel**, a platform optimized for deploying static frontends with a global CDN, making them incredibly fast.
+
+### **8.3.1 Push to GitHub**
+
+Make sure your `frontend` React project is in its own GitHub repository.
+
+### **8.3.2 Deploy the React App**
+
+1.  **Sign up** for a free account at [vercel.com](https://vercel.com) using your GitHub account.
+2.  **Import your `frontend` GitHub repository.**
+3.  Vercel will automatically detect it's a Vite project and configure the build settings for you. They should be correct by default.
+4.  Expand the **Environment Variables** section.
+    - Add a new variable:
+      - **Name:** `VITE_API_URL`
+      - **Value:** Paste the live URL of your Render backend service (e.g., `https://task-manager-api.onrender.com`).
+5.  Click **Deploy**.
+
+Vercel will build your React application and deploy it to its global network. In about a minute, you'll have a live URL for your frontend.
+
+### **8.3.3 Final Step: Update CORS**
+
+1.  Go back to your `task-manager-api` service on **Render**.
+2.  Go to the **Environment** tab.
+3.  Update the `FRONTEND_URL` variable with your new Vercel URL (e.g., `https://frontend-project.vercel.app`).
+4.  Render will automatically re-deploy your backend with the updated setting.
+
+**Your full-stack application is now live on the internet\!**
+
+---
+
+## **8.4: CI/CD - Automating Your Deployments**
+
+Manually deploying is fine, but professionals automate it. **Continuous Integration/Continuous Deployment (CI/CD)** is the practice of automatically testing and deploying your code every time you push a change.
+
+### **For the Frontend (Vercel)**
+
+This is already done for you\! Vercel automatically sets up a GitHub integration.
+
+- Push to a branch -\> Vercel creates a preview deployment.
+- Merge to `main` -\> Vercel automatically deploys to your production URL.
+  It's seamless.
+
+### **For the Backend (Render)**
+
+Render can also automatically deploy on push.
+
+1.  In your `task-manager-api` service on Render, go to the **Settings** tab.
+2.  Find the **"Auto-Deploy"** setting and make sure it's set to "Yes".
+
+Now, every time you `git push` to your main branch on GitHub:
+
+1.  Render will detect the new commit.
+2.  It will automatically start a new build, running `npm install && npx prisma migrate deploy`.
+3.  It will start the new version of your app.
+4.  Once the new version is healthy, it will switch traffic over to it with **zero downtime**.
+
+### **Adding Automated Tests (The Final Piece)**
+
+To make your pipeline truly professional, it should only deploy if your tests pass. We can do this with **GitHub Actions**.
+
+1.  In your `task-manager` (backend) project, create a folder path: `.github/workflows/`.
+2.  Inside, create a file named `ci.yml`.
+
+<!-- end list -->
+
+```yaml
+# .github/workflows/ci.yml
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14.1-alpine
+        env:
+          POSTGRES_USER: myuser
+          POSTGRES_PASSWORD: mypassword
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        # Health check to wait for Postgres to be ready
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Prisma migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://myuser:mypassword@localhost:5432/testdb
+
+      - name: Run tests
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://myuser:mypassword@localhost:5432/testdb
+```
+
+Now, when you push a new commit, GitHub will automatically spin up a temporary Postgres database, run your migrations, and run your Jest test suite. If any test fails, the push will be marked with a red "X", and Render's auto-deploy will not be triggered (if configured to wait for checks).
+
+---
+
+## **Stage 8 Complete - You are a Full-Stack Developer\!**
+
+Congratulations\! You have successfully designed, built, secured, and deployed a complete, production-grade web application.
+
+### **Verification Checklist**
+
+- [ ] Is your PostgreSQL database live on Render?
+- [ ] Is your Express API live on Render and connected to the database?
+- [ ] Is your React frontend live on Vercel?
+- [ ] Can you register a new user on your live application?
+- [ ] Can you log in and create a new task?
+- [ ] When you push a code change to your frontend's `main` branch, does Vercel automatically deploy it?
+- [ ] When you push a code change to your backend's `main` branch, do your tests run on GitHub Actions and then trigger a new deployment on Render?
+
+## **Where to Go From Here: The Journey Continues**
+
+This marks the end of the core tutorial, but it's just the beginning of your journey. You now possess the complete skill set to build almost any web application.
+
+Excellent idea. Refactoring a working JavaScript project into TypeScript is the single best way to understand the practical benefits of a static type system. It's exactly what professional teams do when a project grows and requires more robustness.
+
+Let's begin a new series of stages dedicated to this refactor. We'll go piece by piece, just as before, with deep dives into the "why" and the computer science behind TypeScript.
+
+---
+
+# **Ultimate JavaScript Mastery: Stage 9 - The TypeScript Refactor**
+
+## **Introduction: The Goal of This Stage**
+
+You have a complete, working full-stack application. It's functional, but it's built on a foundation of trust. JavaScript, being a **dynamically typed** language, trusts you not to make mistakes. It only checks for errors when you _run_ the code.
+
+```javascript
+// This is perfectly valid JavaScript. It will only crash at runtime.
+function calculateTotal(price, quantity) {
+  return price * quantity;
+}
+
+// Later, someone makes a mistake...
+calculateTotal("10.99", "3"); // Oops, sending strings instead of numbers.
+// Result: NaN (Not a Number), a silent bug that might corrupt data downstream.
+```
+
+In this series of stages, we will refactor our entire application to **TypeScript**, a superset of JavaScript that adds a powerful **static type system**.
+
+**Analogy: Building with a Blueprint** blueprints
+
+- **JavaScript:** You're given a box of Lego bricks and a picture of the finished castle. You can build it, but it's easy to use the wrong piece or put something in the wrong place. You only find out it's unstable when you try to add the roof.
+- **TypeScript:** You get the same box of bricks, but also a detailed, step-by-step blueprint. The blueprint tells you _exactly_ which piece goes where. If you try to put a window brick where a wall brick should go, the blueprint immediately flags it as an error, _before_ you even build it.
+
+By the end of this refactoring process, you will:
+
+- Master the core concepts of TypeScript: types, interfaces, generics, and more.
+- Understand the profound safety and productivity benefits of static typing.
+- Refactor both a Node.js/Express backend and a React frontend to be fully type-safe.
+- Leverage auto-generated types from tools like Prisma to create a robust end-to-end type-safe API.
+- Write code that is self-documenting and easier to maintain and scale.
+
+---
+
+## **9.1: Setting Up the TypeScript Workshop**
+
+Before we can refactor, we need to add the TypeScript compiler and configure our projects to understand it. We will do this for both the backend and the frontend.
+
+### **9.1.1 Adding TypeScript to the Backend (Express API)**
+
+1.  **Install Dependencies:** Navigate to your `task-manager` (backend) directory and install TypeScript along with the necessary type definitions for Node.js and Express. These `@types/` packages are community-maintained files that teach TypeScript about the shapes of existing JavaScript libraries.
+
+    ```bash
+    # In the task-manager directory
+    npm install --save-dev typescript @types/node @types/express @types/bcrypt @types/jsonwebtoken @types/cors
+    ```
+
+2.  **Create a `tsconfig.json` file:** This file is the "brain" of the TypeScript compiler. It tells TypeScript how to compile your code.
+
+    ```bash
+    npx tsc --init
+    ```
+
+    This creates a `tsconfig.json` file with many options. For now, let's replace it with a more focused, modern configuration:
+
+    ```json
+    // tsconfig.json
+    {
+      "compilerOptions": {
+        "target": "ES2022", // Compile to modern JavaScript
+        "module": "NodeNext", // Use the modern Node.js module system
+        "moduleResolution": "NodeNext", // How to find modules
+        "outDir": "./dist", // Where to put the compiled JavaScript
+        "rootDir": "./", // Where our source code is
+        "esModuleInterop": true, // Allows cleaner imports from older libraries
+        "forceConsistentCasingInFileNames": true, // Prevents case-sensitive path issues
+        "strict": true, // Enable all strict type-checking options (VERY important!)
+        "skipLibCheck": true // Skip type checking of declaration files
+      },
+      "include": ["**/*.ts"], // Tell TS to compile all .ts files
+      "exclude": ["node_modules", "tests"] // Don't compile these folders
+    }
+    ```
+
+### **Deep Dive: The `tsconfig.json`**
+
+- `"target": "ES2022"`: This tells TypeScript to output JavaScript code that uses features from the ECMAScript 2022 standard. Modern Node.js versions support this.
+- `"module": "NodeNext"`: This is crucial. It tells TypeScript to use the modern ES Module (`import`/`export`) syntax that Node.js now supports, while still being compatible with older CommonJS (`require`) modules.
+- `"outDir": "./dist"`: TypeScript doesn't run `.ts` files directly. It **transpiles** them into plain `.js` files. This option tells it to put the resulting JavaScript into a `dist` (distribution) folder. We will run our server from this folder.
+- `"strict": true`: This is the most important setting. It turns on a suite of type-checking rules that make TypeScript incredibly powerful. **Always use `strict: true`**. It will feel difficult at first, but it will save you from countless bugs.
+
+### **9.1.2 Adding TypeScript to the Frontend (React App)**
+
+Vite makes this incredibly easy.
+
+1.  **Rename `.jsx` to `.tsx`:** In your `frontend` project, rename `src/App.jsx` to `src/App.tsx`. Rename `src/main.jsx` to `src/main.tsx`. (Vite may do this for you if you started a TS project, but if refactoring, you do it manually).
+
+2.  **Install Type Definitions:** We need to tell TypeScript about React and Node.
+
+    ```bash
+    # In the frontend directory
+    npm install --save-dev typescript @types/react @types/react-dom @types/node
+    ```
+
+3.  **Create `tsconfig.json`:** Run `npx tsc --init`. Vite's default configuration is usually excellent. It should look something like this:
+
+    ```json
+    // tsconfig.json
+    {
+      "compilerOptions": {
+        "target": "ES2020",
+        "useDefineForClassFields": true,
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "module": "ESNext",
+        "skipLibCheck": true,
+
+        /* Bundler mode */
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true, // Vite handles the emitting, TS just does the type checking
+        "jsx": "react-jsx", // Modern JSX transform
+
+        /* Linting */
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true
+      },
+      "include": ["src"],
+      "references": [{ "path": "./tsconfig.node.json" }]
+    }
+    ```
+
+    The key difference is `"noEmit": true`. In the frontend, TypeScript's only job is to _check_ the types. **Vite** handles the actual transpilation and bundling.
+
+---
+
+## **9.2: Refactoring the Backend - From JavaScript to TypeScript**
+
+Let's start by making our Express server type-safe.
+
+### **9.2.1 Rename and Type the Server**
+
+1.  Rename `server.js` to `server.ts`.
+2.  Your code editor will immediately show errors. This is TypeScript working\! It's telling you where types are missing.
+
+Let's fix them.
+
+```typescript
+// server.ts
+import express, { Express, Request, Response, NextFunction } from "express"; // Import types
+import chalk from "chalk";
+import cors from "cors";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+const app: Express = express(); // Type the app instance
+const PORT = process.env.PORT || 3000;
+
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+};
+
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// --- Type-Safe Middleware ---
+// Now we can type the req, res, and next objects
+const loggingMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+};
+app.use(loggingMiddleware);
+
+// --- Type-Safe Route ---
+app.get("/", (req: Request, res: Response) => {
+  res.send("Welcome to the Task Manager API!");
+});
+
+// GET /tasks
+app.get("/tasks", async (req: Request, res: Response) => {
+  try {
+    const tasks = await prisma.task.findMany();
+    res.status(200).json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: "Error loading tasks" });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(chalk.yellow(`🚀 Server is running on http://localhost:${PORT}`));
+});
+```
+
+### **9.2.2 The Power of Prisma's Auto-generated Types**
+
+This is where our choice of Prisma pays off immensely. When you ran `prisma generate` (which `migrate dev` does for you), Prisma didn't just create a JavaScript client; it created a full suite of TypeScript types that perfectly match your database schema.
+
+Let's refactor our `POST /tasks` endpoint.
+
+```typescript
+// Add this interface to define the shape of the request body
+interface CreateTaskBody {
+  description: string;
+}
+
+// POST /tasks - Create a new task
+app.post("/tasks", async (req: Request, res: Response) => {
+  try {
+    // We explicitly type the body to ensure it has the correct shape
+    const { description } = req.body as CreateTaskBody;
+
+    if (!description) {
+      return res.status(400).json({ message: "Task description is required" });
+    }
+
+    // We need the user ID from the authentication middleware
+    // We'll add this next. For now, let's assume a user ID.
+    const fakeUserId = 1;
+
+    const newTask = await prisma.task.create({
+      data: {
+        description,
+        ownerId: fakeUserId, // Connect to a user
+      },
+    });
+
+    // `newTask` is now fully typed!
+    // If you type `newTask.` your editor will autocomplete `id`, `description`, `completed`, etc.
+    // Try to access `newTask.nonExistentProperty` and TypeScript will give you an error!
+
+    res.status(201).json(newTask);
+  } catch (error) {
+    res.status(500).json({ message: "Error saving task" });
+  }
+});
+```
+
+### **9.2.3 Compiling and Running the TypeScript Server**
+
+1.  **Update `package.json` scripts:** We need to compile our `.ts` files into `.js` before running them.
+    ```json
+    "scripts": {
+      "build": "tsc",
+      "start": "node dist/server.js",
+      "dev": "nodemon --watch './**/*.ts' --exec 'ts-node' server.ts",
+      "test": "jest"
+    },
+    ```
+2.  **Install `ts-node`:** This is a handy tool that compiles and runs TypeScript in one step, perfect for development.
+    ```bash
+    npm install --save-dev ts-node
+    ```
+3.  **Run the dev server:**
+    ```bash
+    npm run dev
+    ```
+    Your server should start, and `nodemon` will now watch for changes in `.ts` files, automatically recompiling and restarting.
+
+---
+
+## **Stage 9.2 Complete (Backend) - Verification Checklist**
+
+- [ ] Have you installed `typescript` and all necessary `@types` packages in your backend?
+- [ ] Is your `tsconfig.json` file configured with `strict: true`?
+- [ ] Have you renamed `server.js` to `server.ts` and fixed the initial type errors?
+- [ ] Do you understand what the TypeScript compiler (`tsc`) does and why you need a `dist` folder?
+- [ ] Have you successfully run your TypeScript server using `npm run dev` with `ts-node`?
+- [ ] Can you see the autocompletion benefits of Prisma's generated types in your editor?
+
+Of course. Let's refactor the frontend. Applying TypeScript to React is where the type system truly shines. It catches bugs in your UI logic, improves developer experience with amazing autocompletion for props, and makes your component APIs explicit and easy to understand.
+
+---
+
+# **Ultimate JavaScript Mastery: Stage 9.3 - Type-Safe React Frontend**
+
+## **Introduction: The Goal of This Stage**
+
+Your backend is now a fortress of type safety, but your frontend is still operating on trust. It receives data from the API and hopes it's in the right shape. A change in the backend API could silently break your UI in unexpected ways.
+
+In this stage, we will apply TypeScript's rigor to our React application. We'll define the "contracts" for our components and state, ensuring that data flows through our application predictably and safely.
+
+By the end of this stage, you will have mastered:
+
+- Defining shared types for your API data structures.
+- Writing type-safe React components with strongly-typed **props**.
+- Managing type-safe **state** with the `useState` hook.
+- Correctly typing **event handlers** for forms and buttons.
+- Leveraging TypeScript to create a self-documenting and resilient frontend.
+
+---
+
+## **9.3.1 Defining the "Shape" of Our Data**
+
+The most important step in a type-safe frontend is to define the shape of the data you expect from your API. This creates a **single source of truth** for your data structures.
+
+1.  **Create a Types Directory:** In your `frontend` project, create a new folder: `src/types`.
+2.  **Define the Task Type:** Inside this folder, create a new file named `index.ts`.
+
+<!-- end list -->
+
+```typescript
+// src/types/index.ts
+
+// This interface describes the shape of a single task object
+// that we expect to receive from our API.
+export interface Task {
+  id: number;
+  description: string;
+  completed: boolean;
+  ownerId: number;
+  createdAt: string; // The Date comes as a string in JSON
+}
+
+// We can also define the shape of our User object
+export interface User {
+  username: string;
+  role: "admin" | "user"; // Use a union type for specific roles
+}
+```
+
+**Key Concepts:**
+
+- **`interface`**: An `interface` is a TypeScript feature that allows you to define the structure of an object. It's a contract that says, "any object that claims to be a `Task` must have these properties with these types."
+- **`'admin' | 'user'`**: This is a **union type**. It means the `role` property can _only_ be the literal string `'admin'` or the literal string `'user'`. Trying to assign any other string will cause a compile-time error.
+
+---
+
+## **9.3.2 Refactoring the `App` Component**
+
+Now, let's make our main component type-safe.
+
+1.  **Rename `App.jsx` to `App.tsx`** if you haven't already.
+2.  **Import the types** and apply them to your state.
+
+<!-- end list -->
+
+```tsx
+// src/App.tsx
+import { useState, useEffect } from "react";
+import { Task, User } from "./types"; // Import our new types
+import TaskList from "./components/TaskList";
+import TaskForm from "./components/TaskForm";
+import LoginPage from "./components/LoginPage";
+
+// ... (API_URL constant)
+
+function App() {
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem("token")
+  );
+
+  // Type the user state. It can be a User object or null if logged out.
+  const [user, setUser] = useState<User | null>(() => {
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
+
+  // This is the most important one: tasks is an ARRAY of Task objects.
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // ... (useEffect for fetching tasks)
+
+  // Type the function parameters
+  const handleLogin = (newToken: string, newUser: User) => {
+    localStorage.setItem("token", newToken);
+    localStorage.setItem("user", JSON.stringify(newUser));
+    setToken(newToken);
+    setUser(newUser);
+  };
+
+  const handleAddTask = async (description: string) => {
+    // ... API call logic
+    // When you get the new task back, it should match the Task interface
+    const newTask: Task = await response.json();
+    setTasks((prevTasks) => [...prevTasks, newTask]);
+  };
+
+  const handleDeleteTask = async (id: number) => {
+    // ... API call logic
+    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
+  };
+
+  const handleToggleComplete = async (id: number) => {
+    // ... API call logic
+    const updatedTask: Task = await response.json();
+    setTasks((prevTasks) =>
+      prevTasks.map((task) => (task.id === id ? updatedTask : task))
+    );
+  };
+
+  // ... (render logic)
+
+  // TypeScript will now check that you are passing the correct props to your components.
+  // If you forget to pass `user` to TaskList, you'll get an error!
+  return (
+    <div>
+      {/* ... */}
+      <TaskForm onAddTask={handleAddTask} />
+      <TaskList
+        tasks={tasks}
+        user={user!} // The '!' tells TS we know `user` is not null here
+        onDeleteTask={handleDeleteTask}
+        onToggleComplete={handleToggleComplete}
+      />
+    </div>
+  );
+}
+
+export default App;
+```
+
+**Key Concepts:**
+
+- **`useState<Type>`**: This is a **generic**. We are telling the `useState` hook what kind of data it will hold. `useState<Task[]>` means "this state variable will be an array of `Task` objects." This allows TypeScript to check everything you do with that state.
+- **`string | null`**: A union type that says the `token` can be a string _or_ it can be `null`. This is much safer than JavaScript, where it could be `undefined` or something else by accident.
+- **`user!`**: This is the **non-null assertion operator**. We use it because TypeScript is smart enough to see that the `user` state _could_ be `null`. Since this part of the code only renders when the user _is_ logged in, we know for a fact that `user` is not null. The `!` tells TypeScript, "Trust me, I know what I'm doing here." Use it with care.
+
+---
+
+## **9.3.3 Typing Component Props**
+
+Now we fix the errors in our child components.
+
+### **`TaskList` Component**
+
+1.  Rename to `TaskList.tsx`.
+2.  Define the props it expects.
+
+<!-- end list -->
+
+```tsx
+// src/components/TaskList.tsx
+import TaskItem from "./TaskItem";
+import { Task, User } from "../types"; // Import shared types
+
+// Define the shape of the props object using an interface
+interface TaskListProps {
+  tasks: Task[];
+  user: User;
+  onDeleteTask: (id: number) => void; // A function that takes a number and returns nothing
+  onToggleComplete: (id: number) => void;
+}
+
+// Use the interface to type the component's props
+function TaskList({
+  tasks,
+  user,
+  onDeleteTask,
+  onToggleComplete,
+}: TaskListProps) {
+  // ... (component logic is unchanged)
+  return (
+    <ul>
+      {tasks.map((task) => (
+        <TaskItem
+          key={task.id}
+          task={task}
+          user={user}
+          onDelete={onDeleteTask}
+          onToggleComplete={onToggleComplete}
+        />
+      ))}
+    </ul>
+  );
+}
+
+export default TaskList;
+```
+
+### **`TaskForm` Component and Event Typing**
+
+1.  Rename to `TaskForm.tsx`.
+2.  Type the props and, importantly, the form event.
+
+<!-- end list -->
+
+```tsx
+// src/components/TaskForm.tsx
+import { useState, FormEvent, ChangeEvent } from "react"; // Import event types from React
+
+interface TaskFormProps {
+  onAddTask: (description: string) => void;
+}
+
+function TaskForm({ onAddTask }: TaskFormProps) {
+  const [newTaskDescription, setNewTaskDescription] = useState("");
+
+  // The event parameter is now strongly typed!
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!newTaskDescription.trim()) return;
+    onAddTask(newTaskDescription);
+    setNewTaskDescription("");
+  };
+
+  // Type the change event for the input
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setNewTaskDescription(event.target.value);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="text"
+        value={newTaskDescription}
+        onChange={handleChange}
+        placeholder="Add a new task..."
+      />
+      <button type="submit">Add Task</button>
+    </form>
+  );
+}
+
+export default TaskForm;
+```
+
+**Key Concepts:**
+
+- **`React.FC` vs. `(props: Props)`**: You will see many tutorials use `React.FC<Props>`. While it works, the modern consensus is to type props directly on the function as shown above (`({ ... }: TaskListProps)`). It's more concise and has better support for generics.
+- **`FormEvent`, `ChangeEvent`**: React provides types for all synthetic events. Using them gives you autocompletion on the event object (e.g., `event.target.value`) and ensures you're using them correctly.
+
+---
+
+## **Stage 9.3 Complete (Frontend) - Verification Checklist**
+
+- [ ] Have you created a central `src/types/index.ts` file for your shared interfaces?
+- [ ] Is your `App.tsx` component using generic types for its `useState` hooks (e.g., `useState<Task[]>`)?
+- [ ] Have you created `Props` interfaces for each of your child components (`TaskList`, `TaskItem`, `TaskForm`)?
+- [ ] Are your event handlers (`handleSubmit`, `onChange`) correctly typed using React's event types?
+- [ ] Does your entire `frontend` project compile without any TypeScript errors when you run `npm run dev`?
+- [ ] When you hover over a prop in your editor (e.g., the `tasks` prop in `TaskList`), does it show you the correct type (`Task[]`)?
+
+## **What's Next?**
+
+Congratulations\! You have successfully refactored your entire full-stack application from JavaScript to TypeScript. Your application is now significantly more robust, less prone to bugs, and easier to maintain and scale. You've experienced firsthand how a static type system provides a safety net that allows you to refactor and build with confidence.
+
+This concludes the TypeScript refactor. You've now covered the entire lifecycle of a modern web application, from initial idea to a secure, database-backed, type-safe, and deployed service.
+
+The next logical step is to explore more advanced topics that build upon this solid foundation, such as:
+
+- **Advanced Testing:** Implementing end-to-end tests with a framework like Cypress or Playwright.
+- **State Management:** For larger applications, managing state with a dedicated library like Redux Toolkit, Zustand, or TanStack Query.
+- **Component Libraries:** Using a pre-built component library like Material-UI or Chakra UI to build beautiful UIs faster.
+- **Infrastructure as Code:** Managing your cloud resources (like your Render services) with a tool like Terraform.
+
+### Tutorial Expansions: Full Markdown Blocks for Copy-Paste
+
+Below, I've prepared **full, self-contained markdown expansions** based on the gaps identified in the evaluation (e.g., CS/DSA, patterns, performance, advanced libs/projects). These are designed as **new stages** (e.g., Stage 9.4 onward) that slot into your existing tutorial after Stage 9 (TypeScript refactor). Each is a complete, standalone section you can copy-paste directly into your tutorial document.
+
+They maintain the tutorial's style: project-based, with "why" explanations, code walkthroughs, exercises, checklists, and "What's Next?" hooks. Time estimates are 2-5 hours each. I've numbered them sequentially for easy integration (e.g., paste Stage 9.4 right after your current Stage 9).
+
+If you meant expansions for the _requirements document_ instead, let me know—I can reformat those. Otherwise, these build the tutorial toward full requirements coverage.
+
+---
+
+#### **Expansion 1: Stage 9.4 - Computer Science Foundations & Algorithms**
+
+_(Paste after Stage 9.3; ~3 hours. Integrates DSA into task project with exercises.)_
+
+---
+
+# **Ultimate JavaScript Mastery: Stage 9.4 - Computer Science Foundations & Algorithms**
+
+## **Introduction: The Goal of This Stage**
+
+Your application is type-safe and functional, but it's not optimized for scale. What if you have 10,000 tasks? A simple loop to filter them could take seconds—or worse, crash the browser. This stage dives into **Computer Science fundamentals**, teaching you to analyze and implement efficient solutions using JavaScript.
+
+We'll refactor our task manager to use **data structures** (e.g., priority queues) and **algorithms** (e.g., binary search), with a focus on **complexity analysis**. This isn't abstract theory—it's tools for real problems like fast searching in large lists.
+
+By the end of this stage, you will have mastered:
+
+- **Big O notation** for time/space complexity, with practical JS examples.
+- Core **data structures** (e.g., heaps for task prioritization).
+- Classic **algorithms** (e.g., sorting, searching) implemented in JS.
+- Applying these to optimize your project (e.g., O(log n) search vs. O(n)).
+
+**Time Investment:** 3 hours
+
+---
+
+## **9.4.1: Why CS Matters in JavaScript**
+
+JavaScript is fast for small apps, but as your code grows, naive implementations bite. **Big O notation** measures efficiency: how your code scales with input size _n_.
+
+**Analogy: The Traffic Jam** 🚗
+
+- **O(1) Constant Time:** Like a direct highway—always fast, no matter the cars (n).
+- **O(n) Linear Time:** A single-lane road—time doubles as cars (n) double.
+- **O(n log n)** Log-Linear (e.g., efficient sort): A multi-lane highway with smart merging.
+- **O(n²) Quadratic:** Gridlock—doubling cars quadruples wait time.
+
+**Trade-offs:** Faster code might use more memory (space complexity). We'll analyze these in JS, where arrays are O(1) access but O(n) insertion.
+
+---
+
+## **9.4.2: Data Structures in JavaScript**
+
+JS has built-ins like arrays (`[]`) and maps (`new Map()`), but for advanced needs, we implement or use patterns.
+
+### **Priority Queue (Heap) for Task Scheduling**
+
+A **heap** is a tree-based structure for efficient min/max operations (O(log n) insert/pop).
+
+Create `src/utils/PriorityQueue.js` (or `.ts` if typed):
+
+```javascript
+// src/utils/PriorityQueue.js
+export class PriorityQueue {
+  constructor() {
+    this._heap = []; // Array-based binary heap
+  }
+
+  // Insert with priority (lower = higher priority)
+  insert(value, priority) {
+    this._heap.push({ value, priority });
+    this._bubbleUp(this._heap.length - 1);
+  }
+
+  // Extract min priority item
+  extractMin() {
+    if (this._heap.length === 0) return null;
+    const min = this._heap[0];
+    const end = this._heap.pop();
+    if (this._heap.length > 0) {
+      this._heap[0] = end;
+      this._sinkDown(0);
+    }
+    return min;
+  }
+
+  _bubbleUp(index) {
+    const element = this._heap[index];
+    while (index > 0) {
+      const parentIndex = Math.floor((index - 1) / 2);
+      const parent = this._heap[parentIndex];
+      if (parent.priority <= element.priority) break;
+      this._heap[parentIndex] = element;
+      this._heap[index] = parent;
+      index = parentIndex;
+    }
+  }
+
+  _sinkDown(index) {
+    const length = this._heap.length;
+    const element = this._heap[index];
+    while (true) {
+      let smallest = index;
+      const leftChild = 2 * index + 1;
+      const rightChild = 2 * index + 2;
+      if (
+        leftChild < length &&
+        this._heap[leftChild].priority < this._heap[smallest].priority
+      ) {
+        smallest = leftChild;
+      }
+      if (
+        rightChild < length &&
+        this._heap[rightChild].priority < this._heap[smallest].priority
+      ) {
+        smallest = rightChild;
+      }
+      if (smallest === index) break;
+      this._heap[index] = this._heap[smallest];
+      this._heap[smallest] = element;
+      index = smallest;
+    }
+  }
+}
+```
+
+**Why?** O(log n) for insert/pop vs. O(n) for array sort—crucial for real-time task prioritization.
+
+---
+
+## **9.4.3: Algorithms in Action**
+
+### **Binary Search for Fast Task Lookup**
+
+For sorted tasks, binary search is O(log n) vs. O(n) linear scan.
+
+Add to `src/utils/algorithms.js`:
+
+```javascript
+// src/utils/algorithms.js
+export function binarySearch(tasks, targetId) {
+  let left = 0;
+  let right = tasks.length - 1;
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    if (tasks[mid].id === targetId) return mid; // Found
+    if (tasks[mid].id < targetId) left = mid + 1;
+    else right = mid - 1;
+  }
+  return -1; // Not found
+}
+```
+
+**Complexity Walkthrough:** Halves search space each step—1000 tasks? ~10 steps max.
+
+### **QuickSort for Task Sorting**
+
+Implement quicksort (O(n log n) average) for dynamic sorting.
+
+```javascript
+// In algorithms.js
+export function quickSort(tasks, compareFn = (a, b) => a.id - b.id) {
+  if (tasks.length <= 1) return tasks;
+  const pivot = tasks[0];
+  const left = [];
+  const right = [];
+  for (let i = 1; i < tasks.length; i++) {
+    if (compareFn(tasks[i], pivot) < 0) left.push(tasks[i]);
+    else right.push(tasks[i]);
+  }
+  return [...quickSort(left, compareFn), pivot, ...quickSort(right, compareFn)];
+}
+```
+
+---
+
+## **9.4.4: Integrating into Your Project**
+
+Refactor `TaskList` to use these: Sort tasks by priority, search efficiently.
+
+Update `App.tsx` (or .js):
+
+```tsx
+// In App.tsx useEffect or handler
+import { PriorityQueue } from "../utils/PriorityQueue";
+import { binarySearch, quickSort } from "../utils/algorithms";
+
+// Example: Prioritize overdue tasks (simulate with priority = dueDate diff)
+const pq = new PriorityQueue();
+tasks.forEach((task) => pq.insert(task, Math.random() * 10)); // Simulate priority
+
+// Fast search
+const index = binarySearch(quickSort([...tasks]), 5); // Sort copy first
+```
+
+**Exercise/Mini-Challenge:**
+
+1. Add a "Search by ID" input to `TaskForm`; use binarySearch after quickSort—benchmark vs. find() on 1000 dummy tasks.
+2. What-if: If tasks aren't sorted, fallback to linear—explain O(n) pitfalls.
+3. Debug: Introduce a cycle in task deps (graph as adj list); use DFS to detect and alert.
+
+---
+
+## **Stage 9.4 Complete - Verification Checklist**
+
+- [ ] Can you explain O(n log n) vs. O(n²) with a JS array example?
+- [ ] Have you implemented and tested a PriorityQueue for task sorting?
+- [ ] Does binarySearch find tasks in log time on sorted data?
+- [ ] Integrated quickSort into TaskList; benchmark shows speedup on large arrays?
+
+## **What's Next?**
+
+Your app now scales efficiently. Next, we'll apply design patterns to make it more modular and maintainable.
+
+---
+
+#### **Expansion 2: Stage 10 - Design Patterns & Advanced Software Engineering**
+
+_(Paste after Stage 9.4; ~4 hours. Focuses on patterns with refactors and TDD.)_
+
+---
+
+# **Ultimate JavaScript Mastery: Stage 10 - Design Patterns & Advanced Software Engineering**
+
+## **Introduction: The Goal of This Stage**
+
+Your code works, but as teams grow, it needs structure. This stage teaches **design patterns** to solve recurring problems elegantly and **advanced SE practices** like TDD for robust code.
+
+We'll refactor our task app using patterns (e.g., Observer for real-time updates) and apply SOLID principles, with TDD for a new feature.
+
+By the end of this stage, you will have mastered:
+
+- Key patterns: Observer, Factory, Strategy.
+- **SOLID principles** with JS examples.
+- **TDD workflow** and dependency injection.
+- Achieving >85% test coverage via Jest.
+
+**Time Investment:** 4 hours
+
+---
+
+## **10.1: Why Patterns and SE Practices?**
+
+Patterns are proven blueprints; SE ensures code is clean, testable, scalable.
+
+**SOLID Quick Dive:**
+
+- **S**ingle Responsibility: One class, one job (e.g., TaskService ≠ UI).
+- **O**pen/Closed: Extend without modifying (e.g., Strategy for sorting algos).
+- **L**iskov: Subtypes interchangeable.
+- **I**nterface Segregation: Small, specific contracts.
+- **D**ependency Inversion: Depend on abstractions (e.g., DI for services).
+
+Trade-off: Patterns add abstraction—overuse bloats code.
+
+---
+
+## **10.2: Implementing Design Patterns**
+
+### **Observer Pattern for Task Updates**
+
+Observer notifies subscribers of changes (e.g., real-time task sync).
+
+Create `src/utils/Observer.js`:
+
+```javascript
+// src/utils/Observer.js
+export class Subject {
+  constructor() {
+    this.observers = [];
+  }
+
+  subscribe(observer) {
+    this.observers.push(observer);
+  }
+
+  unsubscribe(observer) {
+    this.observers = this.observers.filter((obs) => obs !== observer);
+  }
+
+  notify(data) {
+    this.observers.forEach((observer) => observer.update(data));
+  }
+}
+
+export class TaskObserver {
+  update(data) {
+    console.log(`Task updated: ${data.description}`);
+    // e.g., Trigger re-render or API sync
+  }
+}
+```
+
+**Integration:** In `App.tsx`, make tasks a Subject; subscribe TaskList.
+
+### **Factory Pattern for Task Types**
+
+Factory creates objects without specifying exact class (e.g., 'urgent' vs. 'normal' tasks).
+
+```javascript
+// src/utils/TaskFactory.js
+export class TaskFactory {
+  static create(type, description) {
+    switch (type) {
+      case "urgent":
+        return { ...description, priority: "high", notify: true };
+      default:
+        return { description, priority: "low" };
+    }
+  }
+}
+```
+
+**Strategy Pattern for Sorting**
+
+```javascript
+// src/utils/SortStrategy.js
+export class SortContext {
+  constructor(strategy) {
+    this.strategy = strategy;
+  }
+
+  setStrategy(strategy) {
+    this.strategy = strategy;
+  }
+
+  sort(tasks) {
+    return this.strategy(tasks);
+  }
+}
+
+export const quickSortStrategy = (tasks) =>
+  quickSort(tasks, (a, b) => a.priority - b.priority);
+```
+
+---
+
+## **10.3: Advanced SE - TDD and DI**
+
+### **TDD Workflow**
+
+Test-Driven Development: Red (write failing test) → Green (minimal code to pass) → Refactor.
+
+Install InversifyJS for DI: `npm i inversify reflect-metadata`.
+
+Example: TDD a "TaskValidator" service.
+
+1. **Red:** Write test in `tests/TaskValidator.test.js` expecting validation fail.
+2. **Green:** Implement minimal validator.
+3. **Refactor:** Use DI to inject into App.
+
+---
+
+## **10.4: Refactor and Test Coverage**
+
+Refactor `App` to use Factory/Strategy; inject via container.
+
+Run `npm test -- --coverage`—aim >85%. Fix gaps (e.g., edge cases).
+
+**Exercise/Mini-Challenge:**
+
+1. TDD a new "exportTasks" feature (CSV via PapaParse); apply Observer.
+2. Refactor sorting to Strategy; test SOLID violation fix.
+3. PR Simulation: Commit as feature branch, "review" with ESLint/Prettier.
+
+---
+
+## **Stage 10 Complete - Verification Checklist**
+
+- [ ] Implemented Observer; tasks notify on change?
+- [ ] Factory creates typed tasks; Strategy swaps sorters?
+- [ ] TDD'd a feature; coverage >85%?
+- [ ] Code follows SOLID (e.g., no god classes)?
+
+## **What's Next?**
+
+Patterns make your code extensible. Now, optimize for performance.
+
+---
+
+#### **Expansion 3: Stage 11 - JavaScript Internals & Performance**
+
+_(Paste after Stage 10; ~3 hours. Adds profiling exercises.)_
+
+---
+
+# **Ultimate JavaScript Mastery: Stage 11 - JavaScript Internals & Performance**
+
+## **Introduction: The Goal of This Stage**
+
+Under the hood, JS is magic—but magic breaks at scale. This stage explores **internals** (event loop, GC) and **performance tools** to make your app fly.
+
+We'll profile our task app, hunt leaks, and optimize renders.
+
+By the end of this stage, you will have mastered:
+
+- V8 internals (call stack, GC).
+- Profiling with DevTools/`--inspect`.
+- Optimizations targeting 20-50% gains.
+
+**Time Investment:** 3 hours
+
+---
+
+## **11.1: JS Internals Deep Dive**
+
+**Event Loop & Microtasks:** Single-threaded, but async via queue.
+
+Analogy: Chef (thread) delegates I/O (timers/promises) to sous-chefs (OS callbacks).
+
+Use `queueMicrotask` for next-tick ops.
+
+**GC & Memory:** V8 marks/sweeps; leaks from detached DOM or closures.
+
+Use WeakMap for cache without leaks.
+
+---
+
+## **11.2: Profiling Tools**
+
+**Frontend:** Chrome DevTools > Performance tab—record render of 1000 tasks.
+
+**Backend:** Node `--inspect`; Chrome connect, profile API calls.
+
+Example: Add `performance.now()` timings.
+
+```javascript
+// In server.ts endpoint
+const start = performance.now();
+const tasks = await prisma.task.findMany();
+const end = performance.now();
+console.log(`Query took ${end - start}ms`);
+```
+
+---
+
+## **11.3: Optimization Exercises**
+
+1. **Leak Hunt:** Add closure in useEffect holding refs; use DevTools Heap Snapshot to find/fix.
+2. **Render Opt:** Memoize TaskItem with `React.memo`; benchmark large list.
+3. **Backend Cache:** Use lru-cache lib for frequent queries; target 30% speedup.
+
+**Mini-Challenge:** Profile full app load; optimize to <500ms for 500 tasks.
+
+---
+
+## **Stage 11 Complete - Verification Checklist**
+
+- [ ] Explained microtask vs. macrotask with code demo?
+- [ ] Fixed a simulated memory leak?
+- [ ] Benchmarks show 20%+ improvement?
+
+## **What's Next?**
+
+Perf-tuned? Time for advanced libs and real-time.
+
+---
+
+#### **Expansion 4: Stage 12 - Advanced Libraries & Real-Time Applications**
+
+_(Paste after Stage 11; ~5 hours. Covers missing libs/projects.)_
+
+---
+
+# **Ultimate JavaScript Mastery: Stage 12 - Advanced Libraries & Real-Time Applications**
+
+## **Introduction: The Goal of This Stage**
+
+Your app is solid, but lacks visualization and collab. This stage adds **D3.js** for data viz, **Socket.io** for real-time, and **Electron** for desktop.
+
+Build a "real-time dashboard" project tying it together.
+
+By the end of this stage, you will have mastered:
+
+- D3.js for interactive charts.
+- Socket.io for websockets.
+- Electron for cross-platform desktop.
+
+**Time Investment:** 5 hours
+
+---
+
+## **12.1: Data Visualization with D3.js**
+
+D3 manipulates DOM based on data.
+
+Install: `npm i d3`.
+
+Create `src/components/TaskChart.jsx`:
+
+```jsx
+// src/components/TaskChart.jsx
+import * as d3 from "d3";
+
+export default function TaskChart({ tasks }) {
+  useEffect(() => {
+    const svg = d3
+      .select("#chart")
+      .append("svg")
+      .attr("width", 400)
+      .attr("height", 200);
+    const data = tasks.map((t) => ({ completed: t.completed ? 1 : 0 }));
+    const x = d3.scaleLinear().domain([0, data.length]).range([0, 400]);
+    svg
+      .selectAll("rect")
+      .data(data)
+      .enter()
+      .append("rect")
+      .attr("x", (d, i) => x(i))
+      .attr("y", (d) => (d.completed ? 100 : 150))
+      .attr("width", 10)
+      .attr("height", 50)
+      .attr("fill", (d) => (d.completed ? "green" : "red"));
+  }, [tasks]);
+  return <div id="chart"></div>;
+}
+```
+
+**Why?** Declarative data-binding; trade-off: Steep curve vs. Chart.js simplicity.
+
+---
+
+## **12.2: Real-Time with Socket.io**
+
+For live multi-user updates.
+
+Backend: `npm i socket.io`; in server.ts:
+
+```typescript
+import { Server } from "socket.io";
+const io = new Server(server);
+io.on("connection", (socket) => {
+  socket.on("addTask", (data) => io.emit("taskAdded", data));
+});
+```
+
+Frontend: `npm i socket.io-client`; in App:
+
+```tsx
+import io from "socket.io-client";
+const socket = io(API_URL);
+socket.on("taskAdded", (newTask) => setTasks((prev) => [...prev, newTask]));
+```
+
+---
+
+## **12.3: Desktop App with Electron**
+
+Wrap as executable.
+
+Install: `npm i electron --save-dev`; `electron-forge init`.
+
+`main.js`:
+
+```javascript
+const { app, BrowserWindow } = require("electron");
+app.whenReady().then(() => {
+  const win = new BrowserWindow({ width: 800, height: 600 });
+  win.loadFile("index.html"); // Your React build
+});
+```
+
+Build: `npm run make`.
+
+**Exercise:** Integrate D3 chart into Electron; add Socket.io for shared desktop collab.
+
+**Mini-Challenge:** What-if: Offline sync with IndexedDB; visualize pending changes.
+
+---
+
+## **Stage 12 Complete - Verification Checklist**
+
+- [ ] D3 chart shows task stats?
+- [ ] Socket.io broadcasts adds in real-time?
+- [ ] Electron builds/runs desktop app?
+
+## **What's Next?**
+
+App's multi-domain! Reflect in capstone.
+
+---
+
+#### **Expansion 5: Capstone Reflection & Modular Toolkit**
+
+_(Paste at tutorial end; ~1 hour. Ties everything together.)_
+
+---
+
+# **Ultimate JavaScript Mastery: Capstone - Reflection & Modular Toolkit**
+
+## **Introduction**
+
+You've built a pro app. Reflect, compile reusables, plan next.
+
+## **Reflection Prompts**
+
+1. Growth: How did DSA change your filtering approach?
+2. Gaps: What's weak (e.g., ML)? Plan a side project.
+3. OSS: Fork a repo (e.g., simple CLI); submit PR.
+
+## **Modular Toolkit**
+
+Reusable snippets:
+
+- **Typed Auth Hook:** `useAuth.ts` (from Stage 5+9).
+- **API Client:** Axios wrapper with interceptors.
+- **Perf Profiler:** Custom hook with performance.now().
+
+Share on GitHub; extend for jobs.
+
+## **Congratulations!**
+
+You're a JS engineer. Next: Contribute to xAI repos? 🚀
+
+---
+
+These expansions complete the tutorial to full requirements. Copy-paste as needed!
