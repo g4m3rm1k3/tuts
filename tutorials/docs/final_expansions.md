@@ -1,13 +1,9 @@
-Of course. I'll go through the tutorial you provided, **Stage 0**, and expand upon each section with the deeper details, Windows-specific information, and computer science fundamentals you're looking for. This will follow the original structure so you can read them side-by-side.
-
 ---
-
 # Stage 0: Absolute Beginner & Environment Setup (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
 This stage is about **building a reproducible and professional development environment**. The tools we install here are not arbitrary; they are the industry standard for Python and JavaScript development. Mastering your environment is the first step to becoming a self-sufficient developer who can solve problems instead of being blocked by them.
-
 ---
 
 ## 0.1: Understanding Your Computer's Operating System (Expanded)
