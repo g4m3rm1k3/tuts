@@ -12119,3 +12119,10346 @@ This symmetry is beautiful: `*args` packs positional arguments into a tuple, `*e
 [Continue in next response due to length...]
 
 Would you like me to continue with default arguments, the forwarding pattern, and signature design principles?
+
+# Default Arguments, Forwarding Pattern & Signature Design
+
+## Chapter: Advanced Parameter Handling
+
+---
+
+## Part 1: Default Arguments - The Complete Story
+
+### **How Default Arguments Really Work**
+
+When you write a function with default arguments, Python evaluates those defaults **once**, when the function is defined (at def time), not each time the function is called. This is one of the most misunderstood aspects of Python and leads to one of the most common bugs.
+
+Let's start with what seems safe:
+
+```python
+def greet(name, greeting="Hello"):
+    """
+    Simple function with an immutable default.
+
+    The default greeting is "Hello". Since strings are immutable,
+    this default is safe - it can't be accidentally modified.
+    """
+    return f"{greeting}, {name}!"
+
+# This works exactly as you'd expect
+print(greet("Alice"))           # Hello, Alice!
+print(greet("Bob", "Hi"))       # Hi, Bob!
+print(greet("Charlie"))         # Hello, Alice!
+
+# The default "Hello" is used fresh each time we don't provide a greeting
+```
+
+This works perfectly because strings are **immutable**. Even though the default `"Hello"` is created only once (when the function is defined), it doesn't matter - we can't modify it anyway.
+
+Now let's see where things go wrong:
+
+```python
+def add_item_broken(item, items=[]):
+    """
+    BROKEN: This looks innocent but has a critical bug!
+
+    We want to add an item to a list. If no list is provided,
+    we'll create a new empty list... right? WRONG!
+    """
+    items.append(item)
+    return items
+
+# First call - seems fine
+result1 = add_item_broken("apple")
+print(f"First call: {result1}")  # ['apple']
+
+# Second call - this is where it breaks!
+result2 = add_item_broken("banana")
+print(f"Second call: {result2}")  # ['apple', 'banana'] - Wait, what?!
+
+# Third call - it keeps getting worse
+result3 = add_item_broken("cherry")
+print(f"Third call: {result3}")  # ['apple', 'banana', 'cherry']
+
+# They're all the same list!
+print(f"\nAre they the same object?")
+print(f"result1 is result2: {result1 is result2}")  # True!
+print(f"result2 is result3: {result2 is result3}")  # True!
+
+# We can prove they're all pointing to the same list in memory
+print(f"\nMemory addresses:")
+print(f"result1: {id(result1)}")
+print(f"result2: {id(result2)}")
+print(f"result3: {id(result3)}")
+```
+
+**What's happening under the hood:**
+
+1. When Python sees `def add_item_broken(item, items=[]):`, it creates an empty list `[]` and stores it as the default value for the `items` parameter
+2. This list is created **once** and stored in the function object
+3. Every time you call the function without providing `items`, Python uses **the same list object**
+4. When you append to it, you're modifying the shared list that all calls see
+
+This is not a bug in Python - it's by design! Default arguments are part of the function object, not created fresh for each call. Let's look at where this default is actually stored:
+
+```python
+# Default arguments are stored in the function object
+print(f"\nWhere defaults are stored:")
+print(f"Function defaults: {add_item_broken.__defaults__}")
+# Output: (['apple', 'banana', 'cherry'],)
+
+# It's a tuple containing our shared list!
+# Let's get a reference to it
+shared_list = add_item_broken.__defaults__[0]
+print(f"The shared list: {shared_list}")
+
+# We can even modify it directly!
+shared_list.append("date")
+result4 = add_item_broken("elderberry")
+print(f"Fourth call: {result4}")
+# ['apple', 'banana', 'cherry', 'date', 'elderberry']
+```
+
+### **The Correct Way: Using None as a Sentinel**
+
+The standard Python idiom to handle mutable defaults is to use `None` as a sentinel value and create the mutable object inside the function:
+
+```python
+def add_item_correct(item, items=None):
+    """
+    CORRECT: Use None as default, create new list inside.
+
+    Why this works:
+    1. None is immutable and safe as a default
+    2. We check if items is None on each call
+    3. If it is, we create a NEW list (fresh for this call)
+    4. Each call gets its own list
+    """
+    if items is None:
+        items = []  # Create a fresh list for THIS call
+
+    items.append(item)
+    return items
+
+# Now each call gets its own list
+result1 = add_item_correct("apple")
+print(f"First call: {result1}")   # ['apple']
+
+result2 = add_item_correct("banana")
+print(f"Second call: {result2}")  # ['banana'] - Correct!
+
+result3 = add_item_correct("cherry")
+print(f"Third call: {result3}")   # ['cherry'] - Each is separate!
+
+# Verify they're different objects
+print(f"\nAre they different objects?")
+print(f"result1 is result2: {result1 is result2}")  # False - Good!
+print(f"Memory addresses are different:")
+print(f"  result1: {id(result1)}")
+print(f"  result2: {id(result2)}")
+print(f"  result3: {id(result3)}")
+
+# You can still pass your own list
+my_list = ["existing"]
+result4 = add_item_correct("new", my_list)
+print(f"\nWith existing list: {result4}")  # ['existing', 'new']
+```
+
+**Why use `None` specifically?** While you could use other sentinels, `None` is the standard Python convention because:
+
+1. It's a singleton - there's only one `None` object in Python
+2. It's the natural representation of "nothing provided"
+3. You can test it with `is None` (identity check) which is faster than `== None`
+4. Every Python programmer recognizes this pattern immediately
+
+### **When Mutable Defaults Are Actually Useful**
+
+Now that you know mutable defaults are shared across calls, you might wonder: is this ever useful? Yes! Sometimes you _want_ to maintain state across function calls:
+
+```python
+def counter(value, counts={}):
+    """
+    Uses a mutable default to maintain state across calls.
+
+    This is actually useful for caching and memoization patterns.
+    Each unique value gets counted in the shared dictionary.
+    """
+    if value not in counts:
+        counts[value] = 0
+    counts[value] += 1
+    return counts[value]
+
+# The shared dict accumulates counts across calls
+print(counter("apple"))   # 1
+print(counter("banana"))  # 1
+print(counter("apple"))   # 2
+print(counter("apple"))   # 3
+print(counter("banana"))  # 2
+
+# Inspect the shared state
+print(f"\nShared state: {counter.__defaults__[0]}")
+# {'apple': 3, 'banana': 2}
+```
+
+This pattern is used in memoization (caching function results) and other cases where you want persistence across calls. However, it's rare and should be documented clearly. The `functools.lru_cache` decorator is a better way to do memoization in modern Python.
+
+### **Default Arguments and Scope**
+
+Default arguments are evaluated in the **enclosing scope** at definition time, which can lead to surprising behavior:
+
+```python
+# Example 1: Defaults capture values at definition time
+x = 5
+
+def show_x(value=x):
+    """Uses x's value at the time the function was defined"""
+    return value
+
+print(show_x())  # 5
+
+# Change x
+x = 10
+print(show_x())  # Still 5! The default was captured when the function was defined
+
+# Example 2: This matters for loops
+def create_functions_broken():
+    """
+    Try to create functions that multiply by 1, 2, 3.
+    This doesn't work as expected!
+    """
+    functions = []
+    for i in range(1, 4):
+        def multiply(x, n=i):
+            return x * n
+        functions.append(multiply)
+    return functions
+
+# Test them
+funcs = create_functions_broken()
+print(f"func[0](10): {funcs[0](10)}")  # Expected 10, got 30!
+print(f"func[1](10): {funcs[1](10)}")  # Expected 20, got 30!
+print(f"func[2](10): {funcs[2](10)}")  # Expected 30, got 30!
+
+# Why? Because i = 3 when the loop finished, and all three
+# functions captured the LAST value of i
+```
+
+Wait, that example actually works correctly! Let me fix it to show the actual problem:
+
+```python
+def create_functions_broken():
+    """
+    Without default arguments, all functions see the same 'i'.
+    """
+    functions = []
+    for i in range(1, 4):
+        def multiply(x):
+            return x * i  # Captures 'i' from enclosing scope
+        functions.append(multiply)
+    return functions
+
+# Test them
+funcs = create_functions_broken()
+print(f"func[0](10): {funcs[0](10)}")  # 30 (uses i=3)
+print(f"func[1](10): {funcs[1](10)}")  # 30 (uses i=3)
+print(f"func[2](10): {funcs[2](10)}")  # 30 (uses i=3)
+
+# But with defaults, we capture the value at definition time
+def create_functions_fixed():
+    """
+    Using default arguments captures i's value at each iteration.
+    """
+    functions = []
+    for i in range(1, 4):
+        def multiply(x, n=i):  # n=i captures i's CURRENT value
+            return x * n
+        functions.append(multiply)
+    return functions
+
+funcs = create_functions_fixed()
+print(f"func[0](10): {funcs[0](10)}")  # 10 (uses n=1)
+print(f"func[1](10): {funcs[1](10)}")  # 20 (uses n=2)
+print(f"func[2](10): {funcs[2](10)}")  # 30 (uses n=3)
+```
+
+---
+
+## Part 2: The Forwarding Pattern
+
+### **What Is the Forwarding Pattern?**
+
+The forwarding pattern is when a function receives arguments and passes them along to another function, acting as an intermediary. This is extremely common in Python, appearing in:
+
+- Decorators (wrapping functions)
+- Wrapper classes (delegating to wrapped objects)
+- API layers (adapting interfaces)
+- Middleware (processing before/after passing through)
+
+The pattern uses `*args` and `**kwargs` to accept any arguments and forward them without caring about the specifics.
+
+### **Basic Forwarding**
+
+Let's start with a simple example:
+
+```python
+def original_function(a, b, c=10):
+    """The function we want to wrap"""
+    return a + b + c
+
+def forwarding_wrapper(*args, **kwargs):
+    """
+    Forwards all arguments to original_function.
+
+    This wrapper doesn't care what arguments are passed.
+    It accepts everything and passes everything through.
+    """
+    print("Before calling original_function")
+    result = original_function(*args, **kwargs)
+    print("After calling original_function")
+    return result
+
+# All these work, even though the wrapper doesn't know the signature
+print(forwarding_wrapper(1, 2))           # Forwards: original_function(1, 2)
+print(forwarding_wrapper(1, 2, 3))        # Forwards: original_function(1, 2, 3)
+print(forwarding_wrapper(1, 2, c=5))      # Forwards: original_function(1, 2, c=5)
+print(forwarding_wrapper(a=1, b=2, c=7))  # Forwards: original_function(a=1, b=2, c=7)
+```
+
+**Why this works:**
+
+1. `*args` captures all positional arguments as a tuple
+2. `**kwargs` captures all keyword arguments as a dict
+3. When we call `original_function(*args, **kwargs)`, we unpack them
+4. The unpacking passes arguments in exactly the same way they came in
+
+### **Partial Forwarding: Intercepting Some Arguments**
+
+Sometimes you want to intercept specific arguments while forwarding the rest:
+
+```python
+def original_function(a, b, c=10, d=20):
+    """Function that takes multiple arguments"""
+    return f"a={a}, b={b}, c={c}, d={d}"
+
+def partial_forwarding(a, *args, **kwargs):
+    """
+    Intercepts 'a', forwards everything else.
+
+    This is useful when you want to:
+    - Validate specific parameters
+    - Modify specific parameters
+    - Log specific parameters
+    - But pass everything else through unchanged
+    """
+    print(f"Intercepted 'a': {a}")
+
+    # Maybe modify it
+    a = a * 2
+
+    # Forward the modified 'a' plus everything else
+    return original_function(a, *args, **kwargs)
+
+print(partial_forwarding(5, 10))
+# Intercepted 'a': 5
+# Returns: a=10, b=10, c=10, d=20
+
+print(partial_forwarding(5, 10, 15, d=30))
+# Intercepted 'a': 5
+# Returns: a=10, b=10, c=15, d=30
+```
+
+You can also intercept keyword arguments:
+
+```python
+def keyword_intercepting(*args, special_flag=False, **kwargs):
+    """
+    Intercepts 'special_flag', forwards everything else.
+
+    Note: 'special_flag' appears between *args and **kwargs.
+    This makes it a keyword-only argument.
+    """
+    if special_flag:
+        print("Special processing enabled!")
+
+    # Forward everything except special_flag
+    return original_function(*args, **kwargs)
+
+print(keyword_intercepting(1, 2, special_flag=True))
+# Special processing enabled!
+# Returns: a=1, b=2, c=10, d=20
+
+# special_flag is consumed by the wrapper, not forwarded
+```
+
+### **The Decorator Forwarding Pattern**
+
+This is where forwarding shines. Decorators use forwarding to work with any function:
+
+```python
+def timing_decorator(func):
+    """
+    Decorator that times function execution.
+
+    Uses forwarding pattern to work with any function signature.
+    """
+    import time
+
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)  # Forward to original function
+        end = time.time()
+
+        print(f"{func.__name__} took {end - start:.4f} seconds")
+        return result
+
+    return wrapper
+
+@timing_decorator
+def slow_function(n):
+    """A function that takes some time"""
+    total = 0
+    for i in range(n):
+        total += i
+    return total
+
+@timing_decorator
+def another_function(a, b, c=10):
+    """Different signature, same decorator works!"""
+    return a + b + c
+
+# Both work with the same decorator
+print(slow_function(1000000))
+print(another_function(1, 2, 3))
+```
+
+### **Advanced: Forwarding with Modification**
+
+Sometimes you want to modify arguments before forwarding them:
+
+```python
+def original_function(name, age, city="Unknown"):
+    return f"{name} is {age} years old and lives in {city}"
+
+def validating_wrapper(*args, **kwargs):
+    """
+    Validates and modifies arguments before forwarding.
+
+    This shows how to manipulate arguments while forwarding.
+    """
+    # Convert args to a list so we can modify it
+    args_list = list(args)
+
+    # Validate/modify first argument (name)
+    if args_list and len(args_list) > 0:
+        args_list[0] = args_list[0].strip().title()
+
+    # Validate/modify age if it's in kwargs
+    if 'age' in kwargs:
+        if kwargs['age'] < 0:
+            kwargs['age'] = 0
+    elif len(args_list) > 1:
+        # Age is positional argument
+        if args_list[1] < 0:
+            args_list[1] = 0
+
+    # Forward modified arguments
+    return original_function(*args_list, **kwargs)
+
+print(validating_wrapper("john doe", -5))
+# Corrects name to "John Doe" and age to 0
+# Returns: John Doe is 0 years old and lives in Unknown
+
+print(validating_wrapper("  alice SMITH  ", age=25, city="NYC"))
+# Returns: Alice Smith is 25 years old and lives in NYC
+```
+
+### **Forwarding to Multiple Functions**
+
+You can forward to multiple functions (fanout pattern):
+
+```python
+def fanout_wrapper(*args, **kwargs):
+    """
+    Forwards to multiple functions, collects results.
+
+    Useful for:
+    - Event systems (notify multiple listeners)
+    - Pipeline processing (multiple transformations)
+    - Logging/monitoring (multiple handlers)
+    """
+    results = []
+
+    functions = [func1, func2, func3]
+
+    for func in functions:
+        try:
+            result = func(*args, **kwargs)
+            results.append(result)
+        except Exception as e:
+            results.append(f"Error in {func.__name__}: {e}")
+
+    return results
+
+def func1(x): return x * 2
+def func2(x): return x ** 2
+def func3(x): return x + 10
+
+print(fanout_wrapper(5))
+# [10, 25, 15]
+```
+
+---
+
+## Part 3: Signature Design Principles
+
+### **Principle 1: Make Required Parameters Positional**
+
+Required parameters should come first and be positional-or-keyword:
+
+```python
+# GOOD: Clear what's required
+def create_user(username, email, password):
+    """Username, email, password are clearly required"""
+    pass
+
+# BAD: Everything optional is confusing
+def create_user(username=None, email=None, password=None):
+    """What's actually required? Unclear!"""
+    if username is None or email is None or password is None:
+        raise ValueError("Missing required parameters")
+```
+
+**Why:** Making required parameters positional makes it obvious what must be provided. Users can't accidentally skip them.
+
+### **Principle 2: Use Keyword-Only for Configuration**
+
+Options and configuration should be keyword-only (after `*`):
+
+```python
+# GOOD: Configuration is explicit
+def connect_database(host, port, *, timeout=30, retry=3, ssl=True):
+    """
+    Connect to database.
+
+    host, port: Required connection details
+    timeout, retry, ssl: Optional configuration (keyword-only)
+    """
+    pass
+
+# Must be called with keywords for config
+connect_database("localhost", 5432, timeout=60, ssl=False)
+
+# BAD: Can't tell what the numbers mean
+def connect_database_bad(host, port, timeout=30, retry=3, ssl=True):
+    pass
+
+# This is confusing to read
+connect_database_bad("localhost", 5432, 60, 5, False)
+```
+
+**Why:** Keyword-only parameters are self-documenting. When you see `timeout=60` in the call, you immediately know what it means.
+
+### **Principle 3: Use Positional-Only for Implementation Details**
+
+If a parameter is purely an implementation detail that users shouldn't rely on by name, make it positional-only (before `/`):
+
+```python
+# GOOD: Internal details are positional-only
+def calculate_hash(data, /, algorithm='sha256'):
+    """
+    Calculate hash of data.
+
+    data: Positional-only (implementation detail)
+    algorithm: Keyword-or-positional (user-facing option)
+    """
+    pass
+
+# Can't do this (which is good - 'data' might be renamed internally)
+# calculate_hash(data="hello")  # ERROR
+
+# Must use positionally
+calculate_hash("hello")
+calculate_hash("hello", algorithm='md5')
+```
+
+**Why:** This gives you freedom to rename parameters without breaking user code. If users can't pass `data` by keyword, you can rename it to `input_data` internally without breaking anything.
+
+### **Principle 4: Limit the Number of Parameters**
+
+Functions with many parameters are hard to use correctly:
+
+```python
+# BAD: Too many parameters
+def create_report(title, author, date, format, paper_size,
+                  margins, font, font_size, line_spacing,
+                  page_numbers, header, footer, toc):
+    pass
+
+# GOOD: Group related parameters
+class ReportConfig:
+    def __init__(self, format='pdf', paper_size='A4',
+                 margins=1.0, font='Arial', font_size=12):
+        self.format = format
+        self.paper_size = paper_size
+        self.margins = margins
+        self.font = font
+        self.font_size = font_size
+
+def create_report(title, author, date, *, config=None):
+    if config is None:
+        config = ReportConfig()
+    # Use config.format, config.paper_size, etc.
+    pass
+
+# Much cleaner to use
+config = ReportConfig(format='docx', font_size=14)
+create_report("My Report", "John", "2025-10-04", config=config)
+```
+
+**Rule of thumb:** If you have more than 5 parameters, consider grouping them.
+
+### **Principle 5: Design for the Common Case**
+
+Default values should represent the most common usage:
+
+```python
+# GOOD: Defaults are sensible for 90% of use cases
+def send_email(to, subject, body, *,
+               cc=None, bcc=None,
+               attachments=None,
+               priority='normal',
+               format='html'):
+    pass
+
+# Most calls can be simple
+send_email("user@example.com", "Hello", "Welcome!")
+
+# Power users can override
+send_email("user@example.com", "Urgent", "Please respond",
+           priority='high', cc=['boss@example.com'])
+
+# BAD: Defaults force you to always specify everything
+def send_email_bad(to, subject, body, *,
+                   priority, format):  # No defaults!
+    pass
+
+# Always have to specify everything
+send_email_bad("user@example.com", "Hello", "Welcome!",
+               priority='normal', format='html')
+```
+
+### **Principle 6: Accept Flexible Input, Return Specific Output**
+
+Be liberal in what you accept, conservative in what you return:
+
+```python
+from typing import Union
+from pathlib import Path
+
+# GOOD: Accepts multiple input types
+def read_file(path: Union[str, Path]) -> str:
+    """
+    Read file contents.
+
+    Accepts: string path or Path object
+    Returns: Always returns string (specific)
+    """
+    if isinstance(path, str):
+        path = Path(path)
+
+    return path.read_text()
+
+# Users can pass either type
+content1 = read_file("data.txt")
+content2 = read_file(Path("data.txt"))
+
+# But output is always consistent
+assert isinstance(content1, str)
+assert isinstance(content2, str)
+```
+
+### **Principle 7: Use Type Hints for Complex Signatures**
+
+Type hints make complex signatures understandable:
+
+```python
+from typing import List, Dict, Optional, Callable
+
+# GOOD: Type hints clarify intent
+def process_data(
+    data: List[Dict[str, int]],
+    *,
+    filter_func: Optional[Callable[[Dict], bool]] = None,
+    sort_key: Optional[str] = None,
+    limit: Optional[int] = None
+) -> List[Dict[str, int]]:
+    """
+    Process a list of dictionaries.
+
+    Args:
+        data: List of dictionaries with string keys and int values
+        filter_func: Optional function to filter items
+        sort_key: Optional key to sort by
+        limit: Optional maximum number of results
+
+    Returns:
+        Processed list of dictionaries
+    """
+    result = data[:]
+
+    if filter_func:
+        result = [item for item in result if filter_func(item)]
+
+    if sort_key:
+        result = sorted(result, key=lambda x: x.get(sort_key, 0))
+
+    if limit:
+        result = result[:limit]
+
+    return result
+
+# Type hints make it clear how to call this
+data = [
+    {"name": "Alice", "score": 95},
+    {"name": "Bob", "score": 87},
+    {"name": "Charlie", "score": 92}
+]
+
+# IDE can now provide autocomplete and type checking
+result = process_data(
+    data,
+    filter_func=lambda x: x["score"] > 90,
+    sort_key="score",
+    limit=2
+)
+```
+
+### **Principle 8: Avoid Boolean Flags**
+
+Boolean flags often indicate a function is doing too much:
+
+```python
+# BAD: Boolean flag changes behavior dramatically
+def save_file(filename, data, compress=False):
+    if compress:
+        # Completely different code path
+        compressed_data = compress_data(data)
+        write_compressed(filename, compressed_data)
+    else:
+        write_normal(filename, data)
+
+# BETTER: Separate functions
+def save_file(filename, data):
+    """Save file normally"""
+    write_normal(filename, data)
+
+def save_file_compressed(filename, data):
+    """Save file with compression"""
+    compressed_data = compress_data(data)
+    write_compressed(filename, compressed_data)
+
+# Even better: Use enum for multiple options
+from enum import Enum
+
+class SaveFormat(Enum):
+    NORMAL = "normal"
+    COMPRESSED = "compressed"
+    ENCRYPTED = "encrypted"
+
+def save_file(filename, data, format=SaveFormat.NORMAL):
+    """Save file with specified format"""
+    if format == SaveFormat.COMPRESSED:
+        compressed_data = compress_data(data)
+        write_compressed(filename, compressed_data)
+    elif format == SaveFormat.ENCRYPTED:
+        encrypted_data = encrypt_data(data)
+        write_encrypted(filename, encrypted_data)
+    else:
+        write_normal(filename, data)
+
+# Self-documenting call
+save_file("data.bin", my_data, format=SaveFormat.COMPRESSED)
+```
+
+---
+
+## Summary
+
+**Default Arguments:**
+
+- Evaluated once at definition time, not call time
+- Mutable defaults are shared across all calls (gotcha!)
+- Use `None` as sentinel for mutable defaults
+- Defaults capture values from enclosing scope at definition time
+
+**Forwarding Pattern:**
+
+- Use `*args, **kwargs` to forward arbitrary arguments
+- Common in decorators, wrappers, middleware
+- Can intercept specific arguments while forwarding others
+- Enables generic, reusable code
+
+**Signature Design:**
+
+- Required parameters first (positional-or-keyword)
+- Configuration as keyword-only (after `*`)
+- Implementation details as positional-only (before `/`)
+- Limit parameter count (group if > 5)
+- Defaults for common cases
+- Type hints for clarity
+- Avoid boolean flags
+
+These principles will help you write APIs that are easy to use correctly and hard to use incorrectly.
+
+# Python Deep Dive Part 2: Closures, Decorators & Functional Programming
+
+## Advanced Functions in Practice
+
+---
+
+## Part 4: Closures - Functions That Remember
+
+### **What Is a Closure?**
+
+A closure is a function that "remembers" variables from its enclosing scope, even after that scope has finished executing. This is one of Python's most powerful features, but it's often mysterious to beginners.
+
+Let's start with the basic concept:
+
+```python
+def outer_function(x):
+    """
+    This is the outer function. It takes a parameter 'x'.
+
+    When we define inner_function inside, the inner function
+    can "see" x from the outer scope.
+    """
+
+    def inner_function(y):
+        """
+        This is the inner function (nested function).
+
+        Notice: We're using 'x' here, but x is not a parameter
+        of inner_function. It comes from outer_function's scope.
+        """
+        return x + y
+
+    # Return the inner function itself (not calling it!)
+    return inner_function
+
+# Call outer_function with x=10
+# This returns inner_function, which "remembers" that x=10
+add_10 = outer_function(10)
+
+# Now when we call add_10, it still knows x=10
+print(add_10(5))   # 10 + 5 = 15
+print(add_10(20))  # 10 + 20 = 30
+
+# Create another closure with a different x
+add_100 = outer_function(100)
+print(add_100(5))  # 100 + 5 = 105
+
+# The two closures are independent - they remember different values of x
+print(add_10(5))   # Still 15 - add_10 remembers x=10
+print(add_100(5))  # Still 105 - add_100 remembers x=100
+```
+
+**What's happening under the hood:**
+
+1. When `outer_function(10)` runs, Python creates a new scope with `x=10`
+2. Inside that scope, we define `inner_function`
+3. When we `return inner_function`, we're returning the function object
+4. But here's the magic: `inner_function` carries with it a reference to `x`
+5. Even though `outer_function` has finished executing, `x` is kept alive because `inner_function` needs it
+6. This combination of function + remembered environment = **closure**
+
+Let's verify what's actually stored:
+
+```python
+def outer(x):
+    def inner(y):
+        return x + y
+    return inner
+
+closure = outer(42)
+
+# Every function has a __closure__ attribute
+print(f"Closure cells: {closure.__closure__}")
+# Output: (<cell at 0x...: int object at 0x...>,)
+
+# This is a tuple of "cell" objects. Each cell holds a value.
+if closure.__closure__:
+    for cell in closure.__closure__:
+        print(f"  Cell contents: {cell.cell_contents}")
+        # Output: Cell contents: 42
+
+# The closure "closed over" the variable x, storing its value
+```
+
+### **The LEGB Rule: How Python Looks Up Variables**
+
+To understand closures, you need to understand Python's scope resolution. Python follows the **LEGB** rule:
+
+- **L**ocal: Variables defined in the current function
+- **E**nclosing: Variables in outer functions (this is where closures come in!)
+- **G**lobal: Variables defined at the module level
+- **B**uilt-in: Python's built-in names (like `print`, `len`, etc.)
+
+Python searches for a variable in this order: Local → Enclosing → Global → Built-in.
+
+```python
+# Built-in scope: Python provides these
+# (like print, len, str, etc.)
+
+# Global scope: Module level
+global_var = "I'm global"
+
+def outer():
+    # Enclosing scope: Outer function
+    enclosing_var = "I'm in the enclosing scope"
+
+    def inner():
+        # Local scope: Current function
+        local_var = "I'm local"
+
+        # Python searches in LEGB order:
+        print(local_var)      # Found in Local
+        print(enclosing_var)  # Not in Local, found in Enclosing
+        print(global_var)     # Not in Local/Enclosing, found in Global
+        print(len([1, 2, 3])) # Not in L/E/G, found in Built-in
+
+    inner()
+
+outer()
+```
+
+Here's a more complex example showing the LEGB rule in action:
+
+```python
+x = "global x"
+
+def outer():
+    x = "enclosing x"
+
+    def inner():
+        x = "local x"
+        print(f"Inner sees: {x}")  # local x
+
+    inner()
+    print(f"Outer sees: {x}")  # enclosing x
+
+outer()
+print(f"Global sees: {x}")  # global x
+
+# Output:
+# Inner sees: local x
+# Outer sees: enclosing x
+# Global sees: global x
+```
+
+Each scope has its own `x`, and Python finds the "closest" one.
+
+### **Modifying Enclosed Variables: The `nonlocal` Keyword**
+
+Here's where things get interesting. What if you want to **modify** a variable from an enclosing scope?
+
+```python
+def counter_broken():
+    """
+    Try to create a counter function.
+    This WON'T work as expected!
+    """
+    count = 0
+
+    def increment():
+        # ERROR: We're trying to modify count from the enclosing scope
+        count = count + 1  # UnboundLocalError!
+        return count
+
+    return increment
+
+# This will crash when we try to call it
+# counter = counter_broken()
+# print(counter())  # UnboundLocalError: local variable 'count' referenced before assignment
+```
+
+**Why does this fail?**
+
+When Python sees `count = count + 1`, it thinks: "There's an assignment to `count`, so `count` must be a local variable." But then when it tries to evaluate `count + 1`, it finds that `count` hasn't been assigned yet in the local scope!
+
+This is a classic Python gotcha. The solution is the `nonlocal` keyword:
+
+```python
+def counter_working():
+    """
+    Working counter using nonlocal.
+
+    The nonlocal keyword tells Python: "count is not local,
+    look for it in the enclosing scope."
+    """
+    count = 0
+
+    def increment():
+        nonlocal count  # "count refers to the one in the enclosing scope"
+        count = count + 1
+        return count
+
+    return increment
+
+# Now it works!
+counter = counter_working()
+print(counter())  # 1
+print(counter())  # 2
+print(counter())  # 3
+
+# Each call increments the same count variable
+```
+
+Let's compare `nonlocal` with `global`:
+
+```python
+# Global variable
+total = 0
+
+def global_example():
+    """Modify a global variable"""
+    global total  # "total refers to the global variable"
+    total += 1
+    return total
+
+def nonlocal_example():
+    """Create a closure with nonlocal"""
+    count = 0
+
+    def increment():
+        nonlocal count  # "count refers to the enclosing scope's variable"
+        count += 1
+        return count
+
+    return increment
+
+# Global: All calls share the same global variable
+print("Global example:")
+print(global_example())  # 1
+print(global_example())  # 2
+print(total)             # 2 - global variable modified
+
+# Nonlocal: Each closure has its own enclosing scope
+print("\nNonlocal example:")
+counter1 = nonlocal_example()
+counter2 = nonlocal_example()
+
+print(counter1())  # 1 - counter1's count
+print(counter1())  # 2 - counter1's count
+print(counter2())  # 1 - counter2 has its own count!
+print(counter1())  # 3 - counter1's count continues
+```
+
+**Key difference:** `global` refers to module-level variables (shared by everyone), while `nonlocal` refers to enclosing function scope (separate for each closure).
+
+### **Practical Closure Example: Function Factories**
+
+Closures are perfect for creating specialized versions of functions:
+
+```python
+def make_multiplier(factor):
+    """
+    Factory function that creates multiplier functions.
+
+    Each returned function remembers its own 'factor'.
+    This is useful when you need many similar functions
+    with different parameters.
+    """
+    def multiplier(x):
+        """Multiply x by the remembered factor"""
+        return x * factor
+
+    return multiplier
+
+# Create specialized functions
+double = make_multiplier(2)
+triple = make_multiplier(3)
+times_10 = make_multiplier(10)
+
+# Each function remembers its own factor
+print(double(5))     # 10
+print(triple(5))     # 15
+print(times_10(5))   # 50
+
+# Use them with map, filter, etc.
+numbers = [1, 2, 3, 4, 5]
+doubled = list(map(double, numbers))
+print(f"Doubled: {doubled}")  # [2, 4, 6, 8, 10]
+```
+
+Real-world example - creating validators:
+
+```python
+def make_range_validator(min_val, max_val):
+    """
+    Creates a validator function for a specific range.
+
+    This is useful in form validation, data cleaning, etc.
+    Instead of passing min/max every time, create specialized
+    validators that remember their ranges.
+    """
+    def validator(value):
+        """Check if value is in the remembered range"""
+        if value < min_val:
+            return False, f"Value {value} is below minimum {min_val}"
+        if value > max_val:
+            return False, f"Value {value} is above maximum {max_val}"
+        return True, "Valid"
+
+    return validator
+
+# Create specialized validators
+validate_age = make_range_validator(0, 120)
+validate_percentage = make_range_validator(0, 100)
+validate_temperature = make_range_validator(-273, 1000)  # Celsius
+
+# Use them
+print(validate_age(25))        # (True, 'Valid')
+print(validate_age(150))       # (False, 'Value 150 is above maximum 120')
+print(validate_percentage(95)) # (True, 'Valid')
+print(validate_percentage(105))# (False, 'Value 105 is above maximum 100')
+```
+
+### **Closure Exercise 1: Bank Account**
+
+Let's practice with a more complex example:
+
+```python
+def create_bank_account(initial_balance):
+    """
+    Creates a bank account using closures.
+
+    The balance is "private" - it's hidden in the closure.
+    The only way to access it is through the returned functions.
+
+    This demonstrates data encapsulation using closures.
+    """
+    balance = initial_balance  # This is "private"
+
+    def deposit(amount):
+        """Add money to the account"""
+        nonlocal balance
+        if amount > 0:
+            balance += amount
+            return f"Deposited ${amount}. New balance: ${balance}"
+        return "Deposit amount must be positive"
+
+    def withdraw(amount):
+        """Remove money from the account"""
+        nonlocal balance
+        if amount > balance:
+            return f"Insufficient funds. Balance: ${balance}"
+        if amount > 0:
+            balance -= amount
+            return f"Withdrew ${amount}. New balance: ${balance}"
+        return "Withdrawal amount must be positive"
+
+    def get_balance():
+        """Check current balance"""
+        return f"Current balance: ${balance}"
+
+    # Return a dictionary of functions (like an API)
+    return {
+        'deposit': deposit,
+        'withdraw': withdraw,
+        'balance': get_balance
+    }
+
+# Create accounts
+alice_account = create_bank_account(1000)
+bob_account = create_bank_account(500)
+
+# Use Alice's account
+print(alice_account['balance']())      # Current balance: $1000
+print(alice_account['deposit'](200))   # Deposited $200. New balance: $1200
+print(alice_account['withdraw'](300))  # Withdrew $300. New balance: $900
+
+# Bob's account is completely separate
+print(bob_account['balance']())        # Current balance: $500
+print(bob_account['withdraw'](200))    # Withdrew $200. New balance: $300
+
+# The 'balance' variable is private - you can't access it directly!
+# alice_account.balance  # This doesn't work - balance is hidden in the closure
+```
+
+**Exercise: Extend the bank account**
+Add these features:
+
+1. A transaction history (list of all deposits/withdrawals)
+2. A `get_history()` function to view transactions
+3. An overdraft limit (you can go negative up to a limit)
+
+```python
+def create_bank_account_advanced(initial_balance, overdraft_limit=0):
+    """
+    YOUR TASK: Implement this enhanced bank account.
+
+    Requirements:
+    - Keep track of balance (like before)
+    - Keep a transaction history (list of strings)
+    - Allow overdraft up to overdraft_limit
+    - Add timestamps to transactions (use datetime)
+
+    Return functions:
+    - deposit(amount)
+    - withdraw(amount)
+    - get_balance()
+    - get_history()
+    - get_overdraft_remaining()
+    """
+    # YOUR CODE HERE
+    pass
+
+# Test your implementation:
+# account = create_bank_account_advanced(1000, overdraft_limit=200)
+# print(account['deposit'](500))
+# print(account['withdraw'](1600))  # Should work (1500 + 200 overdraft)
+# print(account['get_history']())
+```
+
+---
+
+## Part 5: Decorators - Functions That Modify Functions
+
+### **Understanding Decorators from First Principles**
+
+A decorator is a function that takes a function as input and returns a modified version of that function. Let's build up to decorators step by step.
+
+**Step 1: Functions are objects**
+
+```python
+def greet():
+    """A simple function"""
+    return "Hello!"
+
+# Functions are objects - they can be assigned to variables
+my_function = greet
+print(my_function())  # Hello!
+
+# Functions can be passed as arguments
+def call_function(func):
+    """Take a function and call it"""
+    return func()
+
+result = call_function(greet)
+print(result)  # Hello!
+```
+
+**Step 2: Functions can return functions**
+
+```python
+def create_greeter():
+    """Return a new function"""
+    def greet():
+        return "Hello from inside!"
+    return greet
+
+# Get the function
+greeter = create_greeter()
+print(greeter())  # Hello from inside!
+```
+
+**Step 3: Functions can wrap other functions**
+
+```python
+def make_loud(func):
+    """
+    Take a function and return a modified version that makes output LOUD.
+
+    This is the essence of a decorator:
+    - Take a function
+    - Create a new function that modifies its behavior
+    - Return the new function
+    """
+    def loud_version():
+        """The new function that wraps the original"""
+        # Call the original function
+        result = func()
+        # Modify the result
+        return result.upper() + "!!!"
+
+    return loud_version
+
+def greet():
+    return "hello"
+
+# Manually wrap the function
+loud_greet = make_loud(greet)
+print(loud_greet())  # HELLO!!!
+
+# The original is unchanged
+print(greet())  # hello
+```
+
+**Step 4: The @ syntax**
+
+Python provides special syntax for applying decorators:
+
+```python
+def make_loud(func):
+    """Decorator that makes output loud"""
+    def wrapper():
+        result = func()
+        return result.upper() + "!!!"
+    return wrapper
+
+# Instead of: greet = make_loud(greet)
+# We can use @ syntax:
+@make_loud
+def greet():
+    """This function is automatically wrapped"""
+    return "hello"
+
+# Now when we call greet(), we're actually calling the wrapped version
+print(greet())  # HELLO!!!
+
+# This is equivalent to:
+# def greet():
+#     return "hello"
+# greet = make_loud(greet)
+```
+
+The `@decorator` syntax is just syntactic sugar. It's doing the exact same thing as manually wrapping the function.
+
+### **Building a Proper Decorator**
+
+Let's create a decorator that times function execution. We'll build it step by step, adding features:
+
+```python
+import time
+
+# Version 1: Basic timing decorator (doesn't handle arguments)
+def timer_v1(func):
+    """Times how long a function takes to execute"""
+    def wrapper():
+        start = time.time()
+        result = func()
+        end = time.time()
+        print(f"{func.__name__} took {end - start:.4f} seconds")
+        return result
+    return wrapper
+
+@timer_v1
+def slow_function():
+    """A function that takes some time"""
+    time.sleep(1)
+    return "Done!"
+
+print(slow_function())
+# Output:
+# slow_function took 1.0001 seconds
+# Done!
+```
+
+But this doesn't work with functions that take arguments! Let's fix that:
+
+```python
+# Version 2: Handle any arguments with *args and **kwargs
+def timer_v2(func):
+    """
+    Times function execution, works with any arguments.
+
+    Uses the forwarding pattern we learned earlier!
+    """
+    def wrapper(*args, **kwargs):
+        """Accept any arguments and forward them"""
+        start = time.time()
+        result = func(*args, **kwargs)  # Forward arguments
+        end = time.time()
+        print(f"{func.__name__} took {end - start:.4f} seconds")
+        return result
+    return wrapper
+
+@timer_v2
+def add(a, b):
+    """Add two numbers slowly"""
+    time.sleep(0.5)
+    return a + b
+
+@timer_v2
+def process_data(data, *, verbose=False):
+    """Process some data"""
+    time.sleep(0.3)
+    if verbose:
+        print(f"Processing {len(data)} items")
+    return len(data)
+
+# Now it works with any signature!
+print(add(5, 3))
+# add took 0.5001 seconds
+# 8
+
+print(process_data([1, 2, 3], verbose=True))
+# Processing 3 items
+# process_data took 0.3001 seconds
+# 3
+```
+
+But we're still missing something - function metadata:
+
+```python
+# Check the wrapped function's metadata
+print(f"Name: {add.__name__}")    # wrapper (wrong!)
+print(f"Docstring: {add.__doc__}") # Accept any arguments... (wrong!)
+
+# This breaks help(), documentation tools, etc.
+help(add)  # Shows wrapper's docs, not add's docs
+```
+
+The solution is `functools.wraps`:
+
+```python
+from functools import wraps
+
+# Version 3: Preserve metadata with functools.wraps
+def timer_v3(func):
+    """
+    Times function execution.
+
+    Uses @wraps to preserve the original function's metadata.
+    """
+    @wraps(func)  # This copies metadata from func to wrapper
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(f"{func.__name__} took {end - start:.4f} seconds")
+        return result
+    return wrapper
+
+@timer_v3
+def add(a, b):
+    """Add two numbers"""
+    return a + b
+
+# Now metadata is correct!
+print(f"Name: {add.__name__}")      # add (correct!)
+print(f"Docstring: {add.__doc__}")  # Add two numbers (correct!)
+
+# help() works properly
+help(add)  # Shows the correct docstring
+```
+
+**What does @wraps actually do?**
+
+```python
+# @wraps(func) copies these attributes from func to wrapper:
+# - __name__
+# - __doc__
+# - __module__
+# - __qualname__
+# - __annotations__
+# - __dict__
+
+# Let's see it in action:
+def original_function(x: int) -> int:
+    """Original docstring"""
+    return x * 2
+
+def decorator_without_wraps(func):
+    def wrapper(*args, **kwargs):
+        """Wrapper docstring"""
+        return func(*args, **kwargs)
+    return wrapper
+
+def decorator_with_wraps(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        """Wrapper docstring"""
+        return func(*args, **kwargs)
+    return wrapper
+
+# Without wraps
+wrapped_bad = decorator_without_wraps(original_function)
+print(f"Name: {wrapped_bad.__name__}")     # wrapper
+print(f"Doc: {wrapped_bad.__doc__}")       # Wrapper docstring
+print(f"Annotations: {wrapped_bad.__annotations__}")  # {}
+
+# With wraps
+wrapped_good = decorator_with_wraps(original_function)
+print(f"Name: {wrapped_good.__name__}")    # original_function
+print(f"Doc: {wrapped_good.__doc__}")      # Original docstring
+print(f"Annotations: {wrapped_good.__annotations__}")  # {'x': int, 'return': int}
+```
+
+### **Decorators with Arguments**
+
+Sometimes you want to configure a decorator. For example, a timer that only logs if execution takes longer than a threshold:
+
+```python
+from functools import wraps
+import time
+
+def timer_with_threshold(threshold=0.0):
+    """
+    Decorator factory that creates a timer decorator.
+
+    This is a function that returns a decorator.
+    It's called a "parameterized decorator" or "decorator factory".
+
+    Args:
+        threshold: Only log if execution takes longer than this (seconds)
+    """
+    def decorator(func):
+        """The actual decorator (takes a function)"""
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """The wrapper (runs the function)"""
+            start = time.time()
+            result = func(*args, **kwargs)
+            elapsed = time.time() - start
+
+            # Only log if above threshold
+            if elapsed > threshold:
+                print(f"{func.__name__} took {elapsed:.4f} seconds (threshold: {threshold})")
+
+            return result
+        return wrapper
+    return decorator
+
+# Usage: @timer_with_threshold(threshold_value)
+@timer_with_threshold(threshold=0.5)
+def fast_function():
+    """This won't be logged"""
+    time.sleep(0.1)
+    return "fast"
+
+@timer_with_threshold(threshold=0.5)
+def slow_function():
+    """This will be logged"""
+    time.sleep(1.0)
+    return "slow"
+
+print(fast_function())  # No timing output (< 0.5 seconds)
+print(slow_function())  # Logs timing (> 0.5 seconds)
+```
+
+**Understanding the layers:**
+
+```python
+# When you write:
+@timer_with_threshold(threshold=0.5)
+def my_func():
+    pass
+
+# Python does this:
+# Step 1: Call timer_with_threshold(threshold=0.5)
+#         This returns a decorator
+decorator = timer_with_threshold(threshold=0.5)
+
+# Step 2: Apply that decorator to my_func
+my_func = decorator(my_func)
+
+# So there are THREE levels of functions:
+# 1. timer_with_threshold - takes config, returns decorator
+# 2. decorator - takes function, returns wrapper
+# 3. wrapper - takes arguments, runs function
+```
+
+Let's visualize this with print statements:
+
+```python
+def parameterized_decorator(param):
+    """Level 1: Configuration"""
+    print(f"1. Called with param={param}")
+
+    def decorator(func):
+        """Level 2: Decoration"""
+        print(f"2. Decorating {func.__name__}")
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            """Level 3: Execution"""
+            print(f"3. Calling {func.__name__} with args={args}")
+            return func(*args, **kwargs)
+
+        return wrapper
+    return decorator
+
+@parameterized_decorator(param="hello")
+def my_function(x):
+    return x * 2
+
+# Output during decoration (at definition time):
+# 1. Called with param=hello
+# 2. Decorating my_function
+
+# Now call the function
+result = my_function(5)
+# 3. Calling my_function with args=(5,)
+
+print(result)  # 10
+```
+
+### **Multiple Decorators (Stacking)**
+
+You can apply multiple decorators to a function:
+
+```python
+from functools import wraps
+
+def uppercase_decorator(func):
+    """Convert result to uppercase"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        return result.upper()
+    return wrapper
+
+def exclaim_decorator(func):
+    """Add exclamation marks"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        return result + "!!!"
+    return wrapper
+
+# Stack decorators
+@exclaim_decorator
+@uppercase_decorator
+def greet(name):
+    return f"hello, {name}"
+
+print(greet("Alice"))
+# Output: HELLO, ALICE!!!
+
+# The order matters! It's applied bottom-to-top:
+# 1. uppercase_decorator wraps greet
+# 2. exclaim_decorator wraps the result
+#
+# So: exclaim(uppercase(greet("Alice")))
+```
+
+The order matters. Let's switch them:
+
+```python
+@uppercase_decorator
+@exclaim_decorator
+def greet2(name):
+    return f"hello, {name}"
+
+print(greet2("Alice"))
+# Output: HELLO, ALICE!!!
+
+# Wait, same output? Let's trace through:
+# 1. exclaim adds !!! → "hello, Alice!!!"
+# 2. uppercase converts → "HELLO, ALICE!!!"
+```
+
+Actually these give the same result because one adds symbols and one changes case. Let's use different decorators to see the order clearly:
+
+```python
+def add_brackets(func):
+    """Add brackets around result"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        return f"[{result}]"
+    return wrapper
+
+def add_stars(func):
+    """Add stars around result"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        return f"***{result}***"
+    return wrapper
+
+@add_brackets
+@add_stars
+def say_hello():
+    return "hello"
+
+print(say_hello())
+# Output: [***hello***]
+# Order: stars first, then brackets
+
+@add_stars
+@add_brackets
+def say_goodbye():
+    return "goodbye"
+
+print(say_goodbye())
+# Output: ***[goodbye]***
+# Order: brackets first, then stars
+```
+
+### **Practical Decorator Examples**
+
+Let's look at real-world decorator patterns:
+
+**1. Retry Decorator (like in network libraries)**
+
+```python
+from functools import wraps
+import time
+
+def retry(max_attempts=3, delay=1):
+    """
+    Retry a function if it raises an exception.
+
+    Used in network libraries, database connections, etc.
+    Example: requests library has @retry decorators
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            attempts = 0
+            while attempts < max_attempts:
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    attempts += 1
+                    if attempts >= max_attempts:
+                        print(f"Failed after {max_attempts} attempts")
+                        raise
+                    print(f"Attempt {attempts} failed: {e}. Retrying in {delay}s...")
+                    time.sleep(delay)
+        return wrapper
+    return decorator
+
+# Simulate an unreliable function
+import random
+
+@retry(max_attempts=5, delay=0.5)
+def unreliable_api_call():
+    """Simulates an API that fails sometimes"""
+    if random.random() < 0.7:  # 70% chance of failure
+        raise ConnectionError("Network error!")
+    return "Success!"
+
+# Try calling it - it will retry automatically
+try:
+    result = unreliable_api_call()
+    print(f"Final result: {result}")
+except Exception as e:
+    print(f"Ultimately failed: {e}")
+```
+
+**2. Caching/Memoization Decorator (functools.lru_cache)**
+
+```python
+from functools import wraps
+
+def memoize(func):
+    """
+    Cache function results to avoid redundant computation.
+
+    Python's functools.lru_cache does this (and more).
+    This is a simplified version to show how it works.
+    """
+    cache = {}  # This dict persists across calls (closure!)
+
+    @wraps(func)
+    def wrapper(*args):
+        # Only works with hashable arguments (no lists/dicts)
+        if args not in cache:
+            print(f"Computing result for {args}")
+            cache[args] = func(*args)
+        else:
+            print(f"Using cached result for {args}")
+        return cache[args]
+
+    # Add a way to inspect the cache
+    wrapper.cache = cache
+    return wrapper
+
+@memoize
+def fibonacci(n):
+    """Calculate fibonacci number (slow without caching)"""
+    if n < 2:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+# First call computes everything
+print(fibonacci(10))
+# Computing result for (10,)
+# Computing result for (9,)
+# ... many more ...
+# 55
+
+# Second call uses cache
+print(fibonacci(10))
+# Using cached result for (10,)
+# 55
+
+# Inspect the cache
+print(f"Cache size: {len(fibonacci.cache)}")
+print(f"Cached values: {fibonacci.cache}")
+```
+
+Python's built-in `@functools.lru_cache` is much more sophisticated:
+
+```python
+from functools import lru_cache
+
+@lru_cache(maxsize=128)  # Keep last 128 results
+def fibonacci_fast(n):
+    """Much faster with built-in caching"""
+    if n < 2:
+        return n
+    return fibonacci_fast(n - 1) + fibonacci_fast(n - 2)
+
+# This is MUCH faster than the non-cached version
+print(fibonacci_fast(100))
+
+# Inspect cache statistics
+print(fibonacci_fast.cache_info())
+# CacheInfo(hits=..., misses=..., maxsize=128, currsize=...)
+```
+
+**3. Validation Decorator**
+
+```python
+from functools import wraps
+
+def validate_args(arg_type=None, return_type=None):
+    """
+    Validate function arguments and return type.
+
+    Similar to what @dataclass and pydantic do.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Validate arguments if type specified
+            if arg_type:
+                for arg in args:
+                    if not isinstance(arg, arg_type):
+                        raise TypeError(
+                            f"{func.__name__} expected {arg_type}, got {type(arg)}"
+                        )
+
+            # Call function
+            result = func(*args, **kwargs)
+
+            # Validate return type if specified
+            if return_type and not isinstance(result, return_type):
+                raise TypeError(
+                    f"{func.__name__} should return {return_type}, got {type(result)}"
+                )
+
+            return result
+        return wrapper
+    return decorator
+
+@validate_args(arg_type=int, return_type=int)
+def add(a, b):
+    """Add two integers"""
+    return a + b
+
+print(add(5, 3))  # 8 - works fine
+
+try:
+    add(5, "hello")  # TypeError: expected int, got str
+except TypeError as e:
+    print(f"Caught error: {e}")
+
+try:
+    @validate_args(return_type=str)
+    def bad_function():
+        return 42  # Returns int when str expected
+
+    bad_function()  # TypeError
+except TypeError as e:
+    print(f"Caught error: {e}")
+```
+
+### **Exercise: Create Your Own Decorators**
+
+**Exercise 1: Logger Decorator**
+Create a decorator that logs:
+
+- Function name
+- Arguments passed
+- Return value
+- Timestamp
+
+```python
+from functools import wraps
+from datetime import datetime
+
+def logger(func):
+    """
+    YOUR TASK: Implement a logging decorator.
+
+    Should log:
+    - Timestamp
+    - Function name
+    - Arguments (positional and keyword)
+    - Return value
+
+    Example output:
+    [2025-10-04 12:34:56] Calling add(5, 3) {}
+    [2025-10-04 12:34:56] add returned 8
+    """
+    # YOUR CODE HERE
+    pass
+
+# Test it:
+# @logger
+# def add(a, b):
+#     return a + b
+#
+# print(add(5, 3))
+```
+
+**Exercise 2: Rate Limiter**
+Create a decorator that limits how often a function can be called:
+
+```python
+import time
+from functools import wraps
+
+def rate_limit(calls_per_second):
+    """
+    YOUR TASK: Implement a rate limiter.
+
+    Should ensure the decorated function is only called
+    at most 'calls_per_second' times per second.
+
+    If called too frequently, it should sleep until enough time has passed.
+
+    Hint: Use a closure to remember the last call time.
+    """
+    # YOUR CODE HERE
+    pass
+
+# Test it:
+# @rate_limit(calls_per_second=2)
+# def api_call():
+#     print(f"API called at {time.time()}")
+#     return "data"
+#
+# # These should be spaced ~0.5 seconds apart
+# for i in range(5):
+#     api_call()
+```
+
+**Exercise 3: Count Calls Decorator**
+Track how many times each function is called:
+
+```python
+from functools import wraps
+
+def count_calls(func):
+    """
+    YOUR TASK: Track function call count.
+
+    Should:
+    - Count how many times function is called
+    - Store count as wrapper.call_count
+    - Provide a wrapper.reset() method to reset count
+    """
+    # YOUR CODE HERE
+    pass
+
+# Test it:
+# @count_calls
+# def process():
+#     return "done"
+#
+# process()
+# process()
+# print(process.call_count)  # Should print 2
+# process.reset()
+# print(process.call_count)  # Should print 0
+```
+
+---
+
+## Part 6: Lambda Functions & Functional Programming
+
+### **Lambda: Anonymous Functions**
+
+A lambda is a small anonymous function - a function without a name. The syntax is:
+
+```
+lambda arguments: expression
+```
+
+Let's compare regular functions with lambdas:
+
+```python
+# Regular function
+def add(x, y):
+    return x + y
+
+# Equivalent lambda
+add_lambda = lambda x, y: x + y
+
+# They work the same way
+print(add(5, 3))        # 8
+print(add_lambda(5, 3)) # 8
+```
+
+**Lambda limitations:**
+
+- Can only contain a **single expression** (not statements)
+- The expression's value is automatically returned
+- No type hints
+- No docstrings
+- Generally harder to debug
+
+```python
+# Lambda can only have expressions
+square = lambda x: x ** 2  # ✓ Expression
+
+# Can't use statements
+# bad = lambda x: print(x)  # ✗ print is a statement (well, actually it works but returns None)
+# bad = lambda x: x = x + 1  # ✗ Assignment is a statement
+
+# Can't have multiple lines
+# bad = lambda x:
+#     y = x + 1  # ✗ Multiple statements
+#     return y
+
+# If you need multiple lines, use def!
+def complex_function(x):
+    y = x + 1
+    z = y * 2
+    return z
+```
+
+### **When to Use Lambda**
+
+**Good uses: Short, single-use functions in functional contexts**
+
+```python
+numbers = [1, 2, 3, 4, 5]
+
+# Good: Lambda with map (apply function to each element)
+doubled = list(map(lambda x: x * 2, numbers))
+print(doubled)  # [2, 4, 6, 8, 10]
+
+# Good: Lambda with filter (keep elements where function returns True)
+evens = list(filter(lambda x: x % 2 == 0, numbers))
+print(evens)  # [2, 4]
+
+# Good: Lambda as sort key
+words = ['apple', 'pie', 'zoo', 'a']
+sorted_by_length = sorted(words, key=lambda word: len(word))
+print(sorted_by_length)  # ['a', 'pie', 'zoo', 'apple']
+
+# Good: Lambda in max/min with key
+people = [
+    {'name': 'Alice', 'age': 30},
+    {'name': 'Bob', 'age': 25},
+    {'name': 'Charlie', 'age': 35}
+]
+oldest = max(people, key=lambda person: person['age'])
+print(f"Oldest: {oldest['name']}")  # Charlie
+```
+
+**Bad uses: Complex logic or reused functions**
+
+```python
+# Bad: Complex lambda (hard to read)
+bad = lambda x: x * 2 if x > 0 else -x * 2 if x < 0 else 0
+
+# Good: Use def for complex logic
+def absolute_double(x):
+    """Double the absolute value"""
+    if x > 0:
+        return x * 2
+    elif x < 0:
+        return -x * 2
+    else:
+        return 0
+
+# Bad: Reusing a lambda
+calculate = lambda x, y: x * 2 + y * 3
+result1 = calculate(5, 10)
+result2 = calculate(3, 7)
+
+# Good: Name it with def if you're reusing it
+def calculate(x, y):
+    """Calculate weighted sum"""
+    return x * 2 + y * 3
+
+result1 = calculate(5, 10)
+result2 = calculate(3, 7)
+```
+
+**Rule of thumb:** If your lambda is longer than ~40 characters or you have to think hard about what it does, use `def` instead.
+
+### **Map, Filter, Reduce - The Functional Trinity**
+
+These three functions are the core of functional programming in Python.
+
+**Map: Transform each element**
+
+```python
+# map(function, iterable) applies function to every element
+numbers = [1, 2, 3, 4, 5]
+
+# Square each number
+squared = list(map(lambda x: x ** 2, numbers))
+print(squared)  # [1, 4, 9, 16, 25]
+
+# Map returns an iterator, not a list
+result = map(lambda x: x * 2, numbers)
+print(type(result))  # <class 'map'>
+print(list(result))  # [2, 4, 6, 8, 10]
+
+# Can map over multiple iterables
+numbers1 = [1, 2, 3]
+numbers2 = [10, 20, 30]
+sums = list(map(lambda x, y: x + y, numbers1, numbers2))
+print(sums)  # [11, 22, 33]
+
+# Practical example: Convert strings to integers
+string_numbers = ['1', '2', '3', '4']
+int_numbers = list(map(int, string_numbers))  # Using int function directly!
+print(int_numbers)  # [1, 2, 3, 4]
+```
+
+**However, list comprehensions are often more Pythonic:**
+
+```python
+# Map with lambda
+squared = list(map(lambda x: x ** 2, numbers))
+
+# List comprehension (usually preferred in Python)
+squared = [x ** 2 for x in numbers]
+
+# Both do the same thing, but comprehensions are:
+# - More readable (especially for Python programmers)
+# - Don't need lambda
+# - Can include conditions easily
+```
+
+**Filter: Keep elements that match condition**
+
+```python
+numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+# Keep only even numbers
+evens = list(filter(lambda x: x % 2 == 0, numbers))
+print(evens)  # [2, 4, 6, 8, 10]
+
+# Filter returns an iterator
+result = filter(lambda x: x > 5, numbers)
+print(type(result))  # <class 'filter'>
+print(list(result))  # [6, 7, 8, 9, 10]
+
+# Practical example: Filter out empty strings
+words = ['hello', '', 'world', '', 'python', '']
+non_empty = list(filter(lambda s: len(s) > 0, words))
+# Or even simpler: filter(None, words) removes falsy values
+non_empty = list(filter(None, words))
+print(non_empty)  # ['hello', 'world', 'python']
+```
+
+**Again, list comprehensions are often clearer:**
+
+```python
+# Filter with lambda
+evens = list(filter(lambda x: x % 2 == 0, numbers))
+
+# List comprehension with condition
+evens = [x for x in numbers if x % 2 == 0]
+
+# The comprehension version is more readable
+```
+
+**Reduce: Combine elements into single value**
+
+```python
+from functools import reduce
+
+# reduce(function, iterable) applies function cumulatively
+numbers = [1, 2, 3, 4, 5]
+
+# Sum all numbers
+# reduce applies: ((((1+2)+3)+4)+5)
+total = reduce(lambda x, y: x + y, numbers)
+print(total)  # 15
+
+# How reduce works step by step:
+# Step 1: 1 + 2 = 3
+# Step 2: 3 + 3 = 6
+# Step 3: 6 + 4 = 10
+# Step 4: 10 + 5 = 15
+```
+
+Let's trace reduce in detail:
+
+```python
+from functools import reduce
+
+def add(x, y):
+    """Helper to see what reduce is doing"""
+    result = x + y
+    print(f"  {x} + {y} = {result}")
+    return result
+
+numbers = [1, 2, 3, 4, 5]
+print("Reducing with add:")
+total = reduce(add, numbers)
+print(f"Final result: {total}")
+
+# Output:
+# Reducing with add:
+#   1 + 2 = 3
+#   3 + 3 = 6
+#   6 + 4 = 10
+#   10 + 5 = 15
+# Final result: 15
+```
+
+Reduce with initial value:
+
+```python
+# You can provide an initial value
+numbers = [1, 2, 3, 4, 5]
+
+# Start with 10
+total = reduce(lambda x, y: x + y, numbers, 10)
+print(total)  # 25 (10 + 1 + 2 + 3 + 4 + 5)
+
+# Initial value is helpful for empty sequences
+empty = []
+total = reduce(lambda x, y: x + y, empty, 0)
+print(total)  # 0 (returns initial value)
+
+# Without initial value, reduce on empty list raises TypeError
+# total = reduce(lambda x, y: x + y, empty)  # TypeError!
+```
+
+Practical reduce examples:
+
+```python
+from functools import reduce
+
+# Find maximum
+numbers = [3, 7, 2, 9, 1, 5]
+maximum = reduce(lambda x, y: x if x > y else y, numbers)
+print(f"Max: {maximum}")  # 9
+
+# But use built-in max() instead!
+maximum = max(numbers)  # Clearer and faster
+
+# Multiply all numbers
+numbers = [1, 2, 3, 4, 5]
+product = reduce(lambda x, y: x * y, numbers)
+print(f"Product: {product}")  # 120
+
+# Flatten list of lists
+lists = [[1, 2], [3, 4], [5, 6]]
+flattened = reduce(lambda x, y: x + y, lists)
+print(flattened)  # [1, 2, 3, 4, 5, 6]
+
+# But use list comprehension for flattening!
+flattened = [item for sublist in lists for item in sublist]
+```
+
+**When to use map/filter/reduce vs comprehensions:**
+
+```python
+# Comprehensions are usually more Pythonic:
+numbers = [1, 2, 3, 4, 5]
+
+# Map -> list comprehension
+doubled = [x * 2 for x in numbers]
+
+# Filter -> list comprehension with if
+evens = [x for x in numbers if x % 2 == 0]
+
+# Map + Filter -> list comprehension with both
+even_squared = [x ** 2 for x in numbers if x % 2 == 0]
+
+# Reduce -> use built-ins or loops
+total = sum(numbers)  # Instead of reduce
+product = 1
+for n in numbers:
+    product *= n
+
+# Use map/filter when:
+# 1. You already have a named function (no lambda needed)
+numbers = ['1', '2', '3']
+ints = list(map(int, numbers))  # Clean!
+
+# 2. You're chaining operations
+from itertools import chain
+result = list(map(str.upper, filter(str.isalpha, words)))
+```
+
+### **Exercise: Functional Programming Practice**
+
+```python
+# Sample data
+users = [
+    {'name': 'Alice', 'age': 30, 'active': True},
+    {'name': 'Bob', 'age': 25, 'active': False},
+    {'name': 'Charlie', 'age': 35, 'active': True},
+    {'name': 'David', 'age': 28, 'active': True},
+    {'name': 'Eve', 'age': 22, 'active': False},
+]
+
+# Exercise 1: Get names of all active users
+# Use filter and map
+active_names = None  # YOUR CODE HERE
+print(active_names)  # Should print: ['Alice', 'Charlie', 'David']
+
+# Exercise 2: Calculate average age of active users
+# Use filter, map, and sum
+average_age = None  # YOUR CODE HERE
+print(average_age)  # Should print: 31.0
+
+# Exercise 3: Create a string with all names, sorted by age
+# Use sorted (with key), map, and join
+names_string = None  # YOUR CODE HERE
+print(names_string)  # Should print: "Eve, Bob, David, Alice, Charlie"
+
+# Exercise 4: Do the same using list comprehensions
+# Which is more readable?
+active_names_comp = None  # YOUR CODE HERE
+average_age_comp = None  # YOUR CODE HERE
+names_string_comp = None  # YOUR CODE HERE
+```
+
+---
+
+This section covered closures, decorators, and functional programming in depth. Would you like me to continue with:
+
+1. Generators and iterators
+2. Context managers
+3. Object-oriented programming
+4. Or go deeper into any of these topics with more exercises?
+
+# Python OOP Deep Dive: From Basics to Design Patterns
+
+## Complete Guide to Object-Oriented Programming in Python
+
+---
+
+## Part 1: Classes and Objects - The Foundation
+
+### **What Are Classes and Objects?**
+
+A class is a blueprint for creating objects. An object is an instance of a class. But what does that really mean? Let's build up from first principles.
+
+**Without Classes:**
+
+```python
+# Imagine we're tracking employees. Without classes, we'd use dictionaries:
+employee1 = {
+    'name': 'Alice',
+    'salary': 50000,
+    'department': 'Engineering'
+}
+
+employee2 = {
+    'name': 'Bob',
+    'salary': 60000,
+    'department': 'Sales'
+}
+
+# To give a raise, we'd need a function
+def give_raise(employee, amount):
+    employee['salary'] += amount
+
+give_raise(employee1, 5000)
+print(employee1['salary'])  # 55000
+```
+
+This works, but has problems:
+
+1. No guarantee that all employees have the same structure
+2. Functions are separate from the data
+3. Easy to make typos ('salery' instead of 'salary')
+4. No way to enforce business rules (like salary must be positive)
+
+**With Classes:**
+
+```python
+class Employee:
+    """
+    A blueprint for creating employee objects.
+
+    This defines what ALL employees have in common:
+    - What data they store (attributes)
+    - What actions they can perform (methods)
+    """
+
+    def __init__(self, name, salary, department):
+        """
+        Constructor method - called when creating a new employee.
+
+        'self' refers to the specific employee object being created.
+        '__init__' is special - it's called automatically when you do:
+        emp = Employee("Alice", 50000, "Engineering")
+        """
+        self.name = name          # Store name in this specific object
+        self.salary = salary      # Store salary in this specific object
+        self.department = department
+
+    def give_raise(self, amount):
+        """
+        Method to give this employee a raise.
+
+        Methods are functions that belong to the class.
+        They automatically receive 'self' (the object) as first parameter.
+        """
+        self.salary += amount
+
+# Create employee objects from the Employee blueprint
+employee1 = Employee('Alice', 50000, 'Engineering')
+employee2 = Employee('Bob', 60000, 'Sales')
+
+# Each object has its own data
+print(employee1.name)    # Alice
+print(employee2.name)    # Bob
+
+# Each object can use the methods defined in the class
+employee1.give_raise(5000)
+print(employee1.salary)  # 55000
+print(employee2.salary)  # 60000 (unchanged)
+```
+
+**What's happening under the hood:**
+
+```python
+# When you write:
+emp = Employee('Alice', 50000, 'Engineering')
+
+# Python does this:
+# 1. Create a new empty object
+# 2. Call Employee.__init__(new_object, 'Alice', 50000, 'Engineering')
+# 3. __init__ populates the object with data
+# 4. Return the populated object and assign to 'emp'
+
+# The 'self' parameter is the object itself
+# When you call emp.give_raise(5000), Python automatically does:
+# Employee.give_raise(emp, 5000)
+#                     ^^^
+#                  This is 'self'!
+```
+
+Let's verify this:
+
+```python
+class SimpleClass:
+    def method(self, x):
+        print(f"self is: {self}")
+        print(f"x is: {x}")
+        return self.value * x
+
+    def __init__(self, value):
+        self.value = value
+
+obj = SimpleClass(10)
+
+# These two calls are identical:
+result1 = obj.method(5)
+result2 = SimpleClass.method(obj, 5)  # Explicit 'self'
+
+print(result1 == result2)  # True
+
+# When you write obj.method(5), Python translates it to:
+# SimpleClass.method(obj, 5)
+```
+
+### **Instance Variables vs Class Variables**
+
+There are two types of variables in classes:
+
+**Instance Variables** - Unique to each object:
+
+```python
+class Dog:
+    def __init__(self, name, age):
+        # These are instance variables
+        # Each dog object has its own name and age
+        self.name = name
+        self.age = age
+
+dog1 = Dog("Buddy", 3)
+dog2 = Dog("Max", 5)
+
+print(dog1.name)  # Buddy
+print(dog2.name)  # Max
+
+# They're stored in the object's __dict__
+print(dog1.__dict__)  # {'name': 'Buddy', 'age': 3}
+print(dog2.__dict__)  # {'name': 'Max', 'age': 5}
+```
+
+**Class Variables** - Shared by all objects:
+
+```python
+class Dog:
+    # This is a class variable - shared by ALL dogs
+    species = "Canis familiaris"
+
+    # This is also a class variable - tracks total dogs created
+    total_dogs = 0
+
+    def __init__(self, name, age):
+        # These are instance variables - unique to each dog
+        self.name = name
+        self.age = age
+
+        # Increment the class variable when a new dog is created
+        Dog.total_dogs += 1
+
+dog1 = Dog("Buddy", 3)
+dog2 = Dog("Max", 5)
+
+# All dogs share the same species
+print(dog1.species)  # Canis familiaris
+print(dog2.species)  # Canis familiaris
+
+# All dogs see the same total_dogs count
+print(dog1.total_dogs)  # 2
+print(dog2.total_dogs)  # 2
+print(Dog.total_dogs)   # 2 - can access via class itself
+
+# Instance variables are unique
+print(dog1.name)  # Buddy
+print(dog2.name)  # Max
+```
+
+**Where are they stored?**
+
+```python
+class Example:
+    class_var = "I'm shared"
+
+    def __init__(self, inst_var):
+        self.inst_var = inst_var
+
+obj1 = Example("unique to obj1")
+obj2 = Example("unique to obj2")
+
+# Instance variables are in the object's __dict__
+print(f"obj1.__dict__: {obj1.__dict__}")
+# {'inst_var': 'unique to obj1'}
+
+# Class variables are in the class's __dict__
+print(f"Example.__dict__['class_var']: {Example.__dict__['class_var']}")
+# I'm shared
+
+# When you access obj1.class_var, Python:
+# 1. Looks in obj1.__dict__ - not found
+# 2. Looks in Example.__dict__ - found!
+print(obj1.class_var)  # I'm shared
+```
+
+**The Gotcha: Modifying Class Variables**
+
+```python
+class Counter:
+    count = 0  # Class variable
+
+    def __init__(self):
+        Counter.count += 1  # Correct: modify via class name
+
+c1 = Counter()
+c2 = Counter()
+print(Counter.count)  # 2 - correct!
+
+# But watch this:
+class CounterBroken:
+    count = 0
+
+    def __init__(self):
+        self.count += 1  # WRONG! This creates an instance variable!
+
+cb1 = CounterBroken()
+cb2 = CounterBroken()
+print(CounterBroken.count)  # 0 - class variable unchanged!
+print(cb1.count)  # 1 - instance variable created
+print(cb2.count)  # 1 - separate instance variable
+
+# What happened:
+# self.count += 1 is equivalent to:
+# self.count = self.count + 1
+#              ^^^^^^^^^^^^^
+#              First read from class variable (0)
+# Then assign to instance variable
+```
+
+Always modify class variables via the class name (`ClassName.var = value`) or use class methods (coming up next).
+
+### **Types of Methods**
+
+Python has three types of methods:
+
+**1. Instance Methods** - Operate on instance data:
+
+```python
+class Rectangle:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+
+    def area(self):
+        """
+        Instance method - operates on this specific rectangle.
+        Receives 'self' (the instance) as first parameter.
+        """
+        return self.width * self.height
+
+    def resize(self, factor):
+        """Another instance method - modifies this rectangle."""
+        self.width *= factor
+        self.height *= factor
+
+rect = Rectangle(10, 5)
+print(rect.area())  # 50 - uses this rectangle's dimensions
+rect.resize(2)
+print(rect.area())  # 200 - this rectangle was modified
+```
+
+**2. Class Methods** - Operate on class data:
+
+```python
+class Rectangle:
+    # Class variable - shared by all rectangles
+    total_rectangles = 0
+
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        Rectangle.total_rectangles += 1
+
+    @classmethod
+    def get_total_rectangles(cls):
+        """
+        Class method - operates on the CLASS, not an instance.
+
+        Receives 'cls' (the class itself) as first parameter.
+        Decorated with @classmethod.
+
+        Use case: Methods that work with class-level data.
+        """
+        return cls.total_rectangles
+
+    @classmethod
+    def create_square(cls, side):
+        """
+        Alternative constructor - creates a square.
+
+        This is a common pattern: use class methods as
+        alternative constructors (factory methods).
+        """
+        return cls(side, side)  # cls is Rectangle, so this calls __init__
+
+# Create rectangles
+rect1 = Rectangle(10, 5)
+rect2 = Rectangle(20, 15)
+
+# Call class method via class or instance
+print(Rectangle.get_total_rectangles())  # 2
+print(rect1.get_total_rectangles())      # 2 (same result)
+
+# Use alternative constructor
+square = Rectangle.create_square(10)
+print(f"Square: {square.width} x {square.height}")  # 10 x 10
+print(Rectangle.get_total_rectangles())  # 3 (square was added)
+```
+
+**Why use `cls` instead of `self`?**
+
+```python
+class Parent:
+    name = "Parent"
+
+    @classmethod
+    def who_am_i(cls):
+        """Uses cls - will work correctly with inheritance"""
+        return f"I am {cls.name}"
+
+class Child(Parent):
+    name = "Child"
+
+# Class method receives the actual class that called it
+print(Parent.who_am_i())  # I am Parent (cls is Parent)
+print(Child.who_am_i())   # I am Child (cls is Child)
+
+# If we used the class name directly:
+class ParentBad:
+    name = "Parent"
+
+    @classmethod
+    def who_am_i(cls):
+        return f"I am {ParentBad.name}"  # Hard-coded class name
+
+class ChildBad(ParentBad):
+    name = "Child"
+
+print(ChildBad.who_am_i())  # I am Parent (wrong! Always uses ParentBad)
+```
+
+**3. Static Methods** - Don't operate on instance or class data:
+
+```python
+class MathOperations:
+    """Utility class for math operations."""
+
+    @staticmethod
+    def add(x, y):
+        """
+        Static method - doesn't receive self or cls.
+
+        It's just a regular function that happens to be
+        organized inside a class.
+
+        Use case: Utility functions that logically belong
+        to the class but don't need access to instance or class data.
+        """
+        return x + y
+
+    @staticmethod
+    def is_even(n):
+        """Check if a number is even."""
+        return n % 2 == 0
+
+    def instance_method(self):
+        """For comparison: instance method receives self."""
+        pass
+
+    @classmethod
+    def class_method(cls):
+        """For comparison: class method receives cls."""
+        pass
+
+# Static methods can be called via class or instance
+print(MathOperations.add(5, 3))  # 8
+
+obj = MathOperations()
+print(obj.add(10, 20))  # 30
+
+# Static methods don't receive self or cls
+print(MathOperations.is_even(4))  # True
+```
+
+**When to use each type:**
+
+```python
+class User:
+    # Class variable
+    total_users = 0
+
+    def __init__(self, name, email):
+        """Instance method (constructor)."""
+        self.name = name
+        self.email = email
+        User.total_users += 1
+
+    def send_email(self, message):
+        """
+        Instance method - operates on THIS user.
+        Use when you need access to instance data.
+        """
+        print(f"Sending to {self.email}: {message}")
+
+    @classmethod
+    def get_total_users(cls):
+        """
+        Class method - operates on class-level data.
+        Use when you need access to class variables or
+        want alternative constructors.
+        """
+        return cls.total_users
+
+    @classmethod
+    def from_string(cls, user_string):
+        """
+        Alternative constructor (factory method).
+        Parses a string like "Alice,alice@example.com"
+        """
+        name, email = user_string.split(',')
+        return cls(name.strip(), email.strip())
+
+    @staticmethod
+    def is_valid_email(email):
+        """
+        Static method - utility function.
+        Use when the function is related to the class
+        but doesn't need instance or class data.
+        """
+        return '@' in email and '.' in email
+
+# Instance method
+user = User("Alice", "alice@example.com")
+user.send_email("Hello!")  # Needs instance data (email)
+
+# Class method
+print(User.get_total_users())  # Works with class data
+
+# Alternative constructor (class method)
+user2 = User.from_string("Bob, bob@example.com")
+
+# Static method - utility function
+print(User.is_valid_email("test@test.com"))  # True
+print(User.is_valid_email("invalid"))        # False
+```
+
+### **The `__init__` Method and Object Creation**
+
+`__init__` is not a constructor - it's an initializer. The actual construction happens in `__new__` (which we rarely use). Here's the full object creation process:
+
+```python
+class Example:
+    def __new__(cls, *args, **kwargs):
+        """
+        __new__ is the actual constructor.
+        It creates and returns a new object.
+
+        You rarely need to override this.
+        """
+        print(f"1. __new__ called, creating object")
+        instance = super().__new__(cls)
+        print(f"2. __new__ returning instance: {instance}")
+        return instance
+
+    def __init__(self, value):
+        """
+        __init__ is the initializer.
+        It receives the already-created object and populates it.
+
+        This is what you normally override.
+        """
+        print(f"3. __init__ called with instance: {self}")
+        self.value = value
+        print(f"4. __init__ finished, instance.value = {self.value}")
+
+print("Creating object:")
+obj = Example(42)
+print(f"5. Object ready: {obj.value}\n")
+
+# Output:
+# Creating object:
+# 1. __new__ called, creating object
+# 2. __new__ returning instance: <__main__.Example object at 0x...>
+# 3. __init__ called with instance: <__main__.Example object at 0x...>
+# 4. __init__ finished, instance.value = 42
+# 5. Object ready: 42
+```
+
+**When do you override `__new__`?**
+
+Rarely! But here are some cases:
+
+```python
+# 1. Singleton pattern (only one instance allowed)
+class Singleton:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            print("Creating the singleton instance")
+            cls._instance = super().__new__(cls)
+        else:
+            print("Returning existing singleton instance")
+        return cls._instance
+
+s1 = Singleton()  # Creating the singleton instance
+s2 = Singleton()  # Returning existing singleton instance
+print(s1 is s2)   # True - same object!
+
+# 2. Immutable objects (like int, str, tuple)
+# You can't modify them in __init__ because they're already created
+# So you have to customize them in __new__
+
+# 3. Subclassing immutable types
+class PositiveInt(int):
+    """An integer that must be positive."""
+
+    def __new__(cls, value):
+        if value < 0:
+            raise ValueError("Value must be positive")
+        return super().__new__(cls, value)
+
+num = PositiveInt(10)
+print(num)  # 10
+
+# This raises an error:
+# PositiveInt(-5)  # ValueError: Value must be positive
+```
+
+### **Properties - Controlled Attribute Access**
+
+Properties let you run code when getting or setting attributes, while still using simple attribute syntax:
+
+```python
+class Temperature:
+    """Temperature class that stores in Celsius but allows Fahrenheit access."""
+
+    def __init__(self, celsius):
+        self._celsius = celsius  # "Private" by convention (leading underscore)
+
+    @property
+    def celsius(self):
+        """Getter for celsius."""
+        print("Getting celsius")
+        return self._celsius
+
+    @celsius.setter
+    def celsius(self, value):
+        """Setter for celsius - can add validation."""
+        print(f"Setting celsius to {value}")
+        if value < -273.15:
+            raise ValueError("Temperature below absolute zero!")
+        self._celsius = value
+
+    @property
+    def fahrenheit(self):
+        """Calculated property - convert to Fahrenheit."""
+        print("Calculating fahrenheit")
+        return self._celsius * 9/5 + 32
+
+    @fahrenheit.setter
+    def fahrenheit(self, value):
+        """Allow setting via Fahrenheit."""
+        print(f"Setting fahrenheit to {value}")
+        self._celsius = (value - 32) * 5/9
+
+# Create temperature
+temp = Temperature(25)
+
+# Access like a simple attribute, but getter method is called
+print(temp.celsius)     # Getting celsius\n25
+
+# Set like a simple attribute, but setter method is called
+temp.celsius = 30       # Setting celsius to 30
+print(temp.celsius)     # 30
+
+# Validation works
+try:
+    temp.celsius = -500  # ValueError: Temperature below absolute zero!
+except ValueError as e:
+    print(f"Error: {e}")
+
+# Fahrenheit property - calculated on the fly
+print(temp.fahrenheit)  # Calculating fahrenheit\n86.0
+
+# Can set via Fahrenheit
+temp.fahrenheit = 32    # Setting fahrenheit to 32
+print(temp.celsius)     # 0.0 (converted)
+```
+
+**Why use properties instead of plain attributes?**
+
+```python
+# BAD: Directly exposing attributes
+class PersonBad:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+person = PersonBad("Alice", 30)
+person.age = -5  # No validation! Accepts invalid data
+
+# GOOD: Using properties for validation
+class PersonGood:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age  # Goes through setter
+
+    @property
+    def age(self):
+        return self._age
+
+    @age.setter
+    def age(self, value):
+        if value < 0:
+            raise ValueError("Age cannot be negative")
+        if value > 150:
+            raise ValueError("Age too high")
+        self._age = value
+
+person = PersonGood("Alice", 30)
+try:
+    person.age = -5  # ValueError: Age cannot be negative
+except ValueError as e:
+    print(f"Caught: {e}")
+
+# Still looks like simple attribute access!
+person.age = 31  # Works fine
+print(person.age)  # 31
+```
+
+**Lazy Evaluation with Properties:**
+
+```python
+class DataProcessor:
+    """Only compute expensive operations when needed."""
+
+    def __init__(self, data):
+        self._data = data
+        self._processed = None  # Not computed yet
+
+    @property
+    def processed_data(self):
+        """
+        Lazy property - only compute when accessed.
+        Cache the result for subsequent accesses.
+        """
+        if self._processed is None:
+            print("Computing expensive operation...")
+            # Simulate expensive computation
+            self._processed = [x * 2 for x in self._data]
+        else:
+            print("Using cached result")
+        return self._processed
+
+processor = DataProcessor([1, 2, 3, 4, 5])
+
+# Data not processed yet
+print("DataProcessor created")
+
+# First access - computes
+result1 = processor.processed_data
+# Computing expensive operation...
+print(result1)  # [2, 4, 6, 8, 10]
+
+# Second access - uses cache
+result2 = processor.processed_data
+# Using cached result
+print(result2)  # [2, 4, 6, 8, 10]
+```
+
+### **The `__str__` and `__repr__` Methods**
+
+These special methods control how your objects are displayed:
+
+```python
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __str__(self):
+        """
+        Called by str() and print().
+        Should return a user-friendly string.
+
+        Goal: Readable output for end users.
+        """
+        return f"Point at ({self.x}, {self.y})"
+
+    def __repr__(self):
+        """
+        Called by repr() and in interactive shell.
+        Should return a string that could recreate the object.
+
+        Goal: Unambiguous representation for developers.
+        Convention: Should look like valid Python code.
+        """
+        return f"Point({self.x}, {self.y})"
+
+point = Point(3, 4)
+
+# __str__ is used by print()
+print(point)         # Point at (3, 4)
+print(str(point))    # Point at (3, 4)
+
+# __repr__ is used in interactive shell and repr()
+print(repr(point))   # Point(3, 4)
+
+# In lists, __repr__ is used
+points = [Point(1, 2), Point(3, 4)]
+print(points)  # [Point(1, 2), Point(3, 4)]
+
+# If __str__ is not defined, __repr__ is used as fallback
+class PointNoStr:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return f"Point({self.x}, {self.y})"
+
+p = PointNoStr(5, 6)
+print(p)         # Point(5, 6) - uses __repr__
+print(str(p))    # Point(5, 6) - uses __repr__ as fallback
+```
+
+**Best Practice: Always implement both**
+
+```python
+class BankAccount:
+    def __init__(self, owner, balance):
+        self.owner = owner
+        self.balance = balance
+
+    def __str__(self):
+        """User-friendly representation."""
+        return f"{self.owner}'s account: ${self.balance:,.2f}"
+
+    def __repr__(self):
+        """Developer representation - could recreate object."""
+        return f"BankAccount(owner={self.owner!r}, balance={self.balance})"
+
+account = BankAccount("Alice", 1234.56)
+
+# For end users
+print(str(account))    # Alice's account: $1,234.56
+
+# For debugging
+print(repr(account))   # BankAccount(owner='Alice', balance=1234.56)
+
+# In collections (debugging)
+accounts = [account]
+print(accounts)        # [BankAccount(owner='Alice', balance=1234.56)]
+```
+
+---
+
+## Part 2: Inheritance - Building on Existing Classes
+
+### **Basic Inheritance**
+
+Inheritance lets you create new classes based on existing classes:
+
+```python
+class Animal:
+    """Base class (parent class, superclass)."""
+
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    def speak(self):
+        """General method - can be overridden by subclasses."""
+        return "Some generic sound"
+
+    def info(self):
+        """Common method used by all animals."""
+        return f"{self.name} is {self.age} years old"
+
+class Dog(Animal):
+    """
+    Derived class (child class, subclass).
+
+    Inherits all attributes and methods from Animal.
+    """
+
+    def speak(self):
+        """Override parent method with specific implementation."""
+        return "Woof!"
+
+    def fetch(self):
+        """New method specific to Dog."""
+        return f"{self.name} is fetching the ball"
+
+class Cat(Animal):
+    """Another subclass."""
+
+    def speak(self):
+        return "Meow!"
+
+    def climb(self):
+        return f"{self.name} is climbing a tree"
+
+# Create instances
+dog = Dog("Buddy", 3)
+cat = Cat("Whiskers", 2)
+
+# Inherited methods work
+print(dog.info())    # Buddy is 3 years old
+print(cat.info())    # Whiskers is 2 years old
+
+# Overridden methods use subclass version
+print(dog.speak())   # Woof!
+print(cat.speak())   # Meow!
+
+# Specific methods
+print(dog.fetch())   # Buddy is fetching the ball
+print(cat.climb())   # Whiskers is climbing a tree
+
+# Check inheritance
+print(isinstance(dog, Dog))     # True
+print(isinstance(dog, Animal))  # True
+print(isinstance(dog, Cat))     # False
+
+print(issubclass(Dog, Animal))  # True
+print(issubclass(Cat, Animal))  # True
+print(issubclass(Dog, Cat))     # False
+```
+
+### **The `super()` Function - Calling Parent Methods**
+
+`super()` lets you call methods from the parent class:
+
+```python
+class Animal:
+    def __init__(self, name, age):
+        print(f"Animal.__init__ called")
+        self.name = name
+        self.age = age
+
+    def speak(self):
+        return "Generic sound"
+
+class Dog(Animal):
+    def __init__(self, name, age, breed):
+        """
+        We want to add 'breed', but still use Animal's __init__
+        for name and age.
+        """
+        print(f"Dog.__init__ called")
+
+        # Call parent __init__ to set up name and age
+        super().__init__(name, age)
+
+        # Add our own attribute
+        self.breed = breed
+
+    def speak(self):
+        """
+        Override speak, but include parent's behavior too.
+        """
+        parent_sound = super().speak()
+        return f"{parent_sound} (more specifically: Woof!)"
+
+dog = Dog("Buddy", 3, "Golden Retriever")
+# Output:
+# Dog.__init__ called
+# Animal.__init__ called
+
+print(f"Name: {dog.name}")      # Buddy (from Animal)
+print(f"Age: {dog.age}")        # 3 (from Animal)
+print(f"Breed: {dog.breed}")    # Golden Retriever (from Dog)
+print(dog.speak())               # Generic sound (more specifically: Woof!)
+```
+
+**What `super()` actually does:**
+
+```python
+class Parent:
+    def method(self):
+        return "Parent method"
+
+class Child(Parent):
+    def method(self):
+        # These are equivalent:
+        result1 = super().method()
+        result2 = Parent.method(self)
+
+        return f"Child method, parent returned: {result1}"
+
+# super() handles the parent class lookup for you
+# It's especially useful with multiple inheritance
+```
+
+### **Method Resolution Order (MRO)**
+
+When you have inheritance, how does Python decide which method to call? It follows the **Method Resolution Order**:
+
+```python
+class A:
+    def method(self):
+        return "A's method"
+
+class B(A):
+    def method(self):
+        return "B's method"
+
+class C(A):
+    def method(self):
+        return "C's method"
+
+class D(B, C):
+    """D inherits from both B and C (multiple inheritance)."""
+    pass
+
+# What does D inherit?
+d = D()
+print(d.method())  # B's method
+
+# The Method Resolution Order (MRO) determines this
+print(D.__mro__)
+# (<class '__main__.D'>, <class '__main__.B'>, <class '__main__.C'>,
+#  <class '__main__.A'>, <class 'object'>)
+
+# Or more readable:
+print(D.mro())
+# [D, B, C, A, object]
+
+# Python searches in this order:
+# 1. D (the class itself)
+# 2. B (first parent)
+# 3. C (second parent)
+# 4. A (parent of B and C)
+# 5. object (ultimate base class)
+
+# First match wins, so B's method is used
+```
+
+The MRO uses the **C3 linearization algorithm**. Key rules:
+
+1. A class appears before its parents
+2. Parents appear in the order specified
+3. Each class appears only once
+
+```python
+# Complex example
+class A:
+    def method(self):
+        return "A"
+
+class B(A):
+    pass
+
+class C(A):
+    def method(self):
+        return "C"
+
+class D(B, C):
+    pass
+
+# MRO: D -> B -> C -> A -> object
+# D has no method, B has no method, C has method - use C!
+d = D()
+print(d.method())  # C
+print(D.mro())     # [D, B, C, A, object]
+```
+
+**Using `super()` with MRO:**
+
+```python
+class A:
+    def __init__(self):
+        print("A.__init__")
+        super().__init__()  # Calls next in MRO
+
+class B(A):
+    def __init__(self):
+        print("B.__init__")
+        super().__init__()  # Calls next in MRO
+
+class C(A):
+    def __init__(self):
+        print("C.__init__")
+        super().__init__()  # Calls next in MRO
+
+class D(B, C):
+    def __init__(self):
+        print("D.__init__")
+        super().__init__()  # Calls next in MRO (B)
+
+# MRO: D -> B -> C -> A -> object
+d = D()
+# Output:
+# D.__init__
+# B.__init__
+# C.__init__
+# A.__init__
+
+# super() follows the MRO, so:
+# - D's super() calls B (next in MRO)
+# - B's super() calls C (next in MRO, not A!)
+# - C's super() calls A (next in MRO)
+# - A's super() calls object (end of MRO)
+```
+
+### **Composition vs Inheritance**
+
+**Inheritance**: "is-a" relationship
+**Composition**: "has-a" relationship
+
+```python
+# INHERITANCE: Dog IS-A Animal
+class Animal:
+    def eat(self):
+        return "Eating..."
+
+class Dog(Animal):
+    """Dog is an Animal."""
+    def bark(self):
+        return "Woof!"
+
+# COMPOSITION: Car HAS-A Engine
+class Engine:
+    def start(self):
+        return "Engine starting..."
+
+    def stop(self):
+        return "Engine stopping..."
+
+class Car:
+    """Car has an Engine (composition)."""
+    def __init__(self):
+        self.engine = Engine()  # Car contains an Engine
+
+    def start(self):
+        return self.engine.start()
+
+    def drive(self):
+        return "Car is driving"
+
+car = Car()
+print(car.start())  # Engine starting...
+print(car.drive())  # Car is driving
+```
+
+**When to use composition over inheritance:**
+
+```python
+# BAD: Inheritance used incorrectly
+class Stack(list):
+    """
+    Problem: Stack inherits ALL list methods.
+    Users can do things that break the stack concept.
+    """
+    def push(self, item):
+        self.append(item)
+
+    def pop_item(self):
+        return self.pop()
+
+stack = Stack()
+stack.push(1)
+stack.push(2)
+
+# But users can still use list methods:
+stack.insert(0, 99)  # Violates stack principle!
+stack[0] = 1000      # Direct access violates encapsulation!
+
+# GOOD: Composition provides better encapsulation
+class StackGood:
+    """
+    Stack contains a list, but only exposes stack operations.
+    Users can't access list methods directly.
+    """
+    def __init__(self):
+        self._items = []  # Composition: stack HAS-A list
+
+    def push(self, item):
+        self._items.append(item)
+
+    def pop(self):
+        if not self._items:
+            raise IndexError("Pop from empty stack")
+        return self._items.pop()
+
+    def peek(self):
+        if not self._items:
+            raise IndexError("Peek from empty stack")
+        return self._items[-1]
+
+    def is_empty(self):
+        return len(self._items) == 0
+
+stack = StackGood()
+stack.push(1)
+stack.push(2)
+
+# Now users can only use stack operations
+print(stack.pop())    # 2
+print(stack.peek())   # 1
+
+# These don't exist - good!
+# stack.insert(0, 99)  # AttributeError
+# stack[0] = 1000      # AttributeError
+```
+
+**Rule of thumb:**
+
+- Use **inheritance** when you want to extend behavior and the "is-a" relationship is clear
+- Use **composition** when you want to use functionality without being tightly coupled
+
+---
+
+## Part 3: Special Methods (Dunder Methods)
+
+Special methods (also called "magic methods" or "dunder methods" for "double underscore") let you define how objects behave with Python's built-in operations.
+
+### **Arithmetic Operations**
+
+```python
+class Vector:
+    """2D vector with arithmetic operations."""
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __add__(self, other):
+        """
+        Define vector1 + vector2.
+
+        Called when you use the + operator.
+        """
+        if isinstance(other, Vector):
+            return Vector(self.x + other.x, self.y + other.y)
+        return NotImplemented
+
+    def __sub__(self, other):
+        """Define vector1 - vector2."""
+        if isinstance(other, Vector):
+            return Vector(self.x - other.x, self.y - other.y)
+        return NotImplemented
+
+    def __mul__(self, scalar):
+        """
+        Define vector * scalar.
+
+        This is called for: vector * 5
+        """
+        if isinstance(scalar, (int, float)):
+            return Vector(self.x * scalar, self.y * scalar)
+        return NotImplemented
+
+    def __rmul__(self, scalar):
+        """
+        Define scalar * vector.
+
+        This is called for: 5 * vector
+        (when the left operand doesn't know how to multiply)
+        """
+        return self.__mul__(scalar)
+
+    def __eq__(self, other):
+        """Define vector1 == vector2."""
+        if isinstance(other, Vector):
+            return self.x == other.x and self.y == other.y
+        return NotImplemented
+
+    def __repr__(self):
+        return f"Vector({self.x}, {self.y})"
+
+# Use arithmetic operators naturally
+v1 = Vector(2, 3)
+v2 = Vector(4, 1)
+
+print(v1 + v2)   # Vector(6, 4)
+print(v1 - v2)   # Vector(-2, 2)
+print(v1 * 3)    # Vector(6, 9)
+print(3 * v1)    # Vector(6, 9) - __rmul__ makes this work!
+print(v1 == v2)  # False
+
+v3 = Vector(2, 3)
+print(v1 == v3)  # True
+```
+
+**All arithmetic dunder methods:**
+
+```python
+class Number:
+    def __init__(self, value):
+        self.value = value
+
+    # Binary operators
+    def __add__(self, other):       # +
+        pass
+    def __sub__(self, other):       # -
+        pass
+    def __mul__(self, other):       # *
+        pass
+    def __truediv__(self, other):   # /
+        pass
+    def __floordiv__(self, other):  # //
+        pass
+    def __mod__(self, other):       # %
+        pass
+    def __pow__(self, other):       # **
+        pass
+
+    # Reverse operators (for when left operand doesn't support operation)
+    def __radd__(self, other):      # other + self
+        pass
+    def __rsub__(self, other):      # other - self
+        pass
+    # ... and so on for all operators
+
+    # In-place operators
+    def __iadd__(self, other):      # +=
+        pass
+    def __isub__(self, other):      # -=
+        pass
+    # ... and so on
+
+    # Comparison operators
+    def __lt__(self, other):        # <
+        pass
+    def __le__(self, other):        # <=
+        pass
+    def __gt__(self, other):        # >
+        pass
+    def __ge__(self, other):        # >=
+        pass
+    def __eq__(self, other):        # ==
+        pass
+    def __ne__(self, other):        # !=
+        pass
+```
+
+### **Container Methods**
+
+Make your objects behave like lists, dictionaries, etc.:
+
+```python
+class Playlist:
+    """A playlist of songs that acts like a list."""
+
+    def __init__(self, songs=None):
+        self._songs = songs or []
+
+    def __len__(self):
+        """Called by len(playlist)."""
+        return len(self._songs)
+
+    def __getitem__(self, index):
+        """
+        Called by playlist[index].
+
+        Also enables:
+        - Iteration: for song in playlist
+        - Slicing: playlist[1:3]
+        - Checking containment (with __contains__)
+        """
+        return self._songs[index]
+
+    def __setitem__(self, index, value):
+        """Called by playlist[index] = song."""
+        self._songs[index] = value
+
+    def __delitem__(self, index):
+        """Called by del playlist[index]."""
+        del self._songs[index]
+
+    def __contains__(self, song):
+        """Called by song in playlist."""
+        return song in self._songs
+
+    def __iter__(self):
+        """
+        Called by iter(playlist).
+
+        Makes the object iterable in for loops.
+        """
+        return iter(self._songs)
+
+    def __repr__(self):
+        return f"Playlist({self._songs})"
+
+# Create playlist
+playlist = Playlist(["Song A", "Song B", "Song C"])
+
+# len() calls __len__
+print(len(playlist))  # 3
+
+# Indexing calls __getitem__
+print(playlist[0])    # Song A
+print(playlist[-1])   # Song C
+
+# Slicing also calls __getitem__
+print(playlist[0:2])  # ['Song A', 'Song B']
+
+# Iteration calls __iter__, which calls __getitem__ repeatedly
+for song in playlist:
+    print(song)
+# Song A
+# Song B
+# Song C
+
+# Membership test calls __contains__
+print("Song A" in playlist)  # True
+print("Song D" in playlist)  # False
+
+# Setting calls __setitem__
+playlist[0] = "New Song"
+print(playlist[0])  # New Song
+
+# Deleting calls __delitem__
+del playlist[0]
+print(playlist)  # Playlist(['Song B', 'Song C'])
+```
+
+### **Context Manager Methods**
+
+Control what happens when using `with` statement:
+
+```python
+class FileWrapper:
+    """
+    Wrapper around file that demonstrates context manager protocol.
+
+    Context managers ensure cleanup happens even if exceptions occur.
+    """
+
+    def __init__(self, filename, mode):
+        self.filename = filename
+        self.mode = mode
+        self.file = None
+
+    def __enter__(self):
+        """
+        Called when entering the 'with' block.
+
+        Should return the resource (often self).
+        """
+        print(f"Opening {self.filename}")
+        self.file = open(self.filename, self.mode)
+        return self.file
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Called when exiting the 'with' block.
+
+        Arguments:
+        - exc_type: Exception class (if exception occurred)
+        - exc_val: Exception instance
+        - exc_tb: Traceback
+
+        Return True to suppress exception, False to propagate it.
+        """
+        print(f"Closing {self.filename}")
+        if self.file:
+            self.file.close()
+
+        if exc_type is not None:
+            print(f"Exception occurred: {exc_type.__name__}: {exc_val}")
+
+        # Return False to propagate exception
+        return False
+
+# Use with 'with' statement
+with FileWrapper('test.txt', 'w') as f:
+    f.write("Hello, World!")
+    # File is automatically closed when exiting the block
+
+# Even if exception occurs, file is closed
+try:
+    with FileWrapper('test.txt', 'r') as f:
+        content = f.read()
+        raise ValueError("Something went wrong!")
+except ValueError:
+    print("Caught exception, but file was still closed")
+```
+
+**Real-world example: Database transaction:**
+
+```python
+class DatabaseTransaction:
+    """Context manager for database transactions."""
+
+    def __init__(self, connection):
+        self.connection = connection
+
+    def __enter__(self):
+        print("Beginning transaction")
+        self.connection.begin()
+        return self.connection
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is None:
+            # No exception - commit
+            print("Committing transaction")
+            self.connection.commit()
+        else:
+            # Exception occurred - rollback
+            print(f"Rolling back transaction due to {exc_type.__name__}")
+            self.connection.rollback()
+
+        return False  # Propagate exception
+
+# Usage (pseudo-code):
+# with DatabaseTransaction(db) as conn:
+#     conn.execute("INSERT INTO users ...")
+#     conn.execute("UPDATE accounts ...")
+#     # If exception occurs, both operations are rolled back
+#     # If successful, both are committed
+```
+
+### **Callable Objects**
+
+Make objects callable like functions:
+
+```python
+class Multiplier:
+    """
+    An object that acts like a function.
+
+    This is useful for creating function-like objects with state.
+    """
+
+    def __init__(self, factor):
+        self.factor = factor
+
+    def __call__(self, x):
+        """
+        Called when object is used like a function.
+
+        Makes: multiplier(x) possible
+        """
+        return x * self.factor
+
+# Create callable objects
+double = Multiplier(2)
+triple = Multiplier(3)
+
+# Call them like functions
+print(double(5))   # 10
+print(triple(5))   # 15
+
+# Check if callable
+print(callable(double))  # True
+
+# They're objects, so they have state
+print(double.factor)  # 2
+double.factor = 10
+print(double(5))  # 50 (factor changed!)
+```
+
+**Practical example: Decorator as a class:**
+
+```python
+class CountCalls:
+    """
+    Decorator that counts function calls.
+
+    Implemented as a callable class instead of a function.
+    """
+
+    def __init__(self, func):
+        self.func = func
+        self.count = 0
+
+    def __call__(self, *args, **kwargs):
+        """Called when decorated function is invoked."""
+        self.count += 1
+        print(f"Call {self.count} to {self.func.__name__}")
+        return self.func(*args, **kwargs)
+
+@CountCalls
+def say_hello():
+    return "Hello!"
+
+print(say_hello())  # Call 1 to say_hello\nHello!
+print(say_hello())  # Call 2 to say_hello\nHello!
+print(say_hello.count)  # 2
+```
+
+---
+
+## Part 4: Abstract Base Classes
+
+Abstract base classes define interfaces that subclasses must implement:
+
+```python
+from abc import ABC, abstractmethod
+
+class Shape(ABC):
+    """
+    Abstract base class for shapes.
+
+    - Cannot be instantiated directly
+    - Defines interface that subclasses must implement
+    - Use @abstractmethod to mark required methods
+    """
+
+    @abstractmethod
+    def area(self):
+        """All shapes must implement area calculation."""
+        pass
+
+    @abstractmethod
+    def perimeter(self):
+        """All shapes must implement perimeter calculation."""
+        pass
+
+    def describe(self):
+        """
+        Concrete method - shared by all shapes.
+
+        Can use abstract methods (which will be implemented by subclasses).
+        """
+        return f"I'm a shape with area {self.area()}"
+
+# This raises an error - can't instantiate abstract class
+# shape = Shape()  # TypeError: Can't instantiate abstract class
+
+class Rectangle(Shape):
+    """Concrete implementation of Shape."""
+
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+
+    # Must implement all abstract methods
+    def area(self):
+        return self.width * self.height
+
+    def perimeter(self):
+        return 2 * (self.width + self.height)
+
+class Circle(Shape):
+    """Another concrete implementation."""
+
+    def __init__(self, radius):
+        self.radius = radius
+
+    def area(self):
+        import math
+        return math.pi * self.radius ** 2
+
+    def perimeter(self):
+        import math
+        return 2 * math.pi * self.radius
+
+# Now we can create concrete shapes
+rect = Rectangle(5, 3)
+circle = Circle(4)
+
+print(rect.area())        # 15
+print(rect.perimeter())   # 16
+print(rect.describe())    # I'm a shape with area 15
+
+print(circle.area())      # 50.26548...
+print(circle.perimeter()) # 25.13274...
+
+# If a subclass doesn't implement all abstract methods, it can't be instantiated
+class IncompleteShape(Shape):
+    def area(self):
+        return 0
+    # Missing perimeter()!
+
+# This raises an error:
+# incomplete = IncompleteShape()
+# TypeError: Can't instantiate abstract class IncompleteShape with abstract methods perimeter
+```
+
+**When to use ABC:**
+
+1. **Defining interfaces/protocols:**
+
+```python
+from abc import ABC, abstractmethod
+
+class PaymentProcessor(ABC):
+    """Interface for payment processing."""
+
+    @abstractmethod
+    def process_payment(self, amount):
+        """Process a payment of given amount."""
+        pass
+
+    @abstractmethod
+    def refund(self, transaction_id):
+        """Refund a transaction."""
+        pass
+
+class StripeProcessor(PaymentProcessor):
+    def process_payment(self, amount):
+        return f"Processing ${amount} via Stripe"
+
+    def refund(self, transaction_id):
+        return f"Refunding transaction {transaction_id} via Stripe"
+
+class PayPalProcessor(PaymentProcessor):
+    def process_payment(self, amount):
+        return f"Processing ${amount} via PayPal"
+
+    def refund(self, transaction_id):
+        return f"Refunding transaction {transaction_id} via PayPal"
+
+# Function that works with any PaymentProcessor
+def checkout(processor: PaymentProcessor, amount):
+    """This works with ANY payment processor."""
+    return processor.process_payment(amount)
+
+# Both work because they implement the interface
+stripe = StripeProcessor()
+paypal = PayPalProcessor()
+
+print(checkout(stripe, 100))  # Processing $100 via Stripe
+print(checkout(paypal, 50))   # Processing $50 via PayPal
+```
+
+---
+
+## Part 5: Design Patterns in Python
+
+Design patterns are reusable solutions to common problems. Let's explore the most important ones.
+
+### **1. Singleton Pattern**
+
+Ensures only one instance of a class exists:
+
+```python
+class DatabaseConnection:
+    """
+    Singleton: Only one database connection exists.
+
+    Pattern: Use __new__ to control instance creation.
+    """
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            print("Creating THE database connection")
+            cls._instance = super().__new__(cls)
+            cls._instance._initialize()
+        else:
+            print("Returning existing database connection")
+        return cls._instance
+
+    def _initialize(self):
+        """Initialize connection (called only once)."""
+        self.connection_string = "database://localhost"
+        self.is_connected = True
+
+    def query(self, sql):
+        return f"Executing: {sql}"
+
+# Get connection
+db1 = DatabaseConnection()  # Creating THE database connection
+db2 = DatabaseConnection()  # Returning existing database connection
+
+# Same object!
+print(db1 is db2)  # True
+print(id(db1) == id(db2))  # True
+
+# Changes to one affect the other (because it's the same object)
+db1.custom_property = "test"
+print(db2.custom_property)  # test
+```
+
+**Alternative: Module-level singleton (Pythonic)**
+
+```python
+# database.py
+class _DatabaseConnection:
+    """Private class."""
+    def __init__(self):
+        self.connection_string = "database://localhost"
+
+    def query(self, sql):
+        return f"Executing: {sql}"
+
+# Create single instance at module level
+connection = _DatabaseConnection()
+
+# users.py
+# from database import connection
+# connection.query("SELECT * FROM users")
+
+# Everyone imports the same instance - simpler than __new__ approach!
+```
+
+### **2. Factory Pattern**
+
+Delegate object creation to a factory method:
+
+```python
+from abc import ABC, abstractmethod
+
+# Products
+class Animal(ABC):
+    @abstractmethod
+    def speak(self):
+        pass
+
+class Dog(Animal):
+    def speak(self):
+        return "Woof!"
+
+class Cat(Animal):
+    def speak(self):
+        return "Meow!"
+
+class Bird(Animal):
+    def speak(self):
+        return "Tweet!"
+
+# Factory
+class AnimalFactory:
+    """
+    Factory pattern: Centralize object creation logic.
+
+    Benefits:
+    - Client code doesn't need to know about specific classes
+    - Easy to add new animal types
+    - Creation logic in one place
+    """
+
+    @staticmethod
+    def create_animal(animal_type):
+        """Factory method."""
+        animals = {
+            'dog': Dog,
+            'cat': Cat,
+            'bird': Bird
+        }
+
+        animal_class = animals.get(animal_type.lower())
+        if animal_class is None:
+            raise ValueError(f"Unknown animal type: {animal_type}")
+
+        return animal_class()
+
+# Client code doesn't need to know about Dog, Cat, Bird classes
+factory = AnimalFactory()
+
+animal1 = factory.create_animal('dog')
+animal2 = factory.create_animal('cat')
+
+print(animal1.speak())  # Woof!
+print(animal2.speak())  # Meow!
+
+# Easy to add new types - just update the factory
+# No changes needed in client code!
+```
+
+**Real-world example: Object creation from configuration:**
+
+```python
+class DatabaseFactory:
+    """Create database connections based on config."""
+
+    @staticmethod
+    def create_connection(db_type, **config):
+        if db_type == 'postgres':
+            from postgresql_lib import PostgresConnection
+            return PostgresConnection(**config)
+        elif db_type == 'mysql':
+            from mysql_lib import MySQLConnection
+            return MySQLConnection(**config)
+        elif db_type == 'sqlite':
+            import sqlite3
+            return sqlite3.connect(config['database'])
+        else:
+            raise ValueError(f"Unknown database type: {db_type}")
+
+# Usage:
+# config = {'type': 'postgres', 'host': 'localhost', 'port': 5432}
+# db = DatabaseFactory.create_connection(config['type'],
+#                                        host=config['host'],
+#                                        port=config['port'])
+```
+
+### **3. Observer Pattern**
+
+Objects subscribe to events and get notified when something happens:
+
+```python
+class Subject:
+    """
+    The object being observed.
+
+    Maintains list of observers and notifies them of changes.
+    """
+
+    def __init__(self):
+        self._observers = []
+
+    def attach(self, observer):
+        """Add an observer."""
+        if observer not in self._observers:
+            self._observers.append(observer)
+
+    def detach(self, observer):
+        """Remove an observer."""
+        self._observers.remove(observer)
+
+    def notify(self, event):
+        """Notify all observers of an event."""
+        for observer in self._observers:
+            observer.update(event)
+
+class StockPrice(Subject):
+    """Example: Stock price that observers can watch."""
+
+    def __init__(self, symbol, price):
+        super().__init__()
+        self._symbol = symbol
+        self._price = price
+
+    @property
+    def price(self):
+        return self._price
+
+    @price.setter
+    def price(self, value):
+        self._price = value
+        # Notify observers when price changes
+        self.notify({'symbol': self._symbol, 'price': value})
+
+# Observers
+class PriceAlert:
+    """Observer that alerts when price crosses threshold."""
+
+    def __init__(self, name, threshold):
+        self.name = name
+        self.threshold = threshold
+
+    def update(self, event):
+        """Called when observed object changes."""
+        if event['price'] > self.threshold:
+            print(f"{self.name}: ALERT! {event['symbol']} is now ${event['price']} (threshold: ${self.threshold})")
+
+class PriceLogger:
+    """Observer that logs all price changes."""
+
+    def update(self, event):
+        print(f"LOG: {event['symbol']} price changed to ${event['price']}")
+
+# Set up
+stock = StockPrice("AAPL", 150.00)
+
+# Create observers
+alert1 = PriceAlert("High Price Alert", 160.00)
+alert2 = PriceAlert("Very High Price Alert", 170.00)
+logger = PriceLogger()
+
+# Attach observers
+stock.attach(alert1)
+stock.attach(alert2)
+stock.attach(logger)
+
+# Change price - all observers are notified
+print("Setting price to $155:")
+stock.price = 155.00
+# LOG: AAPL price changed to $155.0
+
+print("\nSetting price to $165:")
+stock.price = 165.00
+# LOG: AAPL price changed to $165.0
+# High Price Alert: ALERT! AAPL is now $165.0 (threshold: $160.0)
+
+print("\nSetting price to $175:")
+stock.price = 175.00
+# LOG: AAPL price changed to $175.0
+# High Price Alert: ALERT! AAPL is now $175.0 (threshold: $160.0)
+# Very High Price Alert: ALERT! AAPL is now $175.0 (threshold: $170.0)
+
+# Detach an observer
+stock.detach(logger)
+print("\nSetting price to $180 (logger detached):")
+stock.price = 180.00
+# High Price Alert: ALERT! AAPL is now $180.0 (threshold: $160.0)
+# Very High Price Alert: ALERT! AAPL is now $180.0 (threshold: $170.0)
+# (No LOG message - logger was detached)
+```
+
+**Libraries using Observer pattern:**
+
+- GUI frameworks (button clicks notify handlers)
+- Django signals
+- JavaScript event listeners
+- RxJS (Reactive Extensions)
+
+### **4. Strategy Pattern**
+
+Define a family of algorithms and make them interchangeable:
+
+```python
+from abc import ABC, abstractmethod
+
+# Strategy interface
+class SortStrategy(ABC):
+    """Interface for sorting algorithms."""
+
+    @abstractmethod
+    def sort(self, data):
+        pass
+
+# Concrete strategies
+class QuickSort(SortStrategy):
+    def sort(self, data):
+        print("Sorting using QuickSort")
+        return sorted(data)  # Simplified
+
+class MergeSort(SortStrategy):
+    def sort(self, data):
+        print("Sorting using MergeSort")
+        return sorted(data)  # Simplified
+
+class BubbleSort(SortStrategy):
+    def sort(self, data):
+        print("Sorting using BubbleSort")
+        # Actual bubble sort implementation
+        arr = data.copy()
+        n = len(arr)
+        for i in range(n):
+            for j in range(0, n - i - 1):
+                if arr[j] > arr[j + 1]:
+                    arr[j], arr[j + 1] = arr[j + 1], arr[j]
+        return arr
+
+# Context
+class DataProcessor:
+    """
+    Uses a strategy to sort data.
+
+    The algorithm can be changed at runtime.
+    """
+
+    def __init__(self, strategy: SortStrategy):
+        self._strategy = strategy
+
+    def set_strategy(self, strategy: SortStrategy):
+        """Change the sorting strategy."""
+        self._strategy = strategy
+
+    def process_data(self, data):
+        """Process data using current strategy."""
+        return self._strategy.sort(data)
+
+# Usage
+data = [3, 1, 4, 1, 5, 9, 2, 6, 5]
+
+# Use QuickSort
+processor = DataProcessor(QuickSort())
+result = processor.process_data(data)
+print(result)  # Sorting using QuickSort\n[1, 1, 2, 3, 4, 5, 5, 6, 9]
+
+# Switch to MergeSort
+processor.set_strategy(MergeSort())
+result = processor.process_data(data)
+print(result)  # Sorting using MergeSort\n[1, 1, 2, 3, 4, 5, 5, 6, 9]
+
+# Switch to BubbleSort for small arrays
+processor.set_strategy(BubbleSort())
+result = processor.process_data(data)
+print(result)  # Sorting using BubbleSort\n[1, 1, 2, 3, 4, 5, 5, 6, 9]
+```
+
+**Real-world example: Payment processing:**
+
+```python
+class PaymentStrategy(ABC):
+    @abstractmethod
+    def pay(self, amount):
+        pass
+
+class CreditCardPayment(PaymentStrategy):
+    def __init__(self, card_number):
+        self.card_number = card_number
+
+    def pay(self, amount):
+        return f"Paid ${amount} with credit card {self.card_number[-4:]}"
+
+class PayPalPayment(PaymentStrategy):
+    def __init__(self, email):
+        self.email = email
+
+    def pay(self, amount):
+        return f"Paid ${amount} via PayPal ({self.email})"
+
+class CryptoPayment(PaymentStrategy):
+    def __init__(self, wallet_address):
+        self.wallet_address = wallet_address
+
+    def pay(self, amount):
+        return f"Paid ${amount} to wallet {self.wallet_address[:8]}..."
+
+class ShoppingCart:
+    def __init__(self):
+        self.items = []
+        self.payment_strategy = None
+
+    def add_item(self, item, price):
+        self.items.append((item, price))
+
+    def set_payment_method(self, strategy: PaymentStrategy):
+        self.payment_strategy = strategy
+
+    def checkout(self):
+        total = sum(price for item, price in self.items)
+        if self.payment_strategy is None:
+            return "Please select a payment method"
+        return self.payment_strategy.pay(total)
+
+# Usage
+cart = ShoppingCart()
+cart.add_item("Book", 29.99)
+cart.add_item("Coffee", 4.50)
+
+# Pay with credit card
+cart.set_payment_method(CreditCardPayment("1234-5678-9012-3456"))
+print(cart.checkout())  # Paid $34.49 with credit card 3456
+
+# Change payment method
+cart.set_payment_method(PayPalPayment("user@example.com"))
+print(cart.checkout())  # Paid $34.49 via PayPal (user@example.com)
+```
+
+### **5. Decorator Pattern** (Not the @ decorator!)
+
+Dynamically add behavior to objects:
+
+```python
+from abc import ABC, abstractmethod
+
+# Component interface
+class Coffee(ABC):
+    @abstractmethod
+    def cost(self):
+        pass
+
+    @abstractmethod
+    def description(self):
+        pass
+
+# Concrete component
+class SimpleCoffee(Coffee):
+    def cost(self):
+        return 2.00
+
+    def description(self):
+        return "Simple coffee"
+
+# Decorator base class
+class CoffeeDecorator(Coffee):
+    """
+    Decorator wraps a Coffee object and adds functionality.
+    """
+    def __init__(self, coffee: Coffee):
+        self._coffee = coffee
+
+    def cost(self):
+        return self._coffee.cost()
+
+    def description(self):
+        return self._coffee.description()
+
+# Concrete decorators
+class MilkDecorator(CoffeeDecorator):
+    def cost(self):
+        return self._coffee.cost() + 0.50
+
+    def description(self):
+        return self._coffee.description() + ", milk"
+
+class SugarDecorator(CoffeeDecorator):
+    def cost(self):
+        return self._coffee.cost() + 0.25
+
+    def description(self):
+        return self._coffee.description() + ", sugar"
+
+class WhippedCreamDecorator(CoffeeDecorator):
+    def cost(self):
+        return self._coffee.cost() + 0.75
+
+    def description(self):
+        return self._coffee.description() + ", whipped cream"
+
+# Usage: Build coffee by wrapping decorators
+coffee = SimpleCoffee()
+print(f"{coffee.description()}: ${coffee.cost():.2f}")
+# Simple coffee: $2.00
+
+# Add milk
+coffee = MilkDecorator(coffee)
+print(f"{coffee.description()}: ${coffee.cost():.2f}")
+# Simple coffee, milk: $2.50
+
+# Add sugar
+coffee = SugarDecorator(coffee)
+print(f"{coffee.description()}: ${coffee.cost():.2f}")
+# Simple coffee, milk, sugar: $2.75
+
+# Add whipped cream
+coffee = WhippedCreamDecorator(coffee)
+print(f"{coffee.description()}: ${coffee.cost():.2f}")
+# Simple coffee, milk, sugar, whipped cream: $3.50
+
+# Can create complex combinations
+fancy_coffee = WhippedCreamDecorator(
+    SugarDecorator(
+        SugarDecorator(
+            MilkDecorator(SimpleCoffee())
+        )
+    )
+)
+print(f"{fancy_coffee.description()}: ${fancy_coffee.cost():.2f}")
+# Simple coffee, milk, sugar, sugar, whipped cream: $3.75
+```
+
+This looks different from Python's `@decorator` syntax, but the concept is similar: wrapping objects to add functionality.
+
+---
+
+## Part 6: Real Library Examples
+
+Let's see how popular libraries use OOP:
+
+### **1. Requests Library**
+
+```python
+# How requests library uses OOP:
+
+class Session:
+    """
+    Session object stores configuration and cookies across requests.
+
+    Design patterns used:
+    - Strategy pattern (adapters for different protocols)
+    - Builder pattern (preparing requests)
+    """
+    def __init__(self):
+        self.headers = {}
+        self.cookies = {}
+        self.adapters = {}  # URL prefix -> adapter strategy
+
+    def get(self, url, **kwargs):
+        """Convenience method that calls request()."""
+        return self.request('GET', url, **kwargs)
+
+    def post(self, url, data=None, json=None, **kwargs):
+        """Convenience method that calls request()."""
+        return self.request('POST', url, data=data, json=json, **kwargs)
+
+    def request(self, method, url, **kwargs):
+        """Main method that prepares and sends request."""
+        # Merge session-level and request-level settings
+        # (Demonstration - simplified)
+        pass
+
+# Usage mirrors the API:
+# session = requests.Session()
+# session.headers.update({'User-Agent': 'My App'})
+# response = session.get('https://api.example.com')
+```
+
+### **2. Django ORM**
+
+```python
+# Django models use descriptors and metaclasses
+
+class Model:
+    """
+    Base class for Django models.
+
+    Design patterns:
+    - Active Record pattern (objects know how to persist themselves)
+    - Query Object pattern (QuerySet)
+    - Descriptor protocol (Field classes)
+    """
+
+    class Meta:
+        abstract = True
+
+    def save(self):
+        """Save this object to database."""
+        pass
+
+    def delete(self):
+        """Delete this object from database."""
+        pass
+
+    @classmethod
+    def objects(cls):
+        """Return QuerySet for this model."""
+        return QuerySet(cls)
+
+class Field:
+    """Base class for model fields (uses descriptor protocol)."""
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return instance.__dict__[self.name]
+
+    def __set__(self, instance, value):
+        instance.__dict__[self.name] = value
+
+# Usage:
+# class User(models.Model):
+#     name = models.CharField(max_length=100)
+#     email = models.EmailField()
+#
+# user = User(name="Alice", email="alice@example.com")
+# user.save()  # Active Record: object saves itself
+```
+
+### **3. Flask Framework**
+
+```python
+# Flask uses callable classes and decorators
+
+class Flask:
+    """
+    Main application class.
+
+    Design patterns:
+    - Facade pattern (simple interface to complex routing system)
+    - Decorator pattern (route decorators)
+    - Registry pattern (stores routes)
+    """
+
+    def __init__(self, name):
+        self.name = name
+        self.routes = {}  # URL -> view function
+
+    def route(self, rule, **options):
+        """
+        Decorator to register routes.
+
+        Returns a decorator that registers the function.
+        """
+        def decorator(func):
+            self.routes[rule] = func
+            return func
+        return decorator
+
+    def run(self, host='localhost', port=5000):
+        """Start the development server."""
+        pass
+
+# Usage:
+# app = Flask(__name__)
+#
+# @app.route('/')
+# def index():
+#     return "Hello, World!"
+#
+# @app.route('/users/<int:user_id>')
+# def get_user(user_id):
+#     return f"User {user_id}"
+```
+
+---
+
+## Exercises
+
+### **Exercise 1: Create a Banking System**
+
+Implement a banking system with:
+
+- Account class (abstract base)
+- SavingsAccount and CheckingAccount (concrete classes)
+- Transaction history
+- Overdraft protection for checking accounts
+
+```python
+from abc import ABC, abstractmethod
+
+class Account(ABC):
+    """YOUR CODE HERE"""
+    pass
+
+class SavingsAccount(Account):
+    """YOUR CODE HERE"""
+    pass
+
+class CheckingAccount(Account):
+    """YOUR CODE HERE"""
+    pass
+
+# Test:
+# savings = SavingsAccount("SA001", owner="Alice", balance=1000, interest_rate=0.02)
+# checking = CheckingAccount("CH001", owner="Alice", balance=500, overdraft_limit=200)
+#
+# savings.deposit(500)
+# checking.withdraw(600)  # Should work (overdraft)
+# checking.withdraw(200)  # Should fail (exceeds overdraft)
+```
+
+### **Exercise 2: Implement Observer Pattern**
+
+Create a weather station that notifies displays when temperature changes:
+
+```python
+# YOUR CODE HERE
+# Need: WeatherStation, Display interface, concrete displays
+
+# Test:
+# station = WeatherStation()
+# current_display = CurrentConditionsDisplay()
+# stats_display = StatisticsDisplay()
+#
+# station.attach(current_display)
+# station.attach(stats_display)
+#
+# station.set_temperature(75)  # Both displays update
+# station.set_temperature(80)  # Both displays update
+```
+
+### **Exercise 3: Implement Strategy Pattern**
+
+Create a text formatter with different formatting strategies:
+
+```python
+# YOUR CODE HERE
+# Need: FormattingStrategy interface, UpperCaseFormatter, LowerCaseFormatter, TitleCaseFormatter
+# Context: TextEditor that uses a strategy
+
+# Test:
+# editor = TextEditor(UpperCaseFormatter())
+# print(editor.format("hello world"))  # HELLO WORLD
+#
+# editor.set_formatter(TitleCaseFormatter())
+# print(editor.format("hello world"))  # Hello World
+```
+
+---
+
+This is a comprehensive foundation. Would you like me to continue with:
+
+1. More design patterns (Builder, Adapter, Facade, etc.)
+2. Advanced OOP topics (Descriptors, Metaclasses)
+3. Detailed solutions to the exercises
+4. More library examples and how they use OOP
+
+# OOP & Design Patterns: Beginner to Master
+
+## A Complete Tutorial from First Principles
+
+---
+
+## Introduction: Why Do Design Patterns Exist?
+
+Imagine you're building furniture. You COULD reinvent how to make a chair every single time, but that would be exhausting and inefficient. Instead, furniture makers have discovered standard solutions: four legs work well, a backrest provides comfort, certain joints are stronger than others.
+
+**Design patterns are the same idea for code.** Over decades, programmers encountered the same problems over and over. They discovered that certain solutions work really well. Design patterns are these battle-tested solutions.
+
+### **What This Tutorial Covers**
+
+We'll start with the PROBLEMS, then learn the patterns that solve them. Each section follows this structure:
+
+1. **The Problem** - What hurts when you don't have this pattern?
+2. **The Solution** - How does the pattern solve it?
+3. **Building It Step-by-Step** - From scratch, with explanations
+4. **When to Use** - Real scenarios where this pattern helps
+5. **When NOT to Use** - Avoid over-engineering
+6. **Real Library Examples** - How professionals use this pattern
+7. **Practice Exercises** - Cement your understanding
+
+---
+
+## Part 1: Understanding OOP Fundamentals
+
+Before patterns, we need solid OOP foundations. Let's build from absolute basics.
+
+### **The Core Problem: Organizing Related Data and Behavior**
+
+You're building a video game with characters. Without OOP:
+
+```python
+# Character 1
+player1_name = "Warrior"
+player1_health = 100
+player1_attack = 15
+player1_x = 0
+player1_y = 0
+
+# Character 2
+player2_name = "Mage"
+player2_health = 80
+player2_attack = 25
+player2_x = 10
+player2_y = 5
+
+# Functions to act on characters
+def attack_character(attacker_attack, target_name, target_health):
+    """This is getting messy - we need to pass everything!"""
+    damage = attacker_attack
+    target_health -= damage
+    print(f"{target_name} took {damage} damage! Health: {target_health}")
+    return target_health
+
+# Using it is painful:
+player2_health = attack_character(player1_attack, player2_name, player2_health)
+
+# What if we have 10 characters? 20? 100?
+# How do we keep track of which variables belong to which character?
+# How do we ensure all characters have the same properties?
+```
+
+**Problems:**
+
+1. **No organization** - Variables are scattered, hard to keep track of
+2. **Easy to make mistakes** - `player1_helth` (typo) creates a new variable instead of error
+3. **Functions need many parameters** - Have to pass everything explicitly
+4. **No guarantee of structure** - Nothing ensures all characters have the same properties
+5. **Doesn't scale** - Adding a new character means creating 5+ new variables
+
+### **The Solution: Classes Bundle Data and Behavior**
+
+A class is a template that says: "Every Character will have these properties and these abilities."
+
+```python
+class Character:
+    """
+    A blueprint for creating game characters.
+
+    Think of this like a form or template:
+    - Every character has these fields: name, health, attack, position
+    - Every character can do these things: attack, move, take_damage
+
+    The class is the BLUEPRINT. Each character you create is an INSTANCE.
+    """
+
+    def __init__(self, name, health, attack, x=0, y=0):
+        """
+        Constructor: Called when creating a new character.
+
+        'self' means "this specific character" - the one being created.
+
+        Think of 'self' as a pronoun:
+        - "My name" = self.name (this character's name)
+        - "My health" = self.health (this character's health)
+        """
+        # Store data in THIS character
+        self.name = name
+        self.health = health
+        self.attack = attack
+        self.x = x
+        self.y = y
+
+        print(f"Created character: {self.name}")
+
+    def attack_target(self, target):
+        """
+        Attack another character.
+
+        Notice: We don't need to pass around lots of variables!
+        - 'self' is the attacker (knows its own attack stat)
+        - 'target' is the defender (knows its own health)
+        """
+        damage = self.attack
+        print(f"{self.name} attacks {target.name} for {damage} damage!")
+        target.take_damage(damage)
+
+    def take_damage(self, amount):
+        """Reduce health when taking damage."""
+        self.health -= amount
+        print(f"{self.name} health: {self.health}")
+
+        if self.health <= 0:
+            print(f"{self.name} has been defeated!")
+
+    def move(self, dx, dy):
+        """Move by offset."""
+        self.x += dx
+        self.y += dy
+        print(f"{self.name} moved to ({self.x}, {self.y})")
+
+    def status(self):
+        """Display current status."""
+        return f"{self.name}: HP={self.health}, ATK={self.attack}, Pos=({self.x},{self.y})"
+
+# Now creating and using characters is clean and organized:
+warrior = Character("Warrior", health=100, attack=15)
+mage = Character("Mage", health=80, attack=25, x=10, y=5)
+archer = Character("Archer", health=90, attack=20)
+
+# Easy to see what each character is:
+print(warrior.status())  # Warrior: HP=100, ATK=15, Pos=(0,0)
+print(mage.status())     # Mage: HP=80, ATK=25, Pos=(10,5)
+
+# Clean, simple method calls:
+warrior.attack_target(mage)
+# Warrior attacks Mage for 15 damage!
+# Mage health: 65
+
+mage.attack_target(warrior)
+# Mage attacks Warrior for 25 damage!
+# Warrior health: 75
+
+warrior.move(5, 3)
+# Warrior moved to (5, 3)
+```
+
+**Why is this better?**
+
+1. **Organization** - All data for a character is bundled together in one object
+2. **Type safety** - If you type `warrior.helth`, you get an AttributeError immediately
+3. **Methods know their context** - `self.attack` always refers to THIS character's attack
+4. **Scalable** - Creating 100 characters is as easy as creating 2
+5. **Reusable** - The Character class can be used in any game
+
+**Key Insight: `self` is automatic**
+
+```python
+# When you write:
+warrior.attack_target(mage)
+
+# Python translates this to:
+Character.attack_target(warrior, mage)
+#                       ^^^^^^^
+#                       This becomes 'self'!
+
+# The object before the dot becomes 'self'
+# Additional arguments come after
+```
+
+Let me prove this:
+
+```python
+class Example:
+    def method(self, x):
+        print(f"self is: {id(self)}")
+        print(f"x is: {x}")
+
+obj = Example()
+print(f"obj is: {id(obj)}")
+
+# These are identical:
+obj.method(42)
+Example.method(obj, 42)
+
+# Output shows they're the same object:
+# obj is: 140234567890123
+# self is: 140234567890123
+# x is: 42
+```
+
+### **Instance vs Class: Understanding the Difference**
+
+This is crucial to understand deeply.
+
+**Instance = One specific object**
+
+- Each character object is an instance
+- Each instance has its own data
+- Changing one instance doesn't affect others
+
+**Class = The blueprint/template**
+
+- Shared by all instances
+- Defines what instances can do
+- Stores class-level data (rare, but important)
+
+```python
+class Character:
+    # CLASS VARIABLE - shared by ALL characters
+    total_characters = 0
+    species = "Human"  # All characters are human (shared)
+
+    def __init__(self, name, health):
+        # INSTANCE VARIABLES - unique to each character
+        self.name = name
+        self.health = health
+
+        # Increment the shared counter
+        Character.total_characters += 1
+
+# Create characters
+warrior = Character("Warrior", 100)
+mage = Character("Mage", 80)
+archer = Character("Archer", 90)
+
+# Instance variables are unique:
+print(warrior.name)   # Warrior
+print(mage.name)      # Mage
+print(archer.name)    # Archer
+
+warrior.health = 50   # Only affects warrior
+print(warrior.health) # 50
+print(mage.health)    # 80 (unchanged)
+
+# Class variables are shared:
+print(warrior.species)  # Human
+print(mage.species)     # Human
+print(Character.species)  # Human (can access via class too)
+
+# All characters see the same total_characters:
+print(Character.total_characters)  # 3
+print(warrior.total_characters)    # 3 (same value)
+print(mage.total_characters)       # 3 (same value)
+```
+
+**Where are they stored?**
+
+Every object has a `__dict__` dictionary that stores its instance variables:
+
+```python
+class Dog:
+    species = "Canis familiaris"  # Class variable
+
+    def __init__(self, name, age):
+        self.name = name  # Instance variable
+        self.age = age    # Instance variable
+
+dog1 = Dog("Buddy", 3)
+dog2 = Dog("Max", 5)
+
+# Instance variables are in the object's __dict__:
+print(dog1.__dict__)  # {'name': 'Buddy', 'age': 3}
+print(dog2.__dict__)  # {'name': 'Max', 'age': 5}
+
+# Class variables are in the class's __dict__:
+print(Dog.__dict__['species'])  # Canis familiaris
+
+# When you access dog1.species:
+# 1. Python looks in dog1.__dict__ - not found
+# 2. Python looks in Dog.__dict__ - found!
+
+print(dog1.species)  # Canis familiaris (from class)
+```
+
+**The Common Gotcha:**
+
+```python
+class Counter:
+    count = 0  # Class variable
+
+    def increment_wrong(self):
+        # WRONG! This creates an instance variable
+        self.count += 1
+        # Equivalent to: self.count = self.count + 1
+        # Reads from class (count=0), writes to instance
+
+c1 = Counter()
+c2 = Counter()
+
+c1.increment_wrong()
+c2.increment_wrong()
+
+# What happened?
+print(Counter.count)  # 0 (class variable unchanged!)
+print(c1.count)       # 1 (instance variable created)
+print(c2.count)       # 1 (different instance variable)
+print(c1.__dict__)    # {'count': 1}
+print(c2.__dict__)    # {'count': 1}
+
+# CORRECT way to modify class variables:
+class CounterCorrect:
+    count = 0
+
+    def increment(self):
+        # Use the class name to modify class variable
+        CounterCorrect.count += 1
+
+c1 = CounterCorrect()
+c2 = CounterCorrect()
+
+c1.increment()
+c2.increment()
+
+print(CounterCorrect.count)  # 2 (correct!)
+print(c1.count)              # 2 (reads from class)
+print(c2.count)              # 2 (reads from class)
+print(c1.__dict__)           # {} (no instance variable)
+```
+
+### **Methods: Instance, Class, and Static**
+
+Python has three types of methods. Understanding when to use each is critical.
+
+**1. Instance Methods - Work with instance data (most common)**
+
+```python
+class BankAccount:
+    def __init__(self, owner, balance):
+        self.owner = owner
+        self.balance = balance
+
+    def deposit(self, amount):
+        """
+        Instance method: Operates on THIS account.
+
+        - Receives 'self' (the specific account)
+        - Modifies instance data
+        - Most methods are instance methods
+        """
+        self.balance += amount
+        return f"{self.owner} deposited ${amount}. New balance: ${self.balance}"
+
+    def withdraw(self, amount):
+        """Another instance method."""
+        if amount > self.balance:
+            return f"Insufficient funds. Balance: ${self.balance}"
+        self.balance -= amount
+        return f"{self.owner} withdrew ${amount}. New balance: ${self.balance}"
+
+account = BankAccount("Alice", 1000)
+print(account.deposit(500))   # Uses Alice's account data
+print(account.withdraw(200))  # Uses Alice's account data
+```
+
+**When to use:** Almost always! Whenever you need to work with the specific object's data.
+
+**2. Class Methods - Work with class data or create alternative constructors**
+
+```python
+class BankAccount:
+    # Class variable: total across all accounts
+    total_accounts = 0
+    interest_rate = 0.02  # 2% interest for all accounts
+
+    def __init__(self, owner, balance):
+        self.owner = owner
+        self.balance = balance
+        BankAccount.total_accounts += 1
+
+    @classmethod
+    def get_total_accounts(cls):
+        """
+        Class method: Works with class data.
+
+        - Decorated with @classmethod
+        - Receives 'cls' (the class itself, not an instance)
+        - Used for class-level data
+        """
+        return f"Total accounts: {cls.total_accounts}"
+
+    @classmethod
+    def set_interest_rate(cls, rate):
+        """Modify class-level data."""
+        cls.interest_rate = rate
+        return f"Interest rate set to {rate}%"
+
+    @classmethod
+    def from_string(cls, account_string):
+        """
+        Alternative constructor (factory method).
+
+        Parse a string like "Alice,1000" and create an account.
+        This is a VERY common use of class methods!
+        """
+        owner, balance = account_string.split(',')
+        return cls(owner.strip(), float(balance.strip()))
+
+    def apply_interest(self):
+        """Instance method that uses class variable."""
+        interest = self.balance * self.interest_rate
+        self.balance += interest
+        return f"{self.owner} earned ${interest:.2f} interest"
+
+# Create accounts normally
+account1 = BankAccount("Alice", 1000)
+account2 = BankAccount("Bob", 2000)
+
+# Class method: check total
+print(BankAccount.get_total_accounts())  # Total accounts: 2
+
+# Alternative constructor (class method)
+account3 = BankAccount.from_string("Charlie, 1500")
+print(account3.owner)    # Charlie
+print(account3.balance)  # 1500.0
+
+# Modify class-level data
+BankAccount.set_interest_rate(0.03)
+
+# All accounts see the new rate
+print(account1.apply_interest())  # Uses 3% rate
+print(account2.apply_interest())  # Uses 3% rate
+```
+
+**When to use:**
+
+1. **Alternative constructors** - Methods that create instances in different ways
+2. **Class-level data** - Operations on data shared by all instances
+3. **Factory methods** - Creating objects with different initialization logic
+
+**Why use `cls` instead of hardcoding the class name?**
+
+```python
+class Parent:
+    name = "Parent"
+
+    @classmethod
+    def who_am_i(cls):
+        # Using 'cls' makes this work with inheritance
+        return f"I am {cls.name}"
+
+class Child(Parent):
+    name = "Child"
+
+# 'cls' refers to the class that called the method
+print(Parent.who_am_i())  # I am Parent (cls is Parent)
+print(Child.who_am_i())   # I am Child (cls is Child)
+
+# If we hardcoded the class name:
+class ParentBad:
+    name = "Parent"
+
+    @classmethod
+    def who_am_i(cls):
+        return f"I am {ParentBad.name}"  # Hardcoded!
+
+class ChildBad(ParentBad):
+    name = "Child"
+
+print(ChildBad.who_am_i())  # I am Parent (wrong! Always uses ParentBad)
+```
+
+**3. Static Methods - Utility functions that belong to the class logically**
+
+```python
+class BankAccount:
+    def __init__(self, owner, balance):
+        self.owner = owner
+        self.balance = balance
+
+    @staticmethod
+    def is_valid_amount(amount):
+        """
+        Static method: Utility function.
+
+        - Decorated with @staticmethod
+        - Doesn't receive self or cls
+        - Just a regular function that happens to be in the class
+        - Use when the function is related to the class but doesn't need
+          instance or class data
+        """
+        return isinstance(amount, (int, float)) and amount > 0
+
+    @staticmethod
+    def format_currency(amount):
+        """Format amount as currency string."""
+        return f"${amount:,.2f}"
+
+    def deposit(self, amount):
+        """Instance method can call static method."""
+        if not BankAccount.is_valid_amount(amount):
+            return "Invalid amount"
+        self.balance += amount
+        return f"Deposited {BankAccount.format_currency(amount)}"
+
+account = BankAccount("Alice", 1000)
+
+# Static methods can be called via class or instance
+print(BankAccount.is_valid_amount(100))   # True
+print(account.is_valid_amount(-50))       # False
+
+print(BankAccount.format_currency(1234.56))  # $1,234.56
+print(account.format_currency(1234.56))      # $1,234.56
+
+# Use in instance method
+print(account.deposit(500))  # Deposited $500.00
+```
+
+**When to use:**
+
+- Utility functions that are related to the class but don't need access to instance or class data
+- Helper functions that could be module-level functions but logically belong with the class
+
+**Quick Reference:**
+
+| Method Type | Receives | Use When                                            | Example                             |
+| ----------- | -------- | --------------------------------------------------- | ----------------------------------- |
+| Instance    | `self`   | Working with this object's data                     | `account.deposit(100)`              |
+| Class       | `cls`    | Working with class data or alternative constructors | `Account.from_string("Alice,1000")` |
+| Static      | nothing  | Utility function related to class                   | `Account.is_valid_amount(100)`      |
+
+---
+
+## Part 2: Inheritance - Building on Existing Classes
+
+### **The Problem: Code Duplication**
+
+You're building a game with different character types. Each type has unique abilities but shares common features:
+
+```python
+class Warrior:
+    def __init__(self, name, health, attack):
+        self.name = name
+        self.health = health
+        self.attack = attack
+
+    def take_damage(self, amount):
+        self.health -= amount
+
+    def attack_target(self, target):
+        target.take_damage(self.attack)
+
+    def shield_bash(self):
+        """Warrior-specific ability."""
+        return f"{self.name} uses Shield Bash!"
+
+class Mage:
+    def __init__(self, name, health, attack):
+        # Same as Warrior!
+        self.name = name
+        self.health = health
+        self.attack = attack
+
+    def take_damage(self, amount):
+        # Same as Warrior!
+        self.health -= amount
+
+    def attack_target(self, target):
+        # Same as Warrior!
+        target.take_damage(self.attack)
+
+    def cast_fireball(self):
+        """Mage-specific ability."""
+        return f"{self.name} casts Fireball!"
+
+# This is exhausting! We're copying the same code for every class.
+# If we want to change how taking damage works, we have to change it everywhere!
+```
+
+**Problems:**
+
+1. **Code duplication** - Same code copied multiple times
+2. **Hard to maintain** - Bug fixes need to be applied everywhere
+3. **Easy to make mistakes** - Forget to update one class
+4. **No relationship** - Can't write code that works with "any character"
+
+### **The Solution: Inheritance - Build on Existing Classes**
+
+Inheritance lets you say: "A Mage IS A Character with additional mage-specific stuff."
+
+```python
+class Character:
+    """
+    Base class (parent, superclass).
+
+    Contains everything that ALL characters share:
+    - Properties: name, health, attack
+    - Behaviors: take_damage, attack_target
+
+    Think of this as the "general" category.
+    """
+
+    def __init__(self, name, health, attack):
+        self.name = name
+        self.health = health
+        self.attack = attack
+        print(f"Character.__init__: Creating {name}")
+
+    def take_damage(self, amount):
+        """All characters take damage the same way."""
+        self.health -= amount
+        print(f"{self.name} took {amount} damage. Health: {self.health}")
+
+        if self.health <= 0:
+            print(f"{self.name} has been defeated!")
+
+    def attack_target(self, target):
+        """All characters attack the same way."""
+        print(f"{self.name} attacks {target.name}!")
+        target.take_damage(self.attack)
+
+    def info(self):
+        """Display character info."""
+        return f"{self.name}: HP={self.health}, ATK={self.attack}"
+
+class Warrior(Character):
+    """
+    Derived class (child, subclass).
+
+    Warrior IS A Character with additional warrior-specific abilities.
+
+    Inherits everything from Character:
+    - Gets all methods: take_damage, attack_target, info
+    - Gets __init__ structure (but we'll customize it)
+
+    Adds warrior-specific stuff:
+    - armor attribute
+    - shield_bash method
+    """
+
+    def __init__(self, name, health, attack, armor):
+        """
+        Warrior's constructor.
+
+        We want to:
+        1. Do everything Character.__init__ does (name, health, attack)
+        2. Add warrior-specific stuff (armor)
+        """
+        # Call parent __init__ to set up name, health, attack
+        super().__init__(name, health, attack)
+
+        # Add warrior-specific attribute
+        self.armor = armor
+        print(f"Warrior.__init__: Added armor={armor}")
+
+    def take_damage(self, amount):
+        """
+        Override parent method with warrior-specific behavior.
+
+        Warriors have armor that reduces damage!
+        """
+        # Calculate reduced damage
+        reduced = max(0, amount - self.armor)
+        print(f"{self.name}'s armor blocked {amount - reduced} damage")
+
+        # Call parent's take_damage with reduced amount
+        super().take_damage(reduced)
+
+    def shield_bash(self):
+        """New method - only warriors have this."""
+        return f"{self.name} uses Shield Bash!"
+
+class Mage(Character):
+    """Mage IS A Character with mage-specific abilities."""
+
+    def __init__(self, name, health, attack, mana):
+        super().__init__(name, health, attack)
+        self.mana = mana
+        print(f"Mage.__init__: Added mana={mana}")
+
+    def cast_fireball(self, target):
+        """New method - only mages have this."""
+        if self.mana < 20:
+            return f"{self.name} doesn't have enough mana!"
+
+        self.mana -= 20
+        damage = self.attack * 2  # Spells do double damage!
+        print(f"{self.name} casts Fireball!")
+        target.take_damage(damage)
+        return f"Used 20 mana. {self.mana} mana remaining."
+
+# Create characters
+print("Creating warrior:")
+warrior = Warrior("Thorin", health=150, attack=20, armor=5)
+print()
+
+print("Creating mage:")
+mage = Mage("Gandalf", health=100, attack=15, mana=100)
+print()
+
+# Both inherit Character's methods:
+print(warrior.info())  # Thorin: HP=150, ATK=20
+print(mage.info())     # Gandalf: HP=100, ATK=15
+print()
+
+# Warrior's overridden take_damage (with armor):
+print("Warrior taking damage:")
+warrior.take_damage(10)
+# Thorin's armor blocked 5 damage
+# Thorin took 5 damage. Health: 145
+print()
+
+# Mage uses inherited take_damage (no armor):
+print("Mage taking damage:")
+mage.take_damage(10)
+# Gandalf took 10 damage. Health: 90
+print()
+
+# Class-specific abilities:
+print(warrior.shield_bash())     # Thorin uses Shield Bash!
+print(mage.cast_fireball(warrior))  # Gandalf casts Fireball!
+```
+
+**What just happened?**
+
+1. **Code reuse** - We wrote `take_damage`, `attack_target`, `info` ONCE in Character
+2. **Customization** - Warrior overrides `take_damage` to add armor
+3. **Extension** - Each subclass adds its own unique methods
+4. **Relationship** - Warrior and Mage ARE Characters (can be used interchangeably)
+
+### **Understanding `super()` - The Superpower**
+
+`super()` means "call the parent class's version of this method." Let's see why this is powerful:
+
+```python
+class Animal:
+    def __init__(self, name):
+        self.name = name
+        print(f"Animal.__init__: Set name to {name}")
+
+    def speak(self):
+        return "Some generic sound"
+
+class Dog(Animal):
+    def __init__(self, name, breed):
+        # We want to set name (Animal's job) and breed (Dog's job)
+        print("Dog.__init__ called")
+
+        # Option 1: Call parent explicitly
+        # Animal.__init__(self, name)  # This works but is inflexible
+
+        # Option 2: Use super() (better!)
+        super().__init__(name)
+
+        self.breed = breed
+        print(f"Dog.__init__: Set breed to {breed}")
+
+    def speak(self):
+        """
+        Override speak, but include parent's behavior.
+        """
+        # Get parent's sound
+        parent_sound = super().speak()
+
+        # Add our specific sound
+        return f"{parent_sound} (specifically: Woof!)"
+
+dog = Dog("Buddy", "Golden Retriever")
+# Output:
+# Dog.__init__ called
+# Animal.__init__: Set name to Buddy
+# Dog.__init__: Set breed to Golden Retriever
+
+print(dog.name)   # Buddy (from Animal)
+print(dog.breed)  # Golden Retriever (from Dog)
+print(dog.speak())  # Some generic sound (specifically: Woof!)
+```
+
+**Why `super()` instead of `Animal.__init__(self, name)`?**
+
+```python
+# Consider this hierarchy:
+class A:
+    def method(self):
+        return "A"
+
+class B(A):
+    def method(self):
+        # If we hardcode the parent name:
+        return "B + " + A.method(self)
+
+class C(B):
+    def method(self):
+        # We want to call B's method
+        return "C + " + B.method(self)
+
+c = C()
+print(c.method())  # C + B + A
+
+# This works, but now imagine we want to change the hierarchy:
+# If B should inherit from a different class, we have to change
+# the hardcoded A.method(self) call
+
+# With super(), Python figures out the correct parent automatically:
+class A:
+    def method(self):
+        return "A"
+
+class B(A):
+    def method(self):
+        return "B + " + super().method()  # Automatically calls A
+
+class C(B):
+    def method(self):
+        return "C + " + super().method()  # Automatically calls B
+
+# Same result, but more flexible
+c = C()
+print(c.method())  # C + B + A
+```
+
+### **The isinstance() and issubclass() Functions**
+
+Check relationships between objects and classes:
+
+```python
+class Animal:
+    pass
+
+class Dog(Animal):
+    pass
+
+class Cat(Animal):
+    pass
+
+# Create instances
+dog = Dog()
+cat = Cat()
+
+# isinstance(object, class) - "Is this object an instance of this class?"
+print(isinstance(dog, Dog))     # True - dog is a Dog
+print(isinstance(dog, Animal))  # True - dog is ALSO an Animal (inheritance!)
+print(isinstance(dog, Cat))     # False - dog is not a Cat
+
+# issubclass(child, parent) - "Is this class a subclass of that class?"
+print(issubclass(Dog, Animal))  # True - Dog inherits from Animal
+print(issubclass(Cat, Animal))  # True - Cat inherits from Animal
+print(issubclass(Dog, Cat))     # False - Dog doesn't inherit from Cat
+print(issubclass(Dog, Dog))     # True - a class is a subclass of itself
+
+# Practical use: Write functions that work with any Animal
+def make_sound(animal):
+    """
+    Works with ANY Animal subclass.
+
+    This is polymorphism - different types responding to the same interface.
+    """
+    if not isinstance(animal, Animal):
+        raise TypeError("Expected an Animal")
+
+    return animal.speak()
+
+# Works with any Animal subclass
+print(make_sound(dog))  # Woof!
+print(make_sound(cat))  # Meow!
+```
+
+### **When to Use Inheritance**
+
+✅ **Good uses:**
+
+1. **"IS-A" relationships** - When the subclass truly is a specialized version of the parent
+
+   ```python
+   class Vehicle:
+       pass
+
+   class Car(Vehicle):  # Car IS A Vehicle ✓
+       pass
+
+   class Bicycle(Vehicle):  # Bicycle IS A Vehicle ✓
+       pass
+   ```
+
+2. **Shared behavior** - Multiple classes need the same methods
+
+   ```python
+   class Employee:
+       def calculate_salary(self):
+           pass
+
+   class FullTimeEmployee(Employee):  # Shares salary calculation
+       pass
+
+   class PartTimeEmployee(Employee):  # Shares salary calculation
+       pass
+   ```
+
+3. **Framework extension** - Extending library classes
+
+   ```python
+   # Django models
+   from django.db import models
+
+   class User(models.Model):  # Inherit Model to get database functionality
+       name = models.CharField(max_length=100)
+   ```
+
+❌ **Bad uses (use composition instead):**
+
+1. **"HAS-A" relationships** - When the subclass contains the parent
+
+   ```python
+   # BAD
+   class Stack(list):  # Stack HAS A list, not IS A list
+       pass
+
+   # GOOD
+   class Stack:
+       def __init__(self):
+           self._items = []  # Composition: HAS A list
+   ```
+
+2. **Code reuse alone** - Just to reuse methods without a true relationship
+
+   ```python
+   # BAD
+   class Logger:
+       def log(self, message):
+           print(message)
+
+   class Calculator(Logger):  # Calculator IS NOT A Logger!
+       def add(self, a, b):
+           self.log(f"Adding {a} + {b}")
+           return a + b
+
+   # GOOD - Use composition
+   class Calculator:
+       def __init__(self):
+           self.logger = Logger()  # HAS A Logger
+
+       def add(self, a, b):
+           self.logger.log(f"Adding {a} + {b}")
+           return a + b
+   ```
+
+---
+
+## Part 3: Design Patterns - Solutions to Common Problems
+
+Now that we understand OOP, let's learn patterns that solve recurring problems.
+
+### **Pattern 1: Singleton - "There Can Be Only One"**
+
+#### **The Problem**
+
+You're building an application that needs a database connection. Problems with multiple connections:
+
+```python
+# Without Singleton: Creating multiple connections
+class Database:
+    def __init__(self):
+        print("Connecting to database...")
+        # Expensive operation: open network connection, authenticate, etc.
+        self.connection = "database connection object"
+
+    def query(self, sql):
+        return f"Executing: {sql}"
+
+# Different parts of code create their own connections:
+db1 = Database()  # Connecting to database...
+db2 = Database()  # Connecting to database... (wasteful!)
+db3 = Database()  # Connecting to database... (even more wasteful!)
+
+# Problems:
+# 1. Each connection is expensive (time, memory, network resources)
+# 2. Multiple connections can cause issues (connection pool exhaustion)
+# 3. State isn't shared (settings in db1 don't affect db2)
+# 4. Hard to control (can't limit to one connection)
+```
+
+**Real-world analogy:** A government has ONE president at a time. You don't create a new president every time you need to ask a question - you reference the same one.
+
+#### **The Solution: Singleton Pattern**
+
+Ensure only ONE instance exists, and provide global access to it:
+
+```python
+class DatabaseSingleton:
+    """
+    Singleton: Only one instance can exist.
+
+    How it works:
+    1. Store the single instance in a class variable
+    2. Override __new__ to control instance creation
+    3. Return the existing instance if it exists
+    4. Create a new one only if it doesn't exist
+    """
+
+    _instance = None  # Class variable to store the single instance
+
+    def __new__(cls):
+        """
+        __new__ is called before __init__ to create the object.
+
+        We override it to control instance creation.
+        """
+        if cls._instance is None:
+            print("Creating THE ONLY database connection")
+            # Create the instance using parent's __new__
+            cls._instance = super().__new__(cls)
+            # Initialize it (only happens once)
+            cls._instance._initialize()
+        else:
+            print("Returning existing database connection")
+
+        return cls._instance
+
+    def _initialize(self):
+        """
+        Called only once to set up the connection.
+
+        Using a separate method because __init__ is called every time,
+        but we only want to initialize once.
+        """
+        print("Initializing database connection...")
+        self.connection = "database connection object"
+        self.query_count = 0
+
+    def query(self, sql):
+        """Execute a query."""
+        self.query_count += 1
+        return f"Query #{self.query_count}: {sql}"
+
+# Try to create multiple instances:
+print("First call:")
+db1 = DatabaseSingleton()
+# Creating THE ONLY database connection
+# Initializing database connection...
+
+print("\nSecond call:")
+db2 = DatabaseSingleton()
+# Returning existing database connection
+
+print("\nThird call:")
+db3 = DatabaseSingleton()
+# Returning existing database connection
+
+# They're all the same object!
+print(f"\ndb1 is db2: {db1 is db2}")  # True
+print(f"db2 is db3: {db2 is db3}")  # True
+print(f"Same memory address: {id(db1) == id(db2) == id(db3)}")  # True
+
+# State is shared:
+print(db1.query("SELECT * FROM users"))  # Query #1: SELECT * FROM users
+print(db2.query("SELECT * FROM posts"))  # Query #2: SELECT * FROM posts
+print(db3.query_count)  # 2 (same object, sees both queries)
+```
+
+#### **When to Use Singleton**
+
+✅ **Good uses:**
+
+1. **Database connections** - One connection pool shared by entire app
+2. **Configuration managers** - One source of truth for settings
+3. **Logging** - One logger for the entire application
+4. **Hardware interfaces** - One controller for a printer, scanner, etc.
+
+❌ **When NOT to use:**
+
+1. **Most things!** - Singleton is often overused
+2. **When you need multiple instances** - Defeats the purpose
+3. **When testing** - Hard to test because of global state
+4. **When parallelizing** - Shared state causes problems
+
+#### **Better Alternative in Python: Module-Level Instance**
+
+Python's import system naturally creates singletons:
+
+```python
+# database.py
+class _Database:
+    """Private class (leading underscore by convention)."""
+    def __init__(self):
+        print("Initializing database")
+        self.connection = "database connection"
+        self.query_count = 0
+
+    def query(self, sql):
+        self.query_count += 1
+        return f"Query #{self.query_count}: {sql}"
+
+# Create single instance at module level
+connection = _Database()
+
+# In other files:
+# from database import connection
+# connection.query("SELECT * FROM users")
+#
+# Everyone imports the SAME instance!
+# Simpler and more Pythonic than __new__ approach
+```
+
+#### **Real Library Example: Logger**
+
+```python
+import logging
+
+# Python's logging module uses singletons
+logger1 = logging.getLogger('myapp')
+logger2 = logging.getLogger('myapp')
+
+# Same logger object!
+print(logger1 is logger2)  # True
+
+# Configure once, affects all references
+logger1.setLevel(logging.DEBUG)
+print(logger2.level == logging.DEBUG)  # True
+```
+
+---
+
+### **Pattern 2: Factory - "The Object Creator"**
+
+#### **The Problem**
+
+You're building a game with different enemy types. Without factory:
+
+```python
+# Client code needs to know about ALL enemy classes
+class Goblin:
+    def __init__(self):
+        self.health = 50
+        self.attack = 10
+
+    def fight(self):
+        return "Goblin attacks with club!"
+
+class Orc:
+    def __init__(self):
+        self.health = 100
+        self.attack = 20
+
+    def fight(self):
+        return "Orc attacks with axe!"
+
+class Dragon:
+    def __init__(self):
+        self.health = 500
+        self.attack = 50
+
+    def fight(self):
+        return "Dragon breathes fire!"
+
+# Game level determines enemies:
+def spawn_enemy_for_level(level):
+    """This is messy and fragile!"""
+    if level <= 3:
+        enemy = Goblin()  # Need to import Goblin
+    elif level <= 7:
+        enemy = Orc()     # Need to import Orc
+    else:
+        enemy = Dragon()  # Need to import Dragon
+
+    return enemy
+
+# Problems:
+# 1. Client code knows about all enemy classes (tight coupling)
+# 2. Hard to add new enemy types (have to modify spawn_enemy_for_level)
+# 3. Logic scattered (enemy creation logic in gameplay code)
+# 4. Hard to test (can't easily mock enemy creation)
+```
+
+**Real-world analogy:** A restaurant kitchen. You don't need to know HOW to make every dish - you just order "burger" and the kitchen (factory) knows how to make it.
+
+#### **The Solution: Factory Pattern**
+
+Centralize object creation in a factory:
+
+```python
+from abc import ABC, abstractmethod
+
+# Step 1: Define the interface (what all enemies have in common)
+class Enemy(ABC):
+    """Abstract base class for all enemies."""
+
+    @abstractmethod
+    def fight(self):
+        """Every enemy must be able to fight."""
+        pass
+
+    @abstractmethod
+    def get_stats(self):
+        """Every enemy has stats."""
+        pass
+
+# Step 2: Create concrete enemy classes
+class Goblin(Enemy):
+    def __init__(self):
+        self.health = 50
+        self.attack = 10
+
+    def fight(self):
+        return "Goblin attacks with club!"
+
+    def get_stats(self):
+        return {"type": "Goblin", "health": self.health, "attack": self.attack}
+
+class Orc(Enemy):
+    def __init__(self):
+        self.health = 100
+        self.attack = 20
+
+    def fight(self):
+        return "Orc attacks with axe!"
+
+    def get_stats(self):
+        return {"type": "Orc", "health": self.health, "attack": self.attack}
+
+class Dragon(Enemy):
+    def __init__(self):
+        self.health = 500
+        self.attack = 50
+
+    def fight(self):
+        return "Dragon breathes fire!"
+
+    def get_stats(self):
+        return {"type": "Dragon", "health": self.health, "attack": self.attack}
+
+# Step 3: Create the Factory
+class EnemyFactory:
+    """
+    Factory centralizes enemy creation logic.
+
+    Benefits:
+    1. Client code doesn't need to know about specific enemy classes
+    2. Easy to add new enemy types (just update the factory)
+    3. Creation logic in one place
+    4. Easy to test (can mock the factory)
+    """
+
+    @staticmethod
+    def create_enemy(enemy_type):
+        """
+        Factory method: Create enemy by type.
+
+        Client just says what they want, factory handles the details.
+        """
+        enemies = {
+            'goblin': Goblin,
+            'orc': Orc,
+            'dragon': Dragon
+        }
+
+        enemy_class = enemies.get(enemy_type.lower())
+        if enemy_class is None:
+            raise ValueError(f"Unknown enemy type: {enemy_type}")
+
+        return enemy_class()
+
+    @staticmethod
+    def create_enemy_for_level(level):
+        """
+        Factory method: Create appropriate enemy for level.
+
+        All the decision logic is in the factory!
+        """
+        if level <= 3:
+            return EnemyFactory.create_enemy('goblin')
+        elif level <= 7:
+            return EnemyFactory.create_enemy('orc')
+        else:
+            return EnemyFactory.create_enemy('dragon')
+
+# Now client code is clean and doesn't know about specific classes:
+def play_game():
+    """
+    Game code doesn't need to import Goblin, Orc, Dragon.
+    It just asks the factory for enemies!
+    """
+    player_level = 1
+
+    for level in range(1, 10):
+        print(f"\n=== Level {level} ===")
+
+        # Just ask for an enemy - don't care which type
+        enemy = EnemyFactory.create_enemy_for_level(level)
+
+        # All enemies have the same interface
+        print(f"Encountered: {enemy.get_stats()}")
+        print(enemy.fight())
+
+play_game()
+
+# Output:
+# === Level 1 ===
+# Encountered: {'type': 'Goblin', 'health': 50, 'attack': 10}
+# Goblin attacks with club!
+#
+# === Level 2 ===
+# Encountered: {'type': 'Goblin', 'health': 50, 'attack': 10}
+# Goblin attacks with club!
+# ...
+# === Level 8 ===
+# Encountered: {'type': 'Dragon', 'health': 500, 'attack': 50}
+# Dragon breathes fire!
+```
+
+**Adding a new enemy type is now easy:**
+
+```python
+# Just add the class:
+class Troll(Enemy):
+    def __init__(self):
+        self.health = 150
+        self.attack = 30
+
+    def fight(self):
+        return "Troll smashes with fists!"
+
+    def get_stats(self):
+        return {"type": "Troll", "health": self.health, "attack": self.attack}
+
+# Update the factory:
+class EnemyFactory:
+    @staticmethod
+    def create_enemy(enemy_type):
+        enemies = {
+            'goblin': Goblin,
+            'orc': Orc,
+            'dragon': Dragon,
+            'troll': Troll  # Just add it here!
+        }
+        # Rest of the code unchanged...
+
+# Client code doesn't need to change at all!
+```
+
+#### **When to Use Factory**
+
+✅ **Good uses:**
+
+1. **Object creation complexity** - Creating objects involves complex logic
+2. **Multiple object types** - Need to create different types based on conditions
+3. **Decoupling** - Want client code independent of specific classes
+4. **Configuration-driven creation** - Create objects based on config files
+
+❌ **When NOT to use:**
+
+1. **Simple construction** - If `MyClass()` is sufficient, don't add a factory
+2. **One class only** - Factory adds unnecessary complexity
+3. **Direct instantiation preferred** - When you want explicit control
+
+#### **Real Library Example: SQLAlchemy**
+
+```python
+from sqlalchemy import create_engine
+
+# Factory pattern: create_engine creates different database engines
+# based on the connection string
+
+# Creates PostgreSQL engine
+engine = create_engine('postgresql://user:pass@localhost/mydb')
+
+# Creates MySQL engine
+engine = create_engine('mysql://user:pass@localhost/mydb')
+
+# Creates SQLite engine
+engine = create_engine('sqlite:///mydb.db')
+
+# You don't need to know about PostgresEngine, MySQLEngine, SQLiteEngine classes
+# The factory handles it based on the URL scheme!
+```
+
+---
+
+### **Pattern 3: Observer - "Notify Me When Things Change"**
+
+#### **The Problem**
+
+You're building a stock trading app. Multiple displays need to update when price changes:
+
+```python
+class StockPrice:
+    def __init__(self, symbol, price):
+        self.symbol = symbol
+        self.price = price
+
+    def set_price(self, new_price):
+        """Update price - but how do we notify displays?"""
+        self.price = new_price
+
+        # BAD: Hard-coded notifications
+        print(f"Display 1: {self.symbol} is now ${new_price}")
+        print(f"Display 2: Alert! {self.symbol} changed to ${new_price}")
+        print(f"Display 3: LOG: Price updated to ${new_price}")
+
+        # Problems:
+        # 1. Stock class knows about all displays (tight coupling)
+        # 2. Can't add/remove displays dynamically
+        # 3. Hard to test (print statements baked in)
+        # 4. Violates Single Responsibility (Stock shouldn't know about displays)
+
+stock = StockPrice("AAPL", 150.00)
+stock.set_price(155.00)
+```
+
+**Real-world analogy:** YouTube subscriptions. When a channel posts a video, all subscribers get notified. The channel doesn't need to know who its subscribers are - YouTube handles the notifications.
+
+#### **The Solution: Observer Pattern**
+
+Objects (observers) subscribe to another object (subject) and get notified of changes:
+
+```python
+class Subject:
+    """
+    The object being observed.
+
+    Responsibilities:
+    1. Maintain list of observers
+    2. Provide methods to attach/detach observers
+    3. Notify observers when state changes
+    """
+
+    def __init__(self):
+        self._observers = []
+
+    def attach(self, observer):
+        """Subscribe an observer."""
+        if observer not in self._observers:
+            self._observers.append(observer)
+            print(f"Attached: {observer.__class__.__name__}")
+
+    def detach(self, observer):
+        """Unsubscribe an observer."""
+        self._observers.remove(observer)
+        print(f"Detached: {observer.__class__.__name__}")
+
+    def notify(self, data):
+        """Notify all observers of a change."""
+        print(f"Notifying {len(self._observers)} observers...")
+        for observer in self._observers:
+            observer.update(data)
+
+class StockPrice(Subject):
+    """
+    Concrete subject: Stock price that can be observed.
+
+    Now StockPrice doesn't know about specific displays!
+    It just notifies all observers.
+    """
+
+    def __init__(self, symbol, price):
+        super().__init__()  # Initialize Subject
+        self._symbol = symbol
+        self._price = price
+
+    @property
+    def price(self):
+        return self._price
+
+    @price.setter
+    def price(self, value):
+        """When price changes, notify observers."""
+        print(f"\n{self._symbol} price changing: ${self._price} -> ${value}")
+        self._price = value
+
+        # Notify all observers
+        self.notify({
+            'symbol': self._symbol,
+            'price': value
+        })
+
+# Observer interface: All observers must have an update method
+class CurrentPriceDisplay:
+    """Observer that displays current price."""
+
+    def update(self, data):
+        """Called when observed subject changes."""
+        print(f"  [Current Display] {data['symbol']}: ${data['price']:.2f}")
+
+class PriceAlert:
+    """Observer that alerts when price crosses a threshold."""
+
+    def __init__(self, threshold):
+        self.threshold = threshold
+
+    def update(self, data):
+        if data['price'] > self.threshold:
+            print(f"  [ALERT] {data['symbol']} crossed ${self.threshold}! Now ${data['price']:.2f}")
+
+class PriceLogger:
+    """Observer that logs all price changes."""
+
+    def __init__(self):
+        self.history = []
+
+    def update(self, data):
+        self.history.append(data)
+        print(f"  [Logger] Recorded: {data['symbol']} = ${data['price']:.2f} (Total records: {len(self.history)})")
+
+# Set up the system:
+stock = StockPrice("AAPL", 150.00)
+
+# Create observers
+current_display = CurrentPriceDisplay()
+alert_160 = PriceAlert(threshold=160)
+alert_170 = PriceAlert(threshold=170)
+logger = PriceLogger()
+
+# Attach observers (subscribe)
+stock.attach(current_display)
+stock.attach(alert_160)
+stock.attach(alert_170)
+stock.attach(logger)
+
+# Now when price changes, all observers are notified automatically:
+stock.price = 155.00
+# Output:
+# AAPL price changing: $150.0 -> $155.0
+# Notifying 4 observers...
+#   [Current Display] AAPL: $155.00
+#   [Logger] Recorded: AAPL = $155.00 (Total records: 1)
+
+stock.price = 165.00
+# Output:
+# AAPL price changing: $155.0 -> $165.0
+# Notifying 4 observers...
+#   [Current Display] AAPL: $165.00
+#   [ALERT] AAPL crossed $160! Now $165.00
+#   [Logger] Recorded: AAPL = $165.00 (Total records: 2)
+
+stock.price = 175.00
+# Output:
+# AAPL price changing: $165.0 -> $175.0
+# Notifying 4 observers...
+#   [Current Display] AAPL: $175.00
+#   [ALERT] AAPL crossed $160! Now $175.00
+#   [ALERT] AAPL crossed $170! Now $175.00
+#   [Logger] Recorded: AAPL = $175.00 (Total records: 3)
+
+# Can dynamically remove observers
+print("\nRemoving alert_160:")
+stock.detach(alert_160)
+
+stock.price = 180.00
+# Now alert_160 doesn't get notified
+```
+
+#### **Why is this better?**
+
+1. **Loose coupling** - StockPrice doesn't know about specific display types
+2. **Dynamic subscription** - Can add/remove observers at runtime
+3. **Open/Closed Principle** - Can add new observer types without changing StockPrice
+4. **Single Responsibility** - StockPrice manages price, observers handle their own display logic
+
+#### **When to Use Observer**
+
+✅ **Good uses:**
+
+1. **Event systems** - GUI buttons, web events, game events
+2. **Model-View** - When UI needs to update based on data changes
+3. **Publish-Subscribe** - Message brokers, notification systems
+4. **Distributed systems** - Multiple services need updates
+
+❌ **When NOT to use:**
+
+1. **Simple direct calls** - If one object always notifies one other object
+2. **Performance critical** - Observer adds overhead
+3. **Synchronous only** - If you need async, use a proper event system
+
+#### **Real Library Examples**
+
+**1. Django Signals:**
+
+```python
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+# Observer pattern: listen for model save events
+@receiver(post_save, sender=User)
+def user_saved(sender, instance, created, **kwargs):
+    """Called automatically when User is saved."""
+    if created:
+        print(f"New user created: {instance.username}")
+```
+
+**2. JavaScript Event Listeners:**
+
+```javascript
+// Observer pattern in JavaScript
+button.addEventListener("click", function (event) {
+  // This function is an observer
+  // It gets notified when the button is clicked
+  console.log("Button clicked!");
+});
+```
+
+---
+
+### **Pattern 4: Strategy - "Swap Algorithms On The Fly"**
+
+#### **The Problem**
+
+You're building a payment system that supports different payment methods:
+
+```python
+class PaymentProcessor:
+    def process_payment(self, amount, method):
+        """Process payment with specified method."""
+        if method == 'credit_card':
+            # Credit card logic
+            print(f"Processing ${amount} via credit card")
+            print("  - Validating card number")
+            print("  - Checking CVV")
+            print("  - Authorizing transaction")
+            return "Credit card payment successful"
+
+        elif method == 'paypal':
+            # PayPal logic
+            print(f"Processing ${amount} via PayPal")
+            print("  - Redirecting to PayPal")
+            print("  - Authenticating user")
+            print("  - Completing PayPal transaction")
+            return "PayPal payment successful"
+
+        elif method == 'crypto':
+            # Cryptocurrency logic
+            print(f"Processing ${amount} via cryptocurrency")
+            print("  - Generating wallet address")
+            print("  - Waiting for blockchain confirmation")
+            print("  - Verifying transaction")
+            return "Crypto payment successful"
+
+        else:
+            return "Unknown payment method"
+
+# Problems:
+# 1. Violates Open/Closed Principle (must modify class to add new payment methods)
+# 2. Violates Single Responsibility (class knows about all payment methods)
+# 3. Hard to test (can't test payment methods independently)
+# 4. Can't easily reuse payment logic elsewhere
+# 5. Becomes a giant mess as more methods are added
+
+processor = PaymentProcessor()
+processor.process_payment(100, 'credit_card')
+processor.process_payment(50, 'paypal')
+```
+
+**Real-world analogy:** Transportation to work. You might drive, take the bus, bike, or walk. The destination is the same, but the strategy (how you get there) changes based on weather, time, distance, etc.
+
+#### **The Solution: Strategy Pattern**
+
+Define a family of algorithms, encapsulate each one, and make them interchangeable:
+
+```python
+from abc import ABC, abstractmethod
+
+# Step 1: Define the strategy interface
+class PaymentStrategy(ABC):
+    """
+    Interface for all payment strategies.
+
+    Every payment method must implement the 'pay' method.
+    """
+
+    @abstractmethod
+    def pay(self, amount):
+        """Process payment of given amount."""
+        pass
+
+# Step 2: Create concrete strategies
+class CreditCardPayment(PaymentStrategy):
+    """Strategy for credit card payments."""
+
+    def __init__(self, card_number, cvv):
+        self.card_number = card_number
+        self.cvv = cvv
+
+    def pay(self, amount):
+        print(f"Processing ${amount} via Credit Card")
+        print(f"  - Card: **** **** **** {self.card_number[-4:]}")
+        print(f"  - Validating CVV")
+        print(f"  - Authorizing transaction")
+        return f"Paid ${amount} with credit card"
+
+class PayPalPayment(PaymentStrategy):
+    """Strategy for PayPal payments."""
+
+    def __init__(self, email):
+        self.email = email
+
+    def pay(self, amount):
+        print(f"Processing ${amount} via PayPal")
+        print(f"  - Account: {self.email}")
+        print(f"  - Redirecting to PayPal")
+        print(f"  - Authenticating user")
+        return f"Paid ${amount} via PayPal"
+
+class CryptoPayment(PaymentStrategy):
+    """Strategy for cryptocurrency payments."""
+
+    def __init__(self, wallet_address):
+        self.wallet_address = wallet_address
+
+    def pay(self, amount):
+        print(f"Processing ${amount} via Cryptocurrency")
+        print(f"  - Wallet: {self.wallet_address[:8]}...")
+        print(f"  - Waiting for blockchain confirmation")
+        return f"Paid ${amount} via crypto"
+
+# Step 3: Create the context that uses strategies
+class ShoppingCart:
+    """
+    Context that uses a payment strategy.
+
+    The cart doesn't know HOW payment is processed.
+    It just knows it has a strategy that can process payment.
+    """
+
+    def __init__(self):
+        self.items = []
+        self._payment_strategy = None
+
+    def add_item(self, item, price):
+        """Add item to cart."""
+        self.items.append((item, price))
+        print(f"Added {item}: ${price}")
+
+    def set_payment_method(self, strategy: PaymentStrategy):
+        """
+        Set the payment strategy.
+
+        This can be changed at any time - that's the power of Strategy pattern!
+        """
+        self._payment_strategy = strategy
+        print(f"Payment method set to: {strategy.__class__.__name__}")
+
+    def checkout(self):
+        """Process payment using current strategy."""
+        if self._payment_strategy is None:
+            return "Error: Please select a payment method"
+
+        # Calculate total
+        total = sum(price for item, price in self.items)
+        print(f"\nTotal: ${total}")
+
+        # Delegate to strategy
+        return self._payment_strategy.pay(total)
+
+# Usage: Client can easily switch strategies
+cart = ShoppingCart()
+
+# Add items
+cart.add_item("Book", 29.99)
+cart.add_item("Coffee Mug", 12.50)
+cart.add_item("Pen", 3.99)
+
+print("\n--- Trying Credit Card ---")
+# Choose credit card
+cart.set_payment_method(CreditCardPayment("1234567890123456", "123"))
+result = cart.checkout()
+print(f"Result: {result}")
+
+print("\n--- Switching to PayPal ---")
+# Change strategy to PayPal
+cart.set_payment_method(PayPalPayment("user@example.com"))
+result = cart.checkout()
+print(f"Result: {result}")
+
+print("\n--- Switching to Crypto ---")
+# Change strategy to Crypto
+cart.set_payment_method(CryptoPayment("1A2B3C4D5E6F7G8H9I"))
+result = cart.checkout()
+print(f"Result: {result}")
+```
+
+**Adding a new payment method is now trivial:**
+
+```python
+class BankTransferPayment(PaymentStrategy):
+    """New strategy: Bank transfer."""
+
+    def __init__(self, account_number):
+        self.account_number = account_number
+
+    def pay(self, amount):
+        print(f"Processing ${amount} via Bank Transfer")
+        print(f"  - Account: {self.account_number}")
+        print(f"  - Initiating transfer")
+        return f"Paid ${amount} via bank transfer"
+
+# Use it immediately - no changes to ShoppingCart needed!
+cart.set_payment_method(BankTransferPayment("123-456-789"))
+cart.checkout()
+```
+
+#### **Why is this better?**
+
+1. **Open/Closed Principle** - Can add new strategies without modifying cart
+2. **Single Responsibility** - Each strategy handles one payment method
+3. **Easy to test** - Test each strategy independently
+4. **Runtime flexibility** - Can change strategies at runtime
+5. **Reusability** - Strategies can be used elsewhere
+
+#### **When to Use Strategy**
+
+✅ **Good uses:**
+
+1. **Multiple algorithms** - Different ways to do the same thing
+2. **Runtime selection** - Algorithm chosen based on conditions
+3. **Avoid conditionals** - Replace long if/elif/else chains
+4. **Configuration** - Load algorithm from config file
+
+❌ **When NOT to use:**
+
+1. **One algorithm** - No need for strategy if there's only one way
+2. **Algorithms rarely change** - If it's stable, simple code is fine
+3. **Trivial differences** - Don't over-engineer small variations
+
+#### **Real Library Examples**
+
+**1. Python's `sorted()` function:**
+
+```python
+# Strategy pattern: 'key' parameter is a strategy!
+words = ['apple', 'pie', 'zoo', 'a']
+
+# Strategy 1: Sort by length
+sorted_by_length = sorted(words, key=len)
+# ['a', 'pie', 'zoo', 'apple']
+
+# Strategy 2: Sort alphabetically (default strategy)
+sorted_alpha = sorted(words)
+# ['a', 'apple', 'pie', 'zoo']
+
+# Strategy 3: Sort by last letter
+sorted_by_last = sorted(words, key=lambda w: w[-1])
+# ['a', 'apple', 'pie', 'zoo']
+
+# The 'key' parameter is interchangeable - that's the strategy pattern!
+```
+
+**2. Django class-based views:**
+
+```python
+from django.views import View
+
+class MyView(View):
+    # Different strategies for different HTTP methods
+    def get(self, request):
+        return HttpResponse("GET strategy")
+
+    def post(self, request):
+        return HttpResponse("POST strategy")
+
+    # Django selects the strategy based on HTTP method
+```
+
+---
+
+## Practice Exercises
+
+### **Exercise 1: Singleton Configuration Manager**
+
+Create a configuration manager that:
+
+- Loads config from a file (once)
+- Provides global access to config
+- Ensures only one instance exists
+
+```python
+# YOUR CODE HERE
+# Implement ConfigManager as a Singleton
+
+# Test:
+# config1 = ConfigManager()
+# config2 = ConfigManager()
+# assert config1 is config2  # Same instance!
+# print(config1.get('database_url'))
+```
+
+### **Exercise 2: Factory for Notifications**
+
+Create a notification factory that can create:
+
+- Email notifications
+- SMS notifications
+- Push notifications
+
+Based on user preferences:
+
+```python
+# YOUR CODE HERE
+# Implement Notification base class
+# Implement EmailNotification, SMSNotification, PushNotification
+# Implement NotificationFactory
+
+# Test:
+# factory = NotificationFactory()
+# notification = factory.create_notification('email')
+# notification.send("Hello, World!")
+```
+
+### **Exercise 3: Observer Weather Station**
+
+Create a weather station that:
+
+- Tracks temperature, humidity, pressure
+- Notifies multiple displays when weather changes
+- Allows displays to subscribe/unsubscribe
+
+```python
+# YOUR CODE HERE
+# Implement WeatherStation (Subject)
+# Implement Display classes (Observers)
+
+# Test:
+# station = WeatherStation()
+# current_display = CurrentConditionsDisplay()
+# stats_display = StatisticsDisplay()
+#
+# station.attach(current_display)
+# station.attach(stats_display)
+#
+# station.set_measurements(75, 60, 30.4)
+```
+
+### **Exercise 4: Strategy Sorting System**
+
+Create a data processor that can sort data using different strategies:
+
+- QuickSort for large datasets
+- BubbleSort for small datasets
+- MergeSort for stable sorting
+
+```python
+# YOUR CODE HERE
+# Implement SortStrategy interface
+# Implement concrete strategies
+# Implement DataProcessor context
+
+# Test:
+# processor = DataProcessor(QuickSort())
+# result = processor.process([3, 1, 4, 1, 5, 9, 2, 6])
+# processor.set_strategy(BubbleSort())
+# result = processor.process([3, 1, 4])
+```
+
+---
+
+## Next Steps
+
+This tutorial covered the foundations. Would you like me to continue with:
+
+1. **More Design Patterns** - Decorator, Adapter, Facade, Command
+2. **Advanced OOP** - Descriptors, Metaclasses, Abstract Base Classes in depth
+3. **Detailed Exercise Solutions** - Walk through each exercise with explanations
+4. **Real-World Case Studies** - How frameworks like Django, Flask use these patterns
+5. **Anti-Patterns** - Common mistakes and how to avoid them
+
+Which would you like to explore next?
+
+# Advanced OOP: More Patterns, MRO & Real-World Integration
+
+## Continuing the Journey to Mastery
+
+---
+
+## Part 1: More Essential Design Patterns
+
+### **Pattern 5: Decorator Pattern - "Wrap and Enhance"**
+
+**Important Note:** This is the Decorator _design pattern_, NOT the Python `@decorator` syntax (though they share similar concepts).
+
+#### **The Problem: Adding Features Without Modification**
+
+You're building a coffee shop system. Each coffee can have multiple add-ons:
+
+```python
+class Coffee:
+    def cost(self):
+        return 2.00
+
+    def description(self):
+        return "Simple coffee"
+
+# Problem: How do we add milk, sugar, whipped cream?
+# BAD APPROACH 1: Create a class for every combination
+class CoffeeWithMilk:
+    def cost(self):
+        return 2.50
+
+    def description(self):
+        return "Coffee with milk"
+
+class CoffeeWithMilkAndSugar:
+    def cost(self):
+        return 2.75
+
+    def description(self):
+        return "Coffee with milk and sugar"
+
+class CoffeeWithMilkAndSugarAndWhippedCream:
+    def cost(self):
+        return 3.50
+
+    def description(self):
+        return "Coffee with milk, sugar, and whipped cream"
+
+# This explodes exponentially!
+# With 5 add-ons, you need 32 classes (2^5)!
+
+# BAD APPROACH 2: Boolean flags
+class CoffeeBad:
+    def __init__(self, with_milk=False, with_sugar=False, with_cream=False):
+        self.with_milk = with_milk
+        self.with_sugar = with_sugar
+        self.with_cream = with_cream
+
+    def cost(self):
+        price = 2.00
+        if self.with_milk:
+            price += 0.50
+        if self.with_sugar:
+            price += 0.25
+        if self.with_cream:
+            price += 0.75
+        return price
+
+    def description(self):
+        desc = "Coffee"
+        if self.with_milk:
+            desc += " with milk"
+        if self.with_sugar:
+            desc += " with sugar"
+        if self.with_cream:
+            desc += " with whipped cream"
+        return desc
+
+# Problems:
+# 1. Hard to add new add-ons (must modify class)
+# 2. Can't add same add-on twice (double sugar?)
+# 3. Class knows about ALL possible add-ons
+# 4. Violates Open/Closed Principle
+```
+
+**Real-world analogy:** Gift wrapping. You can wrap a gift, then wrap the wrapped gift, then add a bow to that, then add a card. Each layer adds something without modifying what's underneath.
+
+#### **The Solution: Decorator Pattern**
+
+Wrap objects to add functionality dynamically:
+
+```python
+from abc import ABC, abstractmethod
+
+# Step 1: Define the component interface
+class Coffee(ABC):
+    """
+    Base component: What all coffee objects have in common.
+
+    Both the simple coffee AND decorated coffee will implement this.
+    """
+
+    @abstractmethod
+    def cost(self):
+        """Get the cost."""
+        pass
+
+    @abstractmethod
+    def description(self):
+        """Get the description."""
+        pass
+
+# Step 2: Create the concrete component (the thing being decorated)
+class SimpleCoffee(Coffee):
+    """
+    The actual coffee - the thing we'll decorate.
+
+    This is the core object that decorators will wrap.
+    """
+
+    def cost(self):
+        return 2.00
+
+    def description(self):
+        return "Simple coffee"
+
+# Step 3: Create the decorator base class
+class CoffeeDecorator(Coffee):
+    """
+    Base decorator class.
+
+    This is the key to the pattern:
+    - It IS A Coffee (inherits from Coffee)
+    - It HAS A Coffee (wraps another Coffee object)
+
+    This dual nature lets decorators wrap other decorators!
+    """
+
+    def __init__(self, coffee: Coffee):
+        """
+        Store the coffee being decorated.
+
+        This could be:
+        - A SimpleCoffee
+        - Another decorator (that's wrapping something else)
+
+        This is what allows stacking!
+        """
+        self._coffee = coffee
+
+    def cost(self):
+        """
+        Default: Just delegate to wrapped coffee.
+
+        Subclasses will override to add their own cost.
+        """
+        return self._coffee.cost()
+
+    def description(self):
+        """
+        Default: Just delegate to wrapped coffee.
+
+        Subclasses will override to add their own description.
+        """
+        return self._coffee.description()
+
+# Step 4: Create concrete decorators
+class MilkDecorator(CoffeeDecorator):
+    """Decorator that adds milk."""
+
+    def cost(self):
+        """Add milk cost to the wrapped coffee's cost."""
+        return self._coffee.cost() + 0.50
+
+    def description(self):
+        """Add milk to the description."""
+        return self._coffee.description() + ", milk"
+
+class SugarDecorator(CoffeeDecorator):
+    """Decorator that adds sugar."""
+
+    def cost(self):
+        return self._coffee.cost() + 0.25
+
+    def description(self):
+        return self._coffee.description() + ", sugar"
+
+class WhippedCreamDecorator(CoffeeDecorator):
+    """Decorator that adds whipped cream."""
+
+    def cost(self):
+        return self._coffee.cost() + 0.75
+
+    def description(self):
+        return self._coffee.description() + ", whipped cream"
+
+# Now watch the magic: Build coffee by wrapping decorators!
+
+# Start with simple coffee
+coffee = SimpleCoffee()
+print(f"{coffee.description()}: ${coffee.cost():.2f}")
+# Simple coffee: $2.00
+
+# Add milk (wrap coffee in MilkDecorator)
+coffee = MilkDecorator(coffee)
+print(f"{coffee.description()}: ${coffee.cost():.2f}")
+# Simple coffee, milk: $2.50
+
+# Add sugar (wrap the milk-coffee in SugarDecorator)
+coffee = SugarDecorator(coffee)
+print(f"{coffee.description()}: ${coffee.cost():.2f}")
+# Simple coffee, milk, sugar: $2.75
+
+# Add whipped cream (wrap everything in WhippedCreamDecorator)
+coffee = WhippedCreamDecorator(coffee)
+print(f"{coffee.description()}: ${coffee.cost():.2f}")
+# Simple coffee, milk, sugar, whipped cream: $3.50
+
+# Can add same decorator multiple times!
+coffee = SugarDecorator(coffee)  # Extra sugar!
+print(f"{coffee.description()}: ${coffee.cost():.2f}")
+# Simple coffee, milk, sugar, whipped cream, sugar: $3.75
+
+# Build complex combinations in one go:
+fancy_coffee = WhippedCreamDecorator(
+    SugarDecorator(
+        SugarDecorator(
+            MilkDecorator(SimpleCoffee())
+        )
+    )
+)
+print(f"{fancy_coffee.description()}: ${fancy_coffee.cost():.2f}")
+# Simple coffee, milk, sugar, sugar, whipped cream: $3.75
+```
+
+**What's happening under the hood:**
+
+```python
+# When we call fancy_coffee.cost():
+#
+# 1. WhippedCreamDecorator.cost() is called
+#    - It calls self._coffee.cost() (which is SugarDecorator)
+#    - Adds 0.75
+#
+# 2. SugarDecorator.cost() is called
+#    - It calls self._coffee.cost() (which is another SugarDecorator)
+#    - Adds 0.25
+#
+# 3. SugarDecorator.cost() is called again
+#    - It calls self._coffee.cost() (which is MilkDecorator)
+#    - Adds 0.25
+#
+# 4. MilkDecorator.cost() is called
+#    - It calls self._coffee.cost() (which is SimpleCoffee)
+#    - Adds 0.50
+#
+# 5. SimpleCoffee.cost() is called
+#    - Returns 2.00
+#
+# Then the values bubble back up:
+# 2.00 → 2.50 → 2.75 → 3.00 → 3.75
+
+# It's like nested function calls:
+# whipped(sugar(sugar(milk(simple()))))
+```
+
+#### **When to Use Decorator Pattern**
+
+✅ **Good uses:**
+
+1. **Adding responsibilities dynamically** - Features added at runtime
+2. **Multiple optional features** - Many combinations possible
+3. **Following Open/Closed** - Add features without modifying existing code
+4. **Avoiding subclass explosion** - Alternative to inheritance
+
+❌ **When NOT to use:**
+
+1. **Simple cases** - If you only have 1-2 variations, inheritance is fine
+2. **Order doesn't matter** - If features are independent, composition might be simpler
+3. **Performance critical** - Each decorator adds a layer of indirection
+
+#### **Real-World Examples**
+
+**Python's `@decorator` syntax (related concept):**
+
+```python
+# Python decorators are a related but different concept
+# They decorate FUNCTIONS, not objects
+# But the idea is similar: wrap to add functionality
+
+def logging_decorator(func):
+    """Wraps a function to add logging."""
+    def wrapper(*args, **kwargs):
+        print(f"Calling {func.__name__}")
+        result = func(*args, **kwargs)
+        print(f"Finished {func.__name__}")
+        return result
+    return wrapper
+
+@logging_decorator
+def greet(name):
+    return f"Hello, {name}!"
+
+# The decorator wraps greet() to add logging
+print(greet("Alice"))
+# Calling greet
+# Finished greet
+# Hello, Alice!
+```
+
+**File I/O decorators (BufferedReader wraps FileReader):**
+
+```python
+# In Java/Python file operations:
+# BufferedReader decorates FileReader to add buffering
+
+# file = open("data.txt")                    # Base
+# buffered = BufferedReader(file)            # Decorator adds buffering
+# compressed = GzipFile(buffered)            # Decorator adds compression
+#
+# Each layer adds functionality without modifying the others!
+```
+
+---
+
+### **Pattern 6: Adapter Pattern - "Making Incompatible Interfaces Compatible"**
+
+#### **The Problem: Working with Incompatible Interfaces**
+
+You have a system that expects one interface, but you need to use a class with a different interface:
+
+```python
+# Your system expects this interface:
+class MediaPlayer:
+    """Expected interface for playing media."""
+
+    def play(self, filename):
+        """Play a media file."""
+        pass
+
+class MP3Player(MediaPlayer):
+    """Plays MP3 files - matches expected interface."""
+
+    def play(self, filename):
+        print(f"Playing MP3: {filename}")
+
+# But you want to use this third-party library:
+class VLCPlayer:
+    """
+    Third-party player with different interface.
+
+    You can't modify this class (it's from a library).
+    """
+
+    def play_vlc(self, filename):
+        """Different method name!"""
+        print(f"VLC playing: {filename}")
+
+    def stop(self):
+        print("VLC stopped")
+
+class SpotifyPlayer:
+    """
+    Another third-party player with yet another interface.
+    """
+
+    def stream(self, track_id):
+        """Completely different method!"""
+        print(f"Streaming from Spotify: {track_id}")
+
+# Problem: How do we use VLC and Spotify in our system
+# that expects the MediaPlayer interface?
+
+def play_audio(player: MediaPlayer, filename):
+    """Our system expects MediaPlayer interface."""
+    player.play(filename)  # Expects play() method
+
+mp3 = MP3Player()
+play_audio(mp3, "song.mp3")  # Works!
+
+vlc = VLCPlayer()
+# play_audio(vlc, "movie.mp4")  # ERROR! VLC doesn't have play() method
+```
+
+**Real-world analogy:** Power adapters. US outlets use 110V, European outlets use 220V. You can't plug a US device directly into a European outlet. You need an adapter that "translates" between the interfaces.
+
+#### **The Solution: Adapter Pattern**
+
+Create an adapter that translates one interface to another:
+
+```python
+from abc import ABC, abstractmethod
+
+# The interface our system expects (Target Interface)
+class MediaPlayer(ABC):
+    """Target interface - what our system expects."""
+
+    @abstractmethod
+    def play(self, filename):
+        pass
+
+# Existing classes that match the interface
+class MP3Player(MediaPlayer):
+    def play(self, filename):
+        print(f"Playing MP3: {filename}")
+
+# Third-party classes with different interfaces (Adaptees)
+class VLCPlayer:
+    """Can't modify this - it's from a library."""
+    def play_vlc(self, filename):
+        print(f"VLC playing: {filename}")
+
+    def stop(self):
+        print("VLC stopped")
+
+class SpotifyPlayer:
+    """Another third-party class."""
+    def stream(self, track_id):
+        print(f"Streaming from Spotify: {track_id}")
+
+    def get_track_info(self, track_id):
+        return {"title": "Song Title", "artist": "Artist Name"}
+
+# Adapters: Translate the interface
+class VLCAdapter(MediaPlayer):
+    """
+    Adapter for VLC Player.
+
+    - Implements MediaPlayer interface (what our system expects)
+    - Wraps VLCPlayer (the incompatible class)
+    - Translates play() calls to play_vlc() calls
+    """
+
+    def __init__(self):
+        self.vlc = VLCPlayer()  # Wrap the incompatible object
+
+    def play(self, filename):
+        """
+        Implement the expected interface.
+
+        Internally, translate to VLC's interface.
+        """
+        # Translate: play() → play_vlc()
+        self.vlc.play_vlc(filename)
+
+class SpotifyAdapter(MediaPlayer):
+    """
+    Adapter for Spotify Player.
+
+    More complex: Spotify uses track IDs, not filenames.
+    We'll need to do some conversion.
+    """
+
+    def __init__(self):
+        self.spotify = SpotifyPlayer()
+
+    def play(self, filename):
+        """
+        Implement expected interface.
+
+        Convert filename to track ID, then use Spotify's interface.
+        """
+        # In real app, you'd look up the track ID from filename
+        # For demo, just extract a fake track ID
+        track_id = filename.replace(".mp3", "").replace(" ", "-")
+
+        # Show track info
+        info = self.spotify.get_track_info(track_id)
+        print(f"Now playing: {info['title']} by {info['artist']}")
+
+        # Translate: play() → stream()
+        self.spotify.stream(track_id)
+
+# Now our system can use ANY player through adapters!
+def play_audio(player: MediaPlayer, filename):
+    """This works with ANY MediaPlayer - including adapters!"""
+    print(f"\n--- Playing: {filename} ---")
+    player.play(filename)
+
+# Original player - works directly
+mp3 = MP3Player()
+play_audio(mp3, "song.mp3")
+
+# VLC through adapter - works!
+vlc = VLCAdapter()
+play_audio(vlc, "movie.mp4")
+
+# Spotify through adapter - works!
+spotify = SpotifyAdapter()
+play_audio(spotify, "cool-song.mp3")
+
+# The beauty: Our play_audio() function doesn't know about VLC or Spotify!
+# It just knows about the MediaPlayer interface.
+# Adapters do the translation behind the scenes.
+```
+
+**Two Types of Adapters:**
+
+1. **Object Adapter** (what we used above):
+
+   - Uses composition (wraps the adaptee)
+   - More flexible (can adapt any subclass)
+
+   ```python
+   class Adapter(Target):
+       def __init__(self):
+           self.adaptee = Adaptee()  # Composition
+   ```
+
+2. **Class Adapter** (uses multiple inheritance):
+   - Inherits from both target and adaptee
+   - Less flexible but simpler
+   ```python
+   class Adapter(Target, Adaptee):
+       def target_method(self):
+           return self.adaptee_method()  # Call inherited method
+   ```
+
+#### **When to Use Adapter**
+
+✅ **Good uses:**
+
+1. **Third-party libraries** - Can't modify their interface
+2. **Legacy code** - Need to use old code with new interface
+3. **Multiple incompatible classes** - Need to work together
+4. **Interface standardization** - Make different classes look the same
+
+❌ **When NOT to use:**
+
+1. **You control both interfaces** - Just change one to match the other
+2. **Simple renaming** - Just use a wrapper function
+3. **Too many adapters** - Might indicate poor design
+
+#### **Real-World Library Examples**
+
+**Django's Database Backends:**
+
+```python
+# Django uses adapters to support different databases!
+# PostgreSQL, MySQL, SQLite all have different APIs
+# Django's adapter pattern makes them all look the same
+
+# django/db/backends/postgresql/base.py
+class DatabaseWrapper(BaseDatabaseWrapper):  # Adapter
+    def __init__(self, settings_dict):
+        self.connection = None  # PostgreSQL connection
+
+    def get_connection_params(self):
+        # Adapt to psycopg2's interface
+        pass
+
+# django/db/backends/mysql/base.py
+class DatabaseWrapper(BaseDatabaseWrapper):  # Adapter
+    def __init__(self, settings_dict):
+        self.connection = None  # MySQL connection
+
+    def get_connection_params(self):
+        # Adapt to MySQLdb's interface
+        pass
+
+# Your code just uses the adapter interface:
+# connection.execute("SELECT * FROM users")
+# Django translates to the right database API!
+```
+
+---
+
+### **Pattern 7: Facade Pattern - "Simplifying Complex Systems"**
+
+#### **The Problem: Complex Subsystems**
+
+You're building a home theater system with many components:
+
+```python
+# Complex subsystem with many classes
+class DVDPlayer:
+    def on(self):
+        print("DVD Player ON")
+
+    def play(self, movie):
+        print(f"Playing: {movie}")
+
+    def stop(self):
+        print("DVD Player stopped")
+
+    def off(self):
+        print("DVD Player OFF")
+
+class Amplifier:
+    def on(self):
+        print("Amplifier ON")
+
+    def set_volume(self, level):
+        print(f"Volume: {level}")
+
+    def off(self):
+        print("Amplifier OFF")
+
+class Projector:
+    def on(self):
+        print("Projector ON")
+
+    def wide_screen_mode(self):
+        print("Projector: Wide screen mode")
+
+    def off(self):
+        print("Projector OFF")
+
+class Lights:
+    def dim(self, level):
+        print(f"Lights dimmed to {level}%")
+
+    def on(self):
+        print("Lights ON")
+
+class PopcornPopper:
+    def on(self):
+        print("Popcorn maker ON")
+
+    def pop(self):
+        print("Pop! Pop! Pop!")
+
+    def off(self):
+        print("Popcorn maker OFF")
+
+# Without Facade: Client needs to know about ALL components
+def watch_movie_complicated(movie):
+    """This is exhausting!"""
+    # Step 1: Setup popcorn
+    popper = PopcornPopper()
+    popper.on()
+    popper.pop()
+
+    # Step 2: Dim lights
+    lights = Lights()
+    lights.dim(10)
+
+    # Step 3: Setup projector
+    projector = Projector()
+    projector.on()
+    projector.wide_screen_mode()
+
+    # Step 4: Setup amplifier
+    amp = Amplifier()
+    amp.on()
+    amp.set_volume(5)
+
+    # Step 5: Setup DVD
+    dvd = DVDPlayer()
+    dvd.on()
+    dvd.play(movie)
+
+# Problems:
+# 1. Client must know about ALL components
+# 2. Must know the correct order of operations
+# 3. Easy to forget a step
+# 4. Code duplication (every client does the same setup)
+# 5. Tight coupling (client depends on all subsystem classes)
+```
+
+**Real-world analogy:** A car's ignition system. When you turn the key, hundreds of things happen (fuel pump, spark plugs, starter motor, etc.). But you don't need to know about all that - the ignition provides a simple interface: "start the car."
+
+#### **The Solution: Facade Pattern**
+
+Create a simple interface that hides the complex subsystem:
+
+```python
+class HomeTheaterFacade:
+    """
+    Facade: Provides a simple interface to complex subsystem.
+
+    The facade:
+    - Knows about all subsystem components
+    - Provides simple methods that coordinate complex operations
+    - Hides complexity from clients
+    """
+
+    def __init__(self):
+        """Initialize all subsystem components."""
+        self.dvd = DVDPlayer()
+        self.amp = Amplifier()
+        self.projector = Projector()
+        self.lights = Lights()
+        self.popper = PopcornPopper()
+
+    def watch_movie(self, movie):
+        """
+        Simple method that hides complex setup.
+
+        Client just calls this - facade handles everything!
+        """
+        print("Get ready to watch a movie...\n")
+
+        # Coordinate all subsystems
+        self.popper.on()
+        self.popper.pop()
+
+        self.lights.dim(10)
+
+        self.projector.on()
+        self.projector.wide_screen_mode()
+
+        self.amp.on()
+        self.amp.set_volume(5)
+
+        self.dvd.on()
+        self.dvd.play(movie)
+
+        print("\nEnjoy your movie!")
+
+    def end_movie(self):
+        """Simple method to shut everything down."""
+        print("\nShutting down movie theater...\n")
+
+        self.popper.off()
+        self.lights.on()
+        self.projector.off()
+        self.amp.off()
+        self.dvd.stop()
+        self.dvd.off()
+
+        print("Theater shutdown complete.")
+
+# Now client code is MUCH simpler!
+theater = HomeTheaterFacade()
+
+# One simple call does everything!
+theater.watch_movie("The Matrix")
+
+# When movie is over:
+theater.end_movie()
+
+# Client doesn't need to know:
+# - What components exist
+# - How to initialize them
+# - The correct order
+# The facade handles all that complexity!
+```
+
+**Key Benefits:**
+
+```python
+# Without Facade: Must know about everything
+def watch_movie():
+    popper = PopcornPopper()
+    lights = Lights()
+    projector = Projector()
+    amp = Amplifier()
+    dvd = DVDPlayer()
+
+    # 10+ lines of setup code
+    # Easy to get wrong
+    # Duplicated everywhere
+
+# With Facade: Simple and clear
+theater = HomeTheaterFacade()
+theater.watch_movie("Movie Name")
+
+# Just 1 line!
+# Can't get it wrong
+# No duplication
+```
+
+**Important Note:** The facade doesn't prevent you from using subsystems directly if needed:
+
+```python
+# You CAN still access subsystems if you need fine control
+theater = HomeTheaterFacade()
+
+# Use facade for common operations
+theater.watch_movie("Movie")
+
+# But can also access subsystems directly
+theater.amp.set_volume(8)  # Adjust volume mid-movie
+theater.lights.dim(5)      # Make it darker
+
+# Facade provides simplicity, not restrictions!
+```
+
+#### **When to Use Facade**
+
+✅ **Good uses:**
+
+1. **Complex subsystems** - Many interacting components
+2. **Common operations** - Same sequence done repeatedly
+3. **Layer separation** - Decouple clients from subsystems
+4. **Simplify APIs** - Hide complexity from users
+
+❌ **When NOT to use:**
+
+1. **Simple systems** - If there's only one class, no need for facade
+2. **Need fine control** - If clients need access to all details
+3. **Over-simplification** - If facade hides too much, becomes limiting
+
+#### **Real-World Library Examples**
+
+**Django's `django.shortcuts`:**
+
+```python
+# Django's render() is a facade!
+from django.shortcuts import render
+
+def my_view(request):
+    # Simple facade method
+    return render(request, 'template.html', {'data': 'value'})
+
+# Without facade, you'd need:
+from django.template import loader
+from django.http import HttpResponse
+
+def my_view_complex(request):
+    template = loader.get_template('template.html')
+    context = {'data': 'value'}
+    rendered = template.render(context, request)
+    return HttpResponse(rendered)
+
+# The facade hides all this complexity!
+```
+
+**Requests library:**
+
+```python
+import requests
+
+# Facade: Simple interface
+response = requests.get('https://api.example.com')
+
+# Behind the scenes, requests handles:
+# - Connection pooling
+# - SSL/TLS
+# - Redirects
+# - Cookies
+# - Encoding
+# - Authentication
+# All hidden behind simple facade!
+```
+
+---
+
+### **Pattern 8: Command Pattern - "Encapsulate Requests as Objects"**
+
+#### **The Problem: Executing and Tracking Operations**
+
+You're building a text editor with undo/redo functionality:
+
+```python
+class TextEditor:
+    def __init__(self):
+        self.text = ""
+
+    def insert(self, text):
+        """Insert text."""
+        self.text += text
+
+    def delete(self, length):
+        """Delete characters."""
+        self.text = self.text[:-length]
+
+# Problem: How do we implement undo?
+editor = TextEditor()
+editor.insert("Hello")
+editor.insert(" World")
+editor.delete(6)
+
+# Can't undo! We lost the information about what was done.
+# We'd need to track:
+# - What operation was performed
+# - What parameters were used
+# - How to reverse it
+
+# BAD APPROACH: Track strings
+undo_stack = []
+
+def insert_with_undo(editor, text):
+    """Try to track operations."""
+    undo_stack.append(('insert', text))
+    editor.insert(text)
+
+def undo():
+    """Try to undo."""
+    if undo_stack:
+        operation, data = undo_stack.pop()
+        if operation == 'insert':
+            editor.delete(len(data))
+        # What about delete? Need to restore text!
+        # This gets complicated fast...
+
+# Problems:
+# 1. Hard to track all information needed for undo
+# 2. Operations and their inverse logic scattered
+# 3. Can't easily queue operations
+# 4. Hard to implement macros (group of operations)
+```
+
+**Real-world analogy:** Remote control buttons. Each button is a command object that encapsulates a request to the TV (turn on, change channel, etc.). The remote doesn't need to know HOW the TV works - it just sends command objects.
+
+#### **The Solution: Command Pattern**
+
+Encapsulate operations as objects:
+
+```python
+from abc import ABC, abstractmethod
+
+# Step 1: Command interface
+class Command(ABC):
+    """
+    Base class for all commands.
+
+    Every command must be able to:
+    - Execute itself
+    - Undo itself
+    """
+
+    @abstractmethod
+    def execute(self):
+        """Perform the operation."""
+        pass
+
+    @abstractmethod
+    def undo(self):
+        """Reverse the operation."""
+        pass
+
+# Step 2: Receiver (the object being operated on)
+class TextEditor:
+    """
+    The receiver: Object that actually performs operations.
+
+    Commands will call methods on this object.
+    """
+
+    def __init__(self):
+        self.text = ""
+
+    def insert_text(self, text):
+        """Insert text at end."""
+        self.text += text
+        print(f"Text is now: '{self.text}'")
+
+    def delete_text(self, length):
+        """Delete last 'length' characters."""
+        self.text = self.text[:-length]
+        print(f"Text is now: '{self.text}'")
+
+    def get_text(self):
+        return self.text
+
+# Step 3: Concrete commands
+class InsertCommand(Command):
+    """
+    Command to insert text.
+
+    Encapsulates:
+    - The operation (insert)
+    - The receiver (editor)
+    - The parameters (text to insert)
+    - How to undo (delete same amount)
+    """
+
+    def __init__(self, editor: TextEditor, text: str):
+        self.editor = editor
+        self.text = text
+
+    def execute(self):
+        """Execute: Insert the text."""
+        print(f"Executing: Insert '{self.text}'")
+        self.editor.insert_text(self.text)
+
+    def undo(self):
+        """Undo: Delete what we inserted."""
+        print(f"Undoing: Insert '{self.text}'")
+        self.editor.delete_text(len(self.text))
+
+class DeleteCommand(Command):
+    """
+    Command to delete text.
+
+    Must remember what was deleted for undo!
+    """
+
+    def __init__(self, editor: TextEditor, length: int):
+        self.editor = editor
+        self.length = length
+        self.deleted_text = None  # Will store deleted text for undo
+
+    def execute(self):
+        """Execute: Delete text (remember what we deleted)."""
+        print(f"Executing: Delete {self.length} characters")
+        # Remember what we're deleting
+        self.deleted_text = self.editor.get_text()[-self.length:]
+        self.editor.delete_text(self.length)
+
+    def undo(self):
+        """Undo: Restore deleted text."""
+        print(f"Undoing: Delete (restore '{self.deleted_text}')")
+        self.editor.insert_text(self.deleted_text)
+
+# Step 4: Invoker (executes commands and tracks history)
+class CommandInvoker:
+    """
+    Invoker: Executes commands and manages undo/redo.
+
+    This is the "remote control" - it doesn't know what commands do,
+    it just executes them and tracks history.
+    """
+
+    def __init__(self):
+        self.history = []  # Commands that have been executed
+        self.redo_stack = []  # Commands that have been undone
+
+    def execute_command(self, command: Command):
+        """Execute a command and add to history."""
+        command.execute()
+        self.history.append(command)
+        # Clear redo stack (new action invalidates redo)
+        self.redo_stack.clear()
+
+    def undo(self):
+        """Undo the last command."""
+        if not self.history:
+            print("Nothing to undo!")
+            return
+
+        command = self.history.pop()
+        command.undo()
+        self.redo_stack.append(command)
+
+    def redo(self):
+        """Redo the last undone command."""
+        if not self.redo_stack:
+            print("Nothing to redo!")
+            return
+
+        command = self.redo_stack.pop()
+        command.execute()
+        self.history.append(command)
+
+# Now use the Command pattern:
+editor = TextEditor()
+invoker = CommandInvoker()
+
+# Execute commands
+print("=== Executing Commands ===")
+invoker.execute_command(InsertCommand(editor, "Hello"))
+invoker.execute_command(InsertCommand(editor, " World"))
+invoker.execute_command(InsertCommand(editor, "!"))
+
+print("\n=== Undo Operations ===")
+invoker.undo()  # Undo "!"
+invoker.undo()  # Undo " World"
+
+print("\n=== Redo Operations ===")
+invoker.redo()  # Redo " World"
+
+print("\n=== More Operations ===")
+invoker.execute_command(DeleteCommand(editor, 6))  # Delete " World"
+invoker.undo()  # Undo delete (restore " World")
+```
+
+**Benefits:**
+
+1. **Encapsulation**: Operations are objects with all their data
+2. **Undo/Redo**: Easy to implement - commands know how to reverse themselves
+3. **Queuing**: Can store commands and execute later
+4. **Logging**: Can log all operations for replay
+5. **Macro**: Group commands together
+6. **Separation**: Invoker doesn't know about receivers
+
+**Advanced: Macro Commands:**
+
+```python
+class MacroCommand(Command):
+    """
+    Command that executes multiple commands.
+
+    Composite pattern + Command pattern!
+    """
+
+    def __init__(self, commands):
+        self.commands = commands
+
+    def execute(self):
+        """Execute all commands."""
+        print("Executing macro...")
+        for command in self.commands:
+            command.execute()
+
+    def undo(self):
+        """Undo all commands in reverse order."""
+        print("Undoing macro...")
+        for command in reversed(self.commands):
+            command.undo()
+
+# Create a macro
+editor = TextEditor()
+invoker = CommandInvoker()
+
+macro = MacroCommand([
+    InsertCommand(editor, "Hello"),
+    InsertCommand(editor, " "),
+    InsertCommand(editor, "World"),
+    InsertCommand(editor, "!")
+])
+
+invoker.execute_command(macro)
+# Executes all 4 commands
+
+invoker.undo()
+# Undoes all 4 commands in reverse!
+```
+
+#### **When to Use Command**
+
+✅ **Good uses:**
+
+1. **Undo/Redo** - Need to reverse operations
+2. **Transaction logging** - Record operations for replay
+3. **Queuing operations** - Execute commands later
+4. **Macros** - Group operations together
+5. **Callbacks** - Store operations to call later
+
+❌ **When NOT to use:**
+
+1. **Simple operations** - If you don't need undo/history
+2. **Stateless operations** - If operations don't need parameters
+3. **Performance critical** - Command objects add overhead
+
+#### **Real-World Library Examples**
+
+**Django Management Commands:**
+
+```python
+from django.core.management.base import BaseCommand
+
+class Command(BaseCommand):
+    """Each Django management command is a Command object!"""
+
+    def handle(self, *args, **kwargs):
+        # Execute the command
+        self.stdout.write("Command executed!")
+
+# Run with: python manage.py mycommand
+# Django invokes the command object
+```
+
+**Task Queues (Celery):**
+
+```python
+from celery import Celery
+
+app = Celery('myapp')
+
+@app.task
+def send_email(to, subject, body):
+    """Command object for sending email."""
+    # Execute the command
+    pass
+
+# Queue the command for later execution
+send_email.delay('user@example.com', 'Hello', 'Message')
+
+# Command pattern: Operation is encapsulated as object
+# and executed later by a worker
+```
+
+---
+
+## Part 2: Method Resolution Order (MRO) - Deep Dive
+
+### **What is MRO?**
+
+MRO (Method Resolution Order) is the order Python searches for methods in a class hierarchy. When you call `obj.method()`, Python needs to find which class's `method()` to use.
+
+#### **The Simple Case: Single Inheritance**
+
+```python
+class A:
+    def method(self):
+        return "A's method"
+
+class B(A):
+    def method(self):
+        return "B's method"
+
+class C(B):
+    def method(self):
+        return "C's method"
+
+obj = C()
+print(obj.method())  # C's method
+
+# MRO: [C, B, A, object]
+# Python searches: C → B → A → object
+# First match wins!
+```
+
+Easy! Python just goes up the inheritance chain.
+
+### **The Diamond Problem: Multiple Inheritance**
+
+Things get complex with multiple inheritance:
+
+```python
+class A:
+    def method(self):
+        return "A"
+
+class B(A):
+    def method(self):
+        return "B"
+
+class C(A):
+    def method(self):
+        return "C"
+
+class D(B, C):
+    pass
+
+# Diamond inheritance:
+#       A
+#      / \
+#     B   C
+#      \ /
+#       D
+
+# Question: If D inherits from both B and C, which both inherit from A,
+# what order should Python search for methods?
+
+d = D()
+print(d.method())  # What does this print?
+
+# If Python uses old algorithm (depth-first):
+# D → B → A (stop, found A)
+# Never checks C! This is wrong.
+
+# Python uses C3 Linearization (MRO):
+print(D.__mro__)
+# (<class 'D'>, <class 'B'>, <class 'C'>, <class 'A'>, <class 'object'>)
+
+# So D → B → C → A → object
+# d.method() calls B's method
+print(d.method())  # B
+```
+
+### **C3 Linearization Algorithm**
+
+Python uses the **C3 linearization algorithm** to compute MRO. It ensures:
+
+1. **Children before parents** - A class appears before its parents
+2. **Parent order preserved** - Parents appear in the order specified
+3. **Each class appears once** - No duplicates
+4. **Monotonic** - Subclass's MRO doesn't contradict superclass's MRO
+
+**Rules for calculating MRO manually:**
+
+```
+MRO(Class) = [Class] + merge(MRO(Parent1), MRO(Parent2), ..., [Parent1, Parent2, ...])
+
+merge algorithm:
+1. Take the first head of the lists
+2. If it doesn't appear in the tail of any other list, add it to result and remove from all lists
+3. Otherwise, try the next list's head
+4. Repeat until all lists are empty
+```
+
+**Let's calculate manually:**
+
+```python
+class A:
+    pass
+
+class B(A):
+    pass
+
+class C(A):
+    pass
+
+class D(B, C):
+    pass
+
+# Calculate D's MRO:
+# MRO(D) = [D] + merge(MRO(B), MRO(C), [B, C])
+#
+# First, calculate MRO(B) and MRO(C):
+# MRO(B) = [B, A, object]
+# MRO(C) = [C, A, object]
+#
+# Now merge:
+# [D] + merge([B, A, object], [C, A, object], [B, C])
+#
+# Step 1: Look at heads: B, C, B
+#   B is the head of first list and third list
+#   B doesn't appear in tail of any list
+#   ✓ Add B
+#   Result: [D, B]
+#   Remaining: merge([A, object], [C, A, object], [C])
+#
+# Step 2: Look at heads: A, C, C
+#   A appears in tail of second list [C, A, object]
+#   ✗ Can't use A yet
+#   Try next: C
+#   C doesn't appear in any tail
+#   ✓ Add C
+#   Result: [D, B, C]
+#   Remaining: merge([A, object], [A, object], [])
+#
+# Step 3: Look at heads: A, A
+#   A doesn't appear in any tail (third list is empty)
+#   ✓ Add A
+#   Result: [D, B, C, A]
+#   Remaining: merge([object], [object])
+#
+# Step 4: Look at heads: object, object
+#   ✓ Add object
+#   Result: [D, B, C, A, object]
+#   Done!
+
+print(D.__mro__)
+# (<class 'D'>, <class 'B'>, <class 'C'>, <class 'A'>, <class 'object'>)
+```
+
+### **Complex Example:**
+
+```python
+class A:
+    pass
+
+class B:
+    pass
+
+class C(A, B):
+    pass
+
+class D(B, A):
+    pass
+
+# Try to create E inheriting from C and D:
+try:
+    class E(C, D):
+        pass
+except TypeError as e:
+    print(f"Error: {e}")
+    # TypeError: Cannot create a consistent method resolution order (MRO) for bases A, B
+
+# Why? Let's see:
+# C says: A before B (inherits from A, B)
+# D says: B before A (inherits from B, A)
+# These contradict! Can't satisfy both.
+# Python refuses to create E.
+```
+
+**This is a GOOD thing** - Python prevents ambiguous inheritance hierarchies.
+
+### **MRO Pitfalls and How to Avoid Them**
+
+#### **Pitfall 1: Unexpected Method Resolution**
+
+```python
+class Base:
+    def method(self):
+        print("Base method")
+
+class Left(Base):
+    def method(self):
+        print("Left method")
+        super().method()
+
+class Right(Base):
+    def method(self):
+        print("Right method")
+        super().method()
+
+class Child(Left, Right):
+    def method(self):
+        print("Child method")
+        super().method()
+
+# MRO: [Child, Left, Right, Base, object]
+
+obj = Child()
+obj.method()
+# Output:
+# Child method
+# Left method
+# Right method  ← Surprise! Right's method is called
+# Base method
+
+# Why? super() follows MRO, not just parent class
+# Child.super() → Left
+# Left.super() → Right (not Base! follows MRO)
+# Right.super() → Base
+```
+
+**Solution: Always understand the full MRO**
+
+```python
+# Check MRO before calling super()
+print(Child.__mro__)
+# Now you know super() will follow this order
+```
+
+#### **Pitfall 2: Forgetting `super()`**
+
+```python
+class Base:
+    def __init__(self, x):
+        self.x = x
+        print(f"Base: x={x}")
+
+class Left(Base):
+    def __init__(self, x, y):
+        super().__init__(x)
+        self.y = y
+        print(f"Left: y={y}")
+
+class Right(Base):
+    def __init__(self, x, z):
+        # FORGOT super()!
+        # Base.__init__(x)  # Only calls Base, skips cooperatively
+        self.z = z
+        print(f"Right: z={z}")
+
+class Child(Left, Right):
+    def __init__(self, x, y, z):
+        super().__init__(x, y)
+        self.z = z
+
+# MRO: [Child, Left, Right, Base, object]
+
+try:
+    obj = Child(1, 2, 3)
+except TypeError as e:
+    print(f"Error: {e}")
+    # Right.__init__() didn't call super(), breaking the chain!
+```
+
+**Solution: ALWAYS use `super()` in multiple inheritance**
+
+```python
+class Right(Base):
+    def __init__(self, x, z):
+        super().__init__(x)  # Passes to next in MRO
+        self.z = z
+        print(f"Right: z={z}")
+```
+
+#### **Pitfall 3: Argument Mismatch**
+
+```python
+class Base:
+    def __init__(self, x):
+        self.x = x
+
+class Left(Base):
+    def __init__(self, x, y):
+        super().__init__(x)  # Passes 'x' to next in MRO
+        self.y = y
+
+class Right(Base):
+    def __init__(self, x, z):
+        super().__init__(x)  # Also passes 'x'
+        self.z = z
+
+class Child(Left, Right):
+    def __init__(self, x, y, z):
+        # Problem: Left expects (x, y) but Right expects (x, z)
+        # Can't satisfy both!
+        super().__init__(x, y)  # This will fail when reaching Right
+
+# MRO: [Child, Left, Right, Base, object]
+
+try:
+    obj = Child(1, 2, 3)
+except TypeError as e:
+    print(f"Error: {e}")
+    # Right.__init__() got unexpected argument!
+```
+
+**Solution: Use `**kwargs` for cooperative inheritance\*\*
+
+```python
+class Base:
+    def __init__(self, x, **kwargs):
+        super().__init__(**kwargs)  # Pass remaining kwargs up the chain
+        self.x = x
+
+class Left(Base):
+    def __init__(self, y, **kwargs):
+        super().__init__(**kwargs)  # Pass kwargs to next in MRO
+        self.y = y
+
+class Right(Base):
+    def __init__(self, z, **kwargs):
+        super().__init__(**kwargs)
+        self.z = z
+
+class Child(Left, Right):
+    def __init__(self, x, y, z):
+        super().__init__(x=x, y=y, z=z)
+
+# Now it works!
+obj = Child(1, 2, 3)
+print(f"x={obj.x}, y={obj.y}, z={obj.z}")
+# x=1, y=2, z=3
+```
+
+### **Best Practices for Multiple Inheritance**
+
+1. **Favor composition over multiple inheritance**
+
+   ```python
+   # Instead of:
+   class Child(A, B, C):
+       pass
+
+   # Consider:
+   class Child:
+       def __init__(self):
+           self.a = A()
+           self.b = B()
+           self.c = C()
+   ```
+
+2. **Use mixins for shared behavior**
+
+   ```python
+   class LoggerMixin:
+       """Mixin: Adds logging capability."""
+       def log(self, message):
+           print(f"[LOG] {message}")
+
+   class SaverMixin:
+       """Mixin: Adds saving capability."""
+       def save(self):
+           print("Saving...")
+
+   class MyClass(LoggerMixin, SaverMixin):
+       """Combines multiple mixins."""
+       pass
+   ```
+
+3. **Keep hierarchies shallow**
+
+   - Avoid deep inheritance chains
+   - Prefer 2-3 levels maximum
+
+4. **Document your MRO**
+
+   ```python
+   class Complex(A, B, C):
+       """
+       Inheritance MRO: Complex → A → B → C → object
+
+       Note: B's method will shadow C's method of same name.
+       """
+       pass
+   ```
+
+---
+
+## Part 3: Real-World Case Studies
+
+### **Case Study 1: Django's Model System**
+
+Django uses multiple OOP patterns brilliantly:
+
+```python
+# Simplified version of how Django models work
+
+# METACLASS: Creates model classes
+class ModelMeta(type):
+    """
+    Metaclass that processes model definitions.
+
+    When you define a model, this metaclass:
+    - Collects field definitions
+    - Sets up database mappings
+    - Registers the model
+    """
+
+    def __new__(mcs, name, bases, attrs):
+        # Collect fields
+        fields = {}
+        for key, value in attrs.items():
+            if isinstance(value, Field):
+                fields[key] = value
+
+        # Store fields in the class
+        attrs['_fields'] = fields
+
+        # Create the class
+        cls = super().__new__(mcs, name, bases, attrs)
+        return cls
+
+# DESCRIPTOR: Field classes use descriptor protocol
+class Field:
+    """
+    Base field class using descriptor protocol.
+
+    Descriptors control attribute access.
+    """
+
+    def __init__(self, **kwargs):
+        self.name = None  # Will be set by metaclass
+
+    def __set_name__(self, owner, name):
+        """Called when class is created."""
+        self.name = name
+
+    def __get__(self, instance, owner):
+        """Get field value."""
+        if instance is None:
+            return self
+        return instance.__dict__.get(self.name)
+
+    def __set__(self, instance, value):
+        """Set field value (with validation)."""
+        instance.__dict__[self.name] = value
+
+class CharField(Field):
+    """Character field with max length."""
+
+    def __init__(self, max_length, **kwargs):
+        super().__init__(**kwargs)
+        self.max_length = max_length
+
+    def __set__(self, instance, value):
+        # Validate
+        if len(value) > self.max_length:
+            raise ValueError(f"Value too long (max {self.max_length})")
+        super().__set__(instance, value)
+
+# ACTIVE RECORD PATTERN: Models save themselves
+class Model(metaclass=ModelMeta):
+    """
+    Base model class.
+
+    Pattern: Active Record
+    - Objects know how to save themselves
+    - Objects know how to load themselves
+    """
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def save(self):
+        """Save this object to database."""
+        fields = self._fields
+        print(f"Saving {self.__class__.__name__}: {fields}")
+        # Would actually write to database
+
+    @classmethod
+    def objects(cls):
+        """Return query set (QUERY OBJECT PATTERN)."""
+        return QuerySet(cls)
+
+class QuerySet:
+    """
+    Query object pattern: Encapsulates queries.
+
+    Allows chaining: User.objects().filter(...).order_by(...)
+    """
+
+    def __init__(self, model_class):
+        self.model_class = model_class
+        self.filters = []
+
+    def filter(self, **kwargs):
+        """Add filter (returns self for chaining)."""
+        self.filters.append(kwargs)
+        return self
+
+    def all(self):
+        """Execute query."""
+        print(f"Querying {self.model_class.__name__} with filters: {self.filters}")
+        return []
+
+# Now use it:
+class User(Model):
+    """User model - looks like simple class definition."""
+    name = CharField(max_length=100)
+    email = CharField(max_length=200)
+
+# Metaclass processed the class definition!
+print(f"User fields: {User._fields}")
+
+# Create and save a user (Active Record)
+user = User(name="Alice", email="alice@example.com")
+user.save()
+
+# Query users (Query Object)
+users = User.objects().filter(name="Alice")
+```
+
+**Patterns used:**
+
+1. **Metaclass** - Process class definitions
+2. **Descriptor Protocol** - Field validation and access
+3. **Active Record** - Models save/load themselves
+4. **Query Object** - Encapsulate queries
+5. **Factory** - Field classes create different types
+
+### **Case Study 2: Flask's Request Context**
+
+Flask uses clever patterns for request handling:
+
+```python
+# Simplified version of Flask's context management
+
+from threading import local
+
+# SINGLETON + THREAD-LOCAL: Store per-thread data
+class LocalStack:
+    """
+    Stores data per thread.
+
+    Pattern: Singleton per thread
+    - Each thread has its own stack
+    - Allows global-like access without global state
+    """
+
+    def __init__(self):
+        self._local = local()  # Thread-local storage
+
+    def push(self, obj):
+        """Push object onto this thread's stack."""
+        stack = getattr(self._local, 'stack', None)
+        if stack is None:
+            self._local.stack = []
+        self._local.stack.append(obj)
+
+    def pop(self):
+        """Pop from this thread's stack."""
+        stack = getattr(self._local, 'stack', None)
+        if stack is None or len(stack) == 0:
+            return None
+        return stack.pop()
+
+    @property
+    def top(self):
+        """Get top of stack."""
+        stack = getattr(self._local, 'stack', None)
+        if stack is None or len(stack) == 0:
+            return None
+        return stack[-1]
+
+# Global request stack (but thread-safe!)
+_request_ctx_stack = LocalStack()
+
+# CONTEXT MANAGER: Automatic setup/teardown
+class RequestContext:
+    """
+    Context manager for request handling.
+
+    Pattern: Context Manager
+    - Automatically sets up request context
+    - Automatically tears down when done
+    """
+
+    def __init__(self, app, environ):
+        self.app = app
+        self.request = Request(environ)
+
+    def __enter__(self):
+        """Push context onto stack."""
+        _request_ctx_stack.push(self)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Pop context from stack."""
+        _request_ctx_stack.pop()
+
+class Request:
+    """Request object."""
+
+    def __init__(self, environ):
+        self.environ = environ
+        self.method = environ.get('REQUEST_METHOD', 'GET')
+        self.path = environ.get('PATH_INFO', '/')
+
+# PROXY: Global request object
+class LocalProxy:
+    """
+    Proxy to thread-local object.
+
+    Pattern: Proxy
+    - Acts like the real object
+    - Actually forwards to thread-local storage
+    - Allows convenient 'request' global
+    """
+
+    def __init__(self, local_stack):
+        self._local_stack = local_stack
+
+    def __getattr__(self, name):
+        """Forward attribute access to real object."""
+        obj = self._local_stack.top
+        if obj is None:
+            raise RuntimeError("No request context")
+        return getattr(obj.request, name)
+
+# Global 'request' - but actually a proxy!
+request = LocalProxy(_request_ctx_stack)
+
+# FACADE + DECORATOR: Simple routing
+class Flask:
+    """
+    Flask application.
+
+    Pattern: Facade + Decorator
+    - Provides simple interface to complex routing
+    - Decorator pattern for route registration
+    """
+
+    def __init__(self, name):
+        self.name = name
+        self.routes = {}
+
+    def route(self, rule):
+        """Decorator to register routes."""
+        def decorator(func):
+            self.routes[rule] = func
+            return func
+        return decorator
+
+    def handle_request(self, environ):
+        """Handle incoming request."""
+        # Create request context
+        with RequestContext(self, environ):
+            # Inside context, 'request' global works!
+            path = request.path
+            handler = self.routes.get(path)
+
+            if handler:
+                return handler()
+            return "404 Not Found"
+
+# Use it:
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    # 'request' is a global, but thread-safe!
+    return f"Path: {request.path}, Method: {request.method}"
+
+# Simulate request handling
+result = app.handle_request({'PATH_INFO': '/', 'REQUEST_METHOD': 'GET'})
+print(result)  # Path: /, Method: GET
+```
+
+**Patterns used:**
+
+1. **Singleton per Thread** - Thread-local storage
+2. **Context Manager** - Automatic setup/teardown
+3. **Proxy** - `request` global that forwards to real object
+4. **Facade** - Simple interface to complex routing
+5. **Decorator** - Route registration
+
+### **Case Study 3: SQLAlchemy's ORM**
+
+SQLAlchemy is a masterclass in design patterns:
+
+```python
+# Simplified version of SQLAlchemy's approach
+
+# REGISTRY: Track all mapped classes
+class ClassRegistry:
+    """
+    Registry pattern: Keep track of all mapped classes.
+
+    Used to resolve relationships between models.
+    """
+
+    def __init__(self):
+        self._classes = {}
+
+    def register(self, name, cls):
+        self._classes[name] = cls
+
+    def get(self, name):
+        return self._classes.get(name)
+
+registry = ClassRegistry()
+
+# DESCRIPTOR: Column definitions
+class Column:
+    """
+    Column descriptor with type information.
+
+    Pattern: Descriptor Protocol
+    """
+
+    def __init__(self, type_, primary_key=False):
+        self.type = type_
+        self.primary_key = primary_key
+        self.name = None
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+# UNIT OF WORK: Track changes
+class Session:
+    """
+    Session tracks changes and commits them together.
+
+    Pattern: Unit of Work
+    - Tracks all changed objects
+    - Commits everything in one transaction
+    - Allows rollback
+    """
+
+    def __init__(self):
+        self.new_objects = []
+        self.dirty_objects = []
+        self.deleted_objects = []
+
+    def add(self, obj):
+        """Mark object as new."""
+        self.new_objects.append(obj)
+
+    def delete(self, obj):
+        """Mark object for deletion."""
+        self.deleted_objects.append(obj)
+
+    def commit(self):
+        """Save all changes in one transaction."""
+        print("=== Committing Transaction ===")
+
+        # Insert new objects
+        for obj in self.new_objects:
+            print(f"INSERT {obj}")
+
+        # Update dirty objects
+        for obj in self.dirty_objects:
+            print(f"UPDATE {obj}")
+
+        # Delete objects
+        for obj in self.deleted_objects:
+            print(f"DELETE {obj}")
+
+        # Clear tracking
+        self.new_objects.clear()
+        self.dirty_objects.clear()
+        self.deleted_objects.clear()
+
+        print("=== Transaction Complete ===")
+
+    def rollback(self):
+        """Discard all changes."""
+        self.new_objects.clear()
+        self.dirty_objects.clear()
+        self.deleted_objects.clear()
+
+# IDENTITY MAP: Ensure one object per row
+class IdentityMap:
+    """
+    Identity Map pattern: One object per database row.
+
+    If you query for the same row twice, you get the same object!
+    """
+
+    def __init__(self):
+        self._map = {}  # (class, id) -> object
+
+    def get(self, cls, id_):
+        return self._map.get((cls, id_))
+
+    def add(self, cls, id_, obj):
+        self._map[(cls, id_)] = obj
+
+# QUERY OBJECT: Build complex queries
+class Query:
+    """
+    Query object pattern: Build queries incrementally.
+
+    Allows chaining: query.filter(...).order_by(...).limit(...)
+    """
+
+    def __init__(self, cls, session):
+        self.cls = cls
+        self.session = session
+        self.filters = []
+        self._order_by = None
+        self._limit = None
+
+    def filter(self, **kwargs):
+        """Add filter (returns self for chaining)."""
+        self.filters.append(kwargs)
+        return self
+
+    def order_by(self, field):
+        """Set ordering."""
+        self._order_by = field
+        return self
+
+    def limit(self, n):
+        """Set limit."""
+        self._limit = n
+        return self
+
+    def all(self):
+        """Execute query."""
+        print(f"SELECT * FROM {self.cls.__name__}")
+        print(f"  WHERE {self.filters}")
+        print(f"  ORDER BY {self._order_by}")
+        print(f"  LIMIT {self._limit}")
+        return []
+
+# DATA MAPPER: Map between objects and database
+class DeclarativeMeta(type):
+    """
+    Metaclass for ORM models.
+
+    Pattern: Data Mapper + Metaclass
+    """
+
+    def __new__(mcs, name, bases, attrs):
+        # Collect columns
+        columns = {}
+        for key, value in list(attrs.items()):
+            if isinstance(value, Column):
+                columns[key] = value
+
+        attrs['__columns__'] = columns
+
+        # Create the class
+        cls = super().__new__(mcs, name, bases, attrs)
+
+        # Register the class
+        registry.register(name, cls)
+
+        return cls
+
+class Base(metaclass=DeclarativeMeta):
+    """Base class for all models."""
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}(id={getattr(self, 'id', None)})>"
+
+# Use it:
+class User(Base):
+    """User model."""
+    id = Column(int, primary_key=True)
+    name = Column(str)
+    email = Column(str)
+
+class Post(Base):
+    """Post model."""
+    id = Column(int, primary_key=True)
+    title = Column(str)
+    user_id = Column(int)
+
+# Create session (Unit of Work)
+session = Session()
+
+# Create objects
+user = User(id=1, name="Alice", email="alice@example.com")
+post = Post(id=1, title="My First Post", user_id=1)
+
+# Track changes
+session.add(user)
+session.add(post)
+
+# Commit (all changes in one transaction)
+session.commit()
+
+# Query (Query Object)
+query = Query(User, session)
+users = query.filter(name="Alice").order_by("name").limit(10).all()
+```
+
+**Patterns used:**
+
+1. **Registry** - Track all mapped classes
+2. **Descriptor** - Column definitions
+3. **Unit of Work** - Track changes, commit together
+4. **Identity Map** - One object per row
+5. **Query Object** - Build complex queries
+6. **Data Mapper** - Map between objects and database
+7. **Metaclass** - Process model definitions
+
+---
+
+## Part 4: Software Engineering Principles
+
+### **SOLID Principles**
+
+#### **S - Single Responsibility Principle**
+
+_A class should have one, and only one, reason to change._
+
+```python
+# BAD: Multiple responsibilities
+class User:
+    def __init__(self, name, email):
+        self.name = name
+        self.email = email
+
+    def save_to_database(self):
+        """Database logic - one responsibility."""
+        print(f"Saving {self.name} to database")
+
+    def send_email(self):
+        """Email logic - another responsibility."""
+        print(f"Sending email to {self.email}")
+
+    def generate_report(self):
+        """Reporting logic - third responsibility."""
+        print(f"Generating report for {self.name}")
+
+# GOOD: Separate responsibilities
+class User:
+    """Only responsible for user data."""
+    def __init__(self, name, email):
+        self.name = name
+        self.email = email
+
+class UserRepository:
+    """Only responsible for database operations."""
+    def save(self, user):
+        print(f"Saving {user.name} to database")
+
+    def find(self, user_id):
+        print(f"Finding user {user_id}")
+
+class EmailService:
+    """Only responsible for email operations."""
+    def send(self, user, message):
+        print(f"Sending email to {user.email}: {message}")
+
+class ReportGenerator:
+    """Only responsible for generating reports."""
+    def generate(self, user):
+        print(f"Generating report for {user.name}")
+```
+
+**Why?** Changes to one concern don't affect others.
+
+#### **O - Open/Closed Principle**
+
+_Open for extension, closed for modification._
+
+```python
+# BAD: Must modify class to add new shapes
+class AreaCalculator:
+    def calculate_area(self, shapes):
+        total = 0
+        for shape in shapes:
+            if shape.type == 'circle':
+                total += 3.14 * shape.radius ** 2
+            elif shape.type == 'rectangle':
+                total += shape.width * shape.height
+            # Adding triangle? Must modify this class!
+        return total
+
+# GOOD: Can add new shapes without modifying calculator
+class Shape(ABC):
+    @abstractmethod
+    def area(self):
+        pass
+
+class Circle(Shape):
+    def __init__(self, radius):
+        self.radius = radius
+
+    def area(self):
+        return 3.14 * self.radius ** 2
+
+class Rectangle(Shape):
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+
+    def area(self):
+        return self.width * self.height
+
+class Triangle(Shape):  # New shape - no modification needed!
+    def __init__(self, base, height):
+        self.base = base
+        self.height = height
+
+    def area(self):
+        return 0.5 * self.base * self.height
+
+class AreaCalculator:
+    """Closed for modification, open for extension."""
+    def calculate_area(self, shapes):
+        return sum(shape.area() for shape in shapes)
+```
+
+#### **L - Liskov Substitution Principle**
+
+_Subclasses should be substitutable for their base classes._
+
+```python
+# BAD: Violates LSP
+class Rectangle:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+
+    def set_width(self, width):
+        self.width = width
+
+    def set_height(self, height):
+        self.height = height
+
+    def area(self):
+        return self.width * self.height
+
+class Square(Rectangle):
+    """Square violates LSP!"""
+    def set_width(self, width):
+        self.width = width
+        self.height = width  # Must keep width = height
+
+    def set_height(self, height):
+        self.width = height
+        self.height = height
+
+# This breaks!
+def test(rect: Rectangle):
+    rect.set_width(5)
+    rect.set_height(4)
+    assert rect.area() == 20  # Expect 20
+
+rect = Rectangle(0, 0)
+test(rect)  # Works
+
+square = Square(0, 0)
+test(square)  # Fails! area() returns 16, not 20
+
+# GOOD: Don't use inheritance
+class Rectangle:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+
+    def area(self):
+        return self.width * self.height
+
+class Square:
+    """Separate class - not a rectangle!"""
+    def __init__(self, side):
+        self.side = side
+
+    def area(self):
+        return self.side ** 2
+```
+
+#### **I - Interface Segregation Principle**
+
+_Many specific interfaces better than one general interface._
+
+```python
+# BAD: One fat interface
+class Worker(ABC):
+    @abstractmethod
+    def work(self):
+        pass
+
+    @abstractmethod
+    def eat(self):
+        pass
+
+class Human(Worker):
+    def work(self):
+        print("Working")
+
+    def eat(self):
+        print("Eating")
+
+class Robot(Worker):
+    def work(self):
+        print("Working")
+
+    def eat(self):
+        # Robots don't eat!
+        raise NotImplementedError("Robots don't eat")
+
+# GOOD: Segregated interfaces
+class Workable(ABC):
+    @abstractmethod
+    def work(self):
+        pass
+
+class Eatable(ABC):
+    @abstractmethod
+    def eat(self):
+        pass
+
+class Human(Workable, Eatable):
+    def work(self):
+        print("Working")
+
+    def eat(self):
+        print("Eating")
+
+class Robot(Workable):  # Only implements what it needs
+    def work(self):
+        print("Working")
+```
+
+#### **D - Dependency Inversion Principle**
+
+_Depend on abstractions, not concretions._
+
+```python
+# BAD: High-level depends on low-level
+class MySQLDatabase:
+    def save(self, data):
+        print(f"Saving to MySQL: {data}")
+
+class UserService:
+    def __init__(self):
+        self.db = MySQLDatabase()  # Tightly coupled!
+
+    def create_user(self, name):
+        self.db.save(name)
+
+# Want to switch to PostgreSQL? Must modify UserService!
+
+# GOOD: Depend on abstraction
+class Database(ABC):
+    @abstractmethod
+    def save(self, data):
+        pass
+
+class MySQLDatabase(Database):
+    def save(self, data):
+        print(f"Saving to MySQL: {data}")
+
+class PostgreSQLDatabase(Database):
+    def save(self, data):
+        print(f"Saving to PostgreSQL: {data}")
+
+class UserService:
+    def __init__(self, db: Database):  # Depends on abstraction
+        self.db = db
+
+    def create_user(self, name):
+        self.db.save(name)
+
+# Now can easily switch databases!
+service = UserService(MySQLDatabase())
+service = UserService(PostgreSQLDatabase())
+```
+
+---
+
+## Practice Exercises
+
+### **Exercise 1: Implement Decorator Pattern**
+
+Create a notification system:
+
+- Base: SimpleNotification
+- Decorators: Email, SMS, Slack
+- Should be able to send via multiple channels
+
+### **Exercise 2: Implement Adapter Pattern**
+
+Create adapters for different payment APIs:
+
+- Your system expects: `process_payment(amount)`
+- Stripe API: `stripe.charge(cents, currency)`
+- PayPal API: `paypal.pay(dollars)`
+
+### **Exercise 3: Implement Command Pattern**
+
+Create a smart home system:
+
+- Commands: TurnOnLight, SetTemperature, LockDoor
+- Remote can execute commands and undo them
+- Implement macro commands (e.g., "Movie Mode" = dim lights + turn on TV)
+
+### **Exercise 4: Fix MRO Issues**
+
+Given this broken hierarchy, fix it:
+
+```python
+class A:
+    pass
+
+class B(A):
+    pass
+
+class C(A):
+    pass
+
+class D(B, C):
+    pass
+
+class E(C, B):  # Contradicts D!
+    pass
+
+class F(D, E):  # This will fail!
+    pass
+```
+
+---
+
+This covers the essential advanced topics. Would you like me to:
+
+1. Provide detailed solutions to the exercises
+2. Cover more design patterns (Builder, Prototype, Flyweight, etc.)
+3. Dive deeper into metaprogramming (descriptors, metaclasses)
+4. Explore more real-world frameworks
+
+# Data Structures & Algorithms: From Zero to Hero
+
+## Building Visualizers While Learning DSA
+
+---
+
+## Introduction: Why DSA Matters
+
+Imagine you're organizing a library:
+
+- **Unsorted books on floor** = Linear search (check every book) - O(n)
+- **Books on shelves by category** = Better, but still slow
+- **Card catalog system** = Hash table - O(1) lookup!
+- **Dewey Decimal System** = Binary search tree - O(log n)
+
+Data structures are how we organize information. Algorithms are how we process it. Choose the right one, and your program flies. Choose wrong, and it crawls.
+
+**What We'll Build:**
+
+1. **Array Visualizer** - See insertions, deletions, searches
+2. **Stack/Queue Visualizer** - Watch the LIFO and FIFO in action
+3. **Linked List Music Player** - Real playlist with visual nodes
+4. **Binary Tree Explorer** - Interactive tree with traversals
+5. **Graph Network** - Social network with pathfinding
+6. **Sorting Visualizer** - Watch algorithms race!
+
+---
+
+## Part 1: Arrays and Dynamic Arrays
+
+### **What Is an Array?**
+
+An array is a **contiguous block of memory** that stores elements of the same type.
+
+```
+Memory Address:  1000   1004   1008   1012   1016
+Array:           [ 10 ] [ 20 ] [ 30 ] [ 40 ] [ 50 ]
+Index:              0      1      2      3      4
+```
+
+**Key Insight:** Because elements are contiguous and same size, you can calculate any element's address:
+
+```
+address = start_address + (index × element_size)
+```
+
+This makes access **O(1)** - instant!
+
+### **The Problem Arrays Solve**
+
+```python
+# WITHOUT ARRAYS: Managing separate variables
+student1_grade = 85
+student2_grade = 92
+student3_grade = 78
+# ... what if you have 100 students? 1000?
+
+# WITH ARRAYS: One structure
+grades = [85, 92, 78, 88, 95]
+# Can loop, calculate average, sort, etc.
+```
+
+### **Arrays in Python: Lists**
+
+Python's `list` is actually a **dynamic array** - it can grow!
+
+```python
+# Create array
+numbers = [10, 20, 30, 40, 50]
+
+# Access - O(1) time
+print(numbers[0])    # 10
+print(numbers[2])    # 30
+print(numbers[-1])   # 50 (negative indexing!)
+
+# Why is this O(1)?
+# Python calculates: memory_start + (index × 8)  [8 bytes per reference]
+# One calculation = constant time
+
+# Modify - O(1) time
+numbers[2] = 99
+print(numbers)  # [10, 20, 99, 40, 50]
+
+# Append - O(1) amortized (we'll see why)
+numbers.append(60)
+print(numbers)  # [10, 20, 99, 40, 50, 60]
+```
+
+### **How Dynamic Arrays Grow**
+
+Python's list grows intelligently:
+
+```python
+import sys
+
+# Watch capacity grow
+arr = []
+for i in range(20):
+    arr.append(i)
+    size = sys.getsizeof(arr)
+    print(f"Length: {len(arr):2d}, Memory: {size:3d} bytes")
+
+# Output shows pattern:
+# Length:  0, Memory:  56 bytes  (empty list overhead)
+# Length:  1, Memory:  88 bytes  (allocated space for 4 items)
+# Length:  2, Memory:  88 bytes  (still room)
+# Length:  3, Memory:  88 bytes  (still room)
+# Length:  4, Memory:  88 bytes  (still room)
+# Length:  5, Memory: 120 bytes  (GREW! allocated more space)
+# ...
+```
+
+**What's happening under the hood:**
+
+```
+Initial:     [  ] [  ] [  ] [  ]    (capacity: 4)
+              10  20  30  40
+                              ^ next insertion
+
+When full:   [  ] [  ] [  ] [  ]
+              10  20  30  40
+                              ^ no room!
+
+Grow:        [  ] [  ] [  ] [  ] [  ] [  ] [  ] [  ]    (capacity: 8)
+              10  20  30  40
+                              ^ copy old items
+                                 ^ now add new item
+```
+
+**Growth strategy:**
+
+1. When array full, allocate larger array (typically 2× size)
+2. Copy all elements to new array - O(n)
+3. Delete old array
+4. Append new element
+
+**Amortized O(1):**
+
+- Most appends are O(1) (just add to end)
+- Occasional append is O(n) (when it needs to grow)
+- Average over many operations = O(1) amortized
+
+```python
+# Demonstrate growth cost
+import time
+
+def measure_appends(n):
+    arr = []
+    slow_appends = []
+
+    for i in range(n):
+        start = time.perf_counter()
+        arr.append(i)
+        elapsed = time.perf_counter() - start
+
+        # Record if significantly slower
+        if elapsed > 0.00001:
+            slow_appends.append((i, elapsed))
+
+    return slow_appends
+
+slow = measure_appends(10000)
+print(f"Out of 10,000 appends, {len(slow)} were slow (growth operations)")
+for i, t in slow[:5]:
+    print(f"  Index {i}: {t:.6f} seconds")
+```
+
+### **Array Operations: Time Complexity**
+
+```python
+arr = [10, 20, 30, 40, 50]
+
+# ACCESS - O(1)
+value = arr[2]  # One calculation, direct access
+
+# SEARCH - O(n)
+if 30 in arr:  # Might check all n elements
+    print("Found")
+
+# INSERT at end - O(1) amortized
+arr.append(60)  # Usually just place at end
+
+# INSERT at beginning - O(n)
+arr.insert(0, 5)  # Must shift ALL elements right
+# [5, 10, 20, 30, 40, 50, 60]
+
+# INSERT in middle - O(n)
+arr.insert(3, 25)  # Must shift elements from index 3 onward
+
+# DELETE from end - O(1)
+arr.pop()  # Just remove last
+
+# DELETE from beginning - O(n)
+arr.pop(0)  # Must shift ALL elements left
+
+# DELETE from middle - O(n)
+arr.pop(3)  # Must shift elements after index 3 left
+```
+
+**Why are insertions/deletions slow?**
+
+```
+Insert 25 at index 2:
+
+Before:  [10] [20] [30] [40] [50]
+                    ↑
+                  need to insert here
+
+Step 1: Shift everything right
+         [10] [20] [  ] [30] [40] [50]
+                    ↑    ↑    ↑    ↑
+                  copied →  →  →  →
+
+Step 2: Insert new element
+         [10] [20] [25] [30] [40] [50]
+
+Cost: O(n) - must shift n elements
+```
+
+### **Building an Array Visualizer**
+
+Let's build an interactive visualizer to SEE these operations!
+
+```python
+# We'll use HTML/CSS/JavaScript for visualization
+# But first, let's understand what we're visualizing
+
+class ArrayVisualizer:
+    """
+    Simulates array operations with step-by-step visualization.
+
+    This teaches:
+    - How arrays store data contiguously
+    - Why access is O(1)
+    - Why insertions/deletions are O(n)
+    """
+
+    def __init__(self, capacity=10):
+        # Simulate array with fixed capacity
+        self.capacity = capacity
+        self.data = [None] * capacity  # Preallocated space
+        self.size = 0  # Actual number of elements
+
+    def append(self, value):
+        """Add element to end - O(1)."""
+        if self.size >= self.capacity:
+            print("Array full! Need to grow...")
+            self._grow()
+
+        print(f"\nAppending {value}:")
+        print(f"  1. Place at index {self.size}")
+        self.data[self.size] = value
+        self.size += 1
+        self._visualize()
+
+    def insert(self, index, value):
+        """Insert element at index - O(n)."""
+        if index < 0 or index > self.size:
+            raise IndexError("Index out of bounds")
+
+        if self.size >= self.capacity:
+            self._grow()
+
+        print(f"\nInserting {value} at index {index}:")
+
+        # Shift elements right
+        print(f"  1. Shifting elements from index {index} to {self.size-1} right")
+        for i in range(self.size, index, -1):
+            print(f"     Moving arr[{i-1}]={self.data[i-1]} to arr[{i}]")
+            self.data[i] = self.data[i-1]
+
+        # Insert new element
+        print(f"  2. Placing {value} at index {index}")
+        self.data[index] = value
+        self.size += 1
+
+        self._visualize()
+
+    def pop(self, index=None):
+        """Remove element - O(n) if not from end."""
+        if self.size == 0:
+            raise IndexError("Array is empty")
+
+        if index is None:
+            index = self.size - 1
+
+        if index < 0 or index >= self.size:
+            raise IndexError("Index out of bounds")
+
+        removed = self.data[index]
+        print(f"\nRemoving element at index {index} (value={removed}):")
+
+        # Shift elements left
+        print(f"  1. Shifting elements from index {index+1} to {self.size-1} left")
+        for i in range(index, self.size - 1):
+            print(f"     Moving arr[{i+1}]={self.data[i+1]} to arr[{i}]")
+            self.data[i] = self.data[i+1]
+
+        # Clear last element
+        self.data[self.size - 1] = None
+        self.size -= 1
+
+        self._visualize()
+        return removed
+
+    def _grow(self):
+        """Double capacity - O(n)."""
+        print(f"\nGrowing array from capacity {self.capacity} to {self.capacity * 2}:")
+        print(f"  1. Allocate new array of size {self.capacity * 2}")
+        new_data = [None] * (self.capacity * 2)
+
+        print(f"  2. Copy all {self.size} elements to new array")
+        for i in range(self.size):
+            new_data[i] = self.data[i]
+            print(f"     Copied arr[{i}]={self.data[i]}")
+
+        self.data = new_data
+        self.capacity *= 2
+        print(f"  3. Delete old array")
+
+    def _visualize(self):
+        """Display array visually."""
+        print("\nCurrent Array:")
+        print("Index:  ", end="")
+        for i in range(self.capacity):
+            print(f"{i:3d} ", end="")
+        print()
+
+        print("Value:  ", end="")
+        for i in range(self.capacity):
+            if i < self.size and self.data[i] is not None:
+                print(f"{self.data[i]:3d} ", end="")
+            else:
+                print(" -  ", end="")
+        print()
+
+        print("Memory: ", end="")
+        for i in range(self.capacity):
+            if i < self.size:
+                print("[█] ", end="")
+            else:
+                print("[ ] ", end="")
+        print(f" (Size: {self.size}/{self.capacity})")
+
+# Test the visualizer
+print("="*70)
+print("ARRAY VISUALIZER DEMO")
+print("="*70)
+
+arr = ArrayVisualizer(capacity=5)
+
+# Append operations (O(1))
+arr.append(10)
+arr.append(20)
+arr.append(30)
+
+# Insert in middle (O(n))
+arr.insert(1, 15)
+
+# Append to show growth
+arr.append(40)
+arr.append(50)  # This will trigger growth!
+arr.append(60)
+
+# Delete from middle (O(n))
+arr.pop(2)
+
+# Access would be O(1) - just: value = arr.data[index]
+print(f"\nAccessing index 0: {arr.data[0]} - O(1) operation")
+print(f"Accessing index 3: {arr.data[3]} - O(1) operation")
+```
+
+### **Time Complexity Summary**
+
+| Operation | Best Case | Average Case | Worst Case | Why                  |
+| --------- | --------- | ------------ | ---------- | -------------------- |
+| Access    | O(1)      | O(1)         | O(1)       | Direct calculation   |
+| Search    | O(1)      | O(n)         | O(n)       | Might check all      |
+| Append    | O(1)      | O(1)         | O(n)       | Rarely needs to grow |
+| Insert    | O(1)      | O(n)         | O(n)       | Must shift elements  |
+| Delete    | O(1)      | O(n)         | O(n)       | Must shift elements  |
+
+**Space Complexity:** O(n) - stores n elements
+
+### **When to Use Arrays**
+
+✅ **Use arrays when:**
+
+1. **Need fast access** - O(1) to any element
+2. **Mostly reading data** - Few insertions/deletions
+3. **Appending to end** - O(1) amortized
+4. **Know size in advance** - Or can grow occasionally
+
+❌ **Don't use arrays when:**
+
+1. **Frequent insertions/deletions in middle** - Use linked list
+2. **Unknown size, frequent growing** - Consider other structures
+3. **Need constant-time insert anywhere** - Use linked list
+
+### **Real-World Examples**
+
+**1. Image pixels:**
+
+```python
+# Image = 2D array of pixels
+# Each pixel = [R, G, B] value
+image = [
+    [[255, 0, 0], [0, 255, 0], [0, 0, 255]],  # Row 0
+    [[128, 128, 0], [0, 128, 128], [255, 0, 255]]  # Row 1
+]
+
+# Access pixel at (row=1, col=2) in O(1)
+pixel = image[1][2]
+print(f"Pixel color: RGB{pixel}")  # [255, 0, 255]
+
+# Modify pixel in O(1)
+image[0][0] = [0, 0, 0]  # Change red to black
+```
+
+**2. Music playlist:**
+
+```python
+# Playlist = array of songs
+playlist = [
+    "Song A",
+    "Song B",
+    "Song C",
+    "Song D"
+]
+
+# Current song index
+current = 2
+
+# Next song - O(1)
+current = (current + 1) % len(playlist)
+print(f"Now playing: {playlist[current]}")
+
+# Previous song - O(1)
+current = (current - 1) % len(playlist)
+print(f"Now playing: {playlist[current]}")
+
+# Shuffle - O(n)
+import random
+random.shuffle(playlist)
+```
+
+**3. Undo/Redo history:**
+
+```python
+# Text editor history
+history = []
+
+def type_text(text):
+    """Add to history - O(1)."""
+    history.append(text)
+    print(f"Typed: {text}")
+
+def undo():
+    """Undo last action - O(1)."""
+    if history:
+        removed = history.pop()
+        print(f"Undid: {removed}")
+        return removed
+
+type_text("Hello")
+type_text(" World")
+type_text("!")
+undo()  # Removes "!"
+undo()  # Removes " World"
+```
+
+### **Practice Exercise: Build Array Operations**
+
+**Task:** Implement a `CustomArray` class with these methods:
+
+- `get(index)` - O(1)
+- `set(index, value)` - O(1)
+- `append(value)` - O(1) amortized
+- `insert(index, value)` - O(n)
+- `remove(index)` - O(n)
+- `find(value)` - O(n)
+
+**Try it yourself first!**
+
+<details>
+<summary>Click for solution</summary>
+
+```python
+class CustomArray:
+    """
+    Custom dynamic array implementation.
+
+    Demonstrates array fundamentals from scratch.
+    """
+
+    def __init__(self, capacity=4):
+        self.capacity = capacity
+        self.size = 0
+        self.data = [None] * capacity
+
+    def get(self, index):
+        """Get value at index - O(1)."""
+        if index < 0 or index >= self.size:
+            raise IndexError("Index out of range")
+        return self.data[index]
+
+    def set(self, index, value):
+        """Set value at index - O(1)."""
+        if index < 0 or index >= self.size:
+            raise IndexError("Index out of range")
+        self.data[index] = value
+
+    def append(self, value):
+        """Add to end - O(1) amortized."""
+        if self.size >= self.capacity:
+            self._resize()
+        self.data[self.size] = value
+        self.size += 1
+
+    def insert(self, index, value):
+        """Insert at index - O(n)."""
+        if index < 0 or index > self.size:
+            raise IndexError("Index out of range")
+
+        if self.size >= self.capacity:
+            self._resize()
+
+        # Shift elements right
+        for i in range(self.size, index, -1):
+            self.data[i] = self.data[i-1]
+
+        self.data[index] = value
+        self.size += 1
+
+    def remove(self, index):
+        """Remove at index - O(n)."""
+        if index < 0 or index >= self.size:
+            raise IndexError("Index out of range")
+
+        removed = self.data[index]
+
+        # Shift elements left
+        for i in range(index, self.size - 1):
+            self.data[i] = self.data[i+1]
+
+        self.data[self.size - 1] = None
+        self.size -= 1
+
+        return removed
+
+    def find(self, value):
+        """Find value - O(n)."""
+        for i in range(self.size):
+            if self.data[i] == value:
+                return i
+        return -1
+
+    def _resize(self):
+        """Double capacity - O(n)."""
+        self.capacity *= 2
+        new_data = [None] * self.capacity
+        for i in range(self.size):
+            new_data[i] = self.data[i]
+        self.data = new_data
+
+    def __str__(self):
+        """String representation."""
+        return str([self.data[i] for i in range(self.size)])
+
+# Test
+arr = CustomArray()
+arr.append(10)
+arr.append(20)
+arr.append(30)
+print(arr)  # [10, 20, 30]
+
+arr.insert(1, 15)
+print(arr)  # [10, 15, 20, 30]
+
+arr.remove(2)
+print(arr)  # [10, 15, 30]
+
+print(f"Index of 15: {arr.find(15)}")  # 1
+print(f"Index of 99: {arr.find(99)}")  # -1
+```
+
+</details>
+
+---
+
+## Part 2: Stacks and Queues
+
+### **Stack: Last In, First Out (LIFO)**
+
+Think of a stack of plates:
+
+- Add plate on top (push)
+- Remove plate from top (pop)
+- Can only access the top plate
+
+```
+    [30]  ← top (last in, first out)
+    [20]
+    [10]
+    ----
+```
+
+### **The Problem Stacks Solve**
+
+**1. Function calls:**
+
+```python
+def function_a():
+    print("A starts")
+    function_b()
+    print("A ends")
+
+def function_b():
+    print("B starts")
+    function_c()
+    print("B ends")
+
+def function_c():
+    print("C starts")
+    print("C ends")
+
+function_a()
+
+# Output:
+# A starts
+# B starts
+# C starts
+# C ends    ← C finishes first (LIFO)
+# B ends    ← Then B
+# A ends    ← Then A
+```
+
+**Call stack:**
+
+```
+function_a() called
+    ↓
+[A]         ← A on stack
+
+A calls function_b()
+    ↓
+[B]         ← B on top
+[A]         ← A below
+
+B calls function_c()
+    ↓
+[C]         ← C on top
+[B]
+[A]
+
+C returns
+    ↓
+[B]         ← C popped
+[A]
+
+B returns
+    ↓
+[A]         ← B popped
+
+A returns
+    ↓
+[]          ← Empty!
+```
+
+**2. Undo/Redo:**
+
+```python
+undo_stack = []
+
+def type_text(text):
+    undo_stack.append(('type', text))
+
+def delete_text(count):
+    undo_stack.append(('delete', count))
+
+def undo():
+    if undo_stack:
+        action = undo_stack.pop()  # Get most recent
+        # Reverse the action
+        return action
+
+type_text("Hello")
+type_text(" World")
+delete_text(1)
+
+# Undo will reverse in order: delete → "World" → "Hello"
+```
+
+### **Implementing a Stack**
+
+```python
+class Stack:
+    """
+    Stack implementation using Python list.
+
+    Operations:
+    - push: O(1) - add to top
+    - pop: O(1) - remove from top
+    - peek: O(1) - view top without removing
+    - is_empty: O(1) - check if empty
+    """
+
+    def __init__(self):
+        self.items = []
+
+    def push(self, item):
+        """Add item to top - O(1)."""
+        self.items.append(item)
+        print(f"Pushed: {item}")
+        self._visualize()
+
+    def pop(self):
+        """Remove and return top item - O(1)."""
+        if self.is_empty():
+            raise IndexError("Pop from empty stack")
+        item = self.items.pop()
+        print(f"Popped: {item}")
+        self._visualize()
+        return item
+
+    def peek(self):
+        """View top item without removing - O(1)."""
+        if self.is_empty():
+            raise IndexError("Peek from empty stack")
+        return self.items[-1]
+
+    def is_empty(self):
+        """Check if stack is empty - O(1)."""
+        return len(self.items) == 0
+
+    def size(self):
+        """Get stack size - O(1)."""
+        return len(self.items)
+
+    def _visualize(self):
+        """Display stack visually."""
+        if self.is_empty():
+            print("Stack: (empty)")
+        else:
+            print("Stack:")
+            for i in range(len(self.items) - 1, -1, -1):
+                symbol = "← top" if i == len(self.items) - 1 else ""
+                print(f"  [{self.items[i]}] {symbol}")
+            print("  ----")
+        print()
+
+# Test stack
+stack = Stack()
+stack.push(10)
+stack.push(20)
+stack.push(30)
+
+print(f"Top element: {stack.peek()}")  # 30
+
+stack.pop()  # Removes 30
+stack.pop()  # Removes 20
+
+stack.push(40)
+```
+
+### **Real-World Stack Applications**
+
+**1. Balanced Parentheses Checker:**
+
+```python
+def is_balanced(expression):
+    """
+    Check if parentheses are balanced.
+
+    Example: "((a+b)*c)" is balanced
+             "((a+b)" is NOT balanced
+
+    Algorithm:
+    - Push opening brackets onto stack
+    - Pop for closing brackets (must match)
+    - Stack must be empty at end
+    """
+    stack = []
+    opening = "({["
+    closing = ")}]"
+    matches = {"(": ")", "{": "}", "[": "]"}
+
+    for char in expression:
+        if char in opening:
+            stack.append(char)
+            print(f"  Found '{char}' - push to stack: {stack}")
+        elif char in closing:
+            if not stack:
+                print(f"  Found '{char}' but stack is empty - NOT BALANCED")
+                return False
+
+            top = stack.pop()
+            print(f"  Found '{char}' - pop '{top}' from stack: {stack}")
+
+            if matches[top] != char:
+                print(f"  Mismatch! '{top}' doesn't match '{char}'")
+                return False
+
+    balanced = len(stack) == 0
+    if not balanced:
+        print(f"  Stack not empty at end: {stack} - NOT BALANCED")
+    else:
+        print(f"  Stack empty - BALANCED!")
+
+    return balanced
+
+# Test
+print("Testing: '((a+b)*c)'")
+print(f"Result: {is_balanced('((a+b)*c)')}\n")
+
+print("Testing: '((a+b)'")
+print(f"Result: {is_balanced('((a+b)')}\n")
+
+print("Testing: '({[a+b]})'")
+print(f"Result: {is_balanced('({[a+b]})')}\n")
+```
+
+**2. Expression Evaluation (Infix to Postfix):**
+
+```python
+def infix_to_postfix(expression):
+    """
+    Convert infix to postfix notation.
+
+    Infix: "3 + 4 * 2"
+    Postfix: "3 4 2 * +"
+
+    Why postfix? No need for parentheses!
+    Computer can evaluate left-to-right.
+    """
+    precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3}
+    stack = []
+    output = []
+
+    tokens = expression.split()
+
+    for token in tokens:
+        if token.isdigit():
+            # Operand: add to output
+            output.append(token)
+            print(f"  '{token}' is operand - add to output: {output}")
+
+        elif token in precedence:
+            # Operator: pop operators with higher/equal precedence
+            while (stack and
+                   stack[-1] != '(' and
+                   precedence.get(stack[-1], 0) >= precedence[token]):
+                popped = stack.pop()
+                output.append(popped)
+                print(f"  Pop '{popped}' to output: {output}")
+
+            stack.append(token)
+            print(f"  Push '{token}' to stack: {stack}")
+
+        elif token == '(':
+            stack.append(token)
+            print(f"  Push '(' to stack: {stack}")
+
+        elif token == ')':
+            # Pop until '('
+            while stack and stack[-1] != '(':
+                popped = stack.pop()
+                output.append(popped)
+                print(f"  Pop '{popped}' to output: {output}")
+            stack.pop()  # Remove '('
+            print(f"  Removed '(' from stack: {stack}")
+
+    # Pop remaining operators
+    while stack:
+        popped = stack.pop()
+        output.append(popped)
+        print(f"  Pop remaining '{popped}' to output: {output}")
+
+    return ' '.join(output)
+
+# Test
+print("Converting: '3 + 4 * 2'")
+result = infix_to_postfix("3 + 4 * 2")
+print(f"Result: {result}\n")
+
+print("Converting: '( 3 + 4 ) * 2'")
+result = infix_to_postfix("( 3 + 4 ) * 2")
+print(f"Result: {result}")
+```
+
+### **Queue: First In, First Out (FIFO)**
+
+Think of a line at a store:
+
+- People join at the back (enqueue)
+- People leave from the front (dequeue)
+- First person in line is served first
+
+```
+Front ← [10] [20] [30] ← Back
+        ↑            ↑
+    dequeue here  enqueue here
+```
+
+### **The Problem Queues Solve**
+
+**1. Task scheduling:**
+
+```python
+# Print queue
+print_jobs = Queue()
+
+print_jobs.enqueue("Document1.pdf")
+print_jobs.enqueue("Photo.jpg")
+print_jobs.enqueue("Report.docx")
+
+# Printer processes in order
+while not print_jobs.is_empty():
+    job = print_jobs.dequeue()
+    print(f"Printing: {job}")
+
+# Output:
+# Printing: Document1.pdf  ← First in, first out
+# Printing: Photo.jpg
+# Printing: Report.docx
+```
+
+**2. Breadth-First Search:**
+
+```python
+# Process nodes level by level
+queue = Queue()
+queue.enqueue(root_node)
+
+while not queue.is_empty():
+    node = queue.dequeue()
+    process(node)
+
+    # Add children to queue
+    for child in node.children:
+        queue.enqueue(child)
+```
+
+### **Implementing a Queue**
+
+```python
+class Queue:
+    """
+    Queue implementation using Python list.
+
+    Operations:
+    - enqueue: O(1) - add to back
+    - dequeue: O(n) - remove from front (list.pop(0) is O(n))
+    - peek: O(1) - view front
+
+    Note: Using list for simplicity, but collections.deque is O(1) for both ends!
+    """
+
+    def __init__(self):
+        self.items = []
+
+    def enqueue(self, item):
+        """Add item to back - O(1)."""
+        self.items.append(item)
+        print(f"Enqueued: {item}")
+        self._visualize()
+
+    def dequeue(self):
+        """Remove and return front item - O(n)."""
+        if self.is_empty():
+            raise IndexError("Dequeue from empty queue")
+        item = self.items.pop(0)  # O(n) - shifts all elements
+        print(f"Dequeued: {item}")
+        self._visualize()
+        return item
+
+    def peek(self):
+        """View front item - O(1)."""
+        if self.is_empty():
+            raise IndexError("Peek from empty queue")
+        return self.items[0]
+
+    def is_empty(self):
+        """Check if empty - O(1)."""
+        return len(self.items) == 0
+
+    def size(self):
+        """Get size - O(1)."""
+        return len(self.items)
+
+    def _visualize(self):
+        """Display queue visually."""
+        if self.is_empty():
+            print("Queue: (empty)")
+        else:
+            print("Queue:")
+            print("  Front ← ", end="")
+            for item in self.items:
+                print(f"[{item}] ", end="")
+            print("← Back")
+        print()
+
+# Test queue
+queue = Queue()
+queue.enqueue(10)
+queue.enqueue(20)
+queue.enqueue(30)
+
+print(f"Front element: {queue.peek()}")  # 10
+
+queue.dequeue()  # Removes 10
+queue.dequeue()  # Removes 20
+
+queue.enqueue(40)
+```
+
+### **Better Queue: Using Deque**
+
+```python
+from collections import deque
+
+class EfficientQueue:
+    """
+    Queue using deque - O(1) for both enqueue and dequeue!
+
+    Deque = "double-ended queue"
+    - Can add/remove from both ends efficiently
+    - Implemented as doubly-linked list
+    """
+
+    def __init__(self):
+        self.items = deque()
+
+    def enqueue(self, item):
+        """Add to back - O(1)."""
+        self.items.append(item)
+
+    def dequeue(self):
+        """Remove from front - O(1)."""
+        if self.is_empty():
+            raise IndexError("Dequeue from empty queue")
+        return self.items.popleft()  # O(1) with deque!
+
+    def peek(self):
+        """View front - O(1)."""
+        if self.is_empty():
+            raise IndexError("Peek from empty queue")
+        return self.items[0]
+
+    def is_empty(self):
+        """Check if empty - O(1)."""
+        return len(self.items) == 0
+
+# Test
+queue = EfficientQueue()
+queue.enqueue(10)
+queue.enqueue(20)
+print(queue.dequeue())  # 10 - O(1)!
+```
+
+---
+
+## Part 3: Building a Stack/Queue Visualizer
+
+Now let's build an interactive visualizer! We'll create a React component that lets you:
+
+- Push/pop on a stack
+- Enqueue/dequeue on a queue
+- See the operations happen in real-time
+
+```javascript
+// Stack/Queue Visualizer React Component
+import React, { useState } from "react";
+
+function StackQueueVisualizer() {
+  const [stack, setStack] = useState([]);
+  const [queue, setQueue] = useState([]);
+  const [inputValue, setInputValue] = useState("");
+
+  // Stack operations
+  const pushStack = () => {
+    if (inputValue.trim()) {
+      setStack([...stack, parseInt(inputValue)]);
+      setInputValue("");
+    }
+  };
+
+  const popStack = () => {
+    if (stack.length > 0) {
+      setStack(stack.slice(0, -1));
+    }
+  };
+
+  // Queue operations
+  const enqueue = () => {
+    if (inputValue.trim()) {
+      setQueue([...queue, parseInt(inputValue)]);
+      setInputValue("");
+    }
+  };
+
+  const dequeue = () => {
+    if (queue.length > 0) {
+      setQueue(queue.slice(1));
+    }
+  };
+
+  return (
+    <div style={{ padding: "20px", fontFamily: "Arial" }}>
+      <h1>Stack & Queue Visualizer</h1>
+
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          type="number"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="Enter a number"
+          style={{ padding: "8px", marginRight: "10px" }}
+        />
+      </div>
+
+      {/* Stack Section */}
+      <div style={{ marginBottom: "40px" }}>
+        <h2>Stack (LIFO)</h2>
+        <div style={{ marginBottom: "10px" }}>
+          <button
+            onClick={pushStack}
+            style={{ marginRight: "10px", padding: "8px 16px" }}
+          >
+            Push
+          </button>
+          <button onClick={popStack} style={{ padding: "8px 16px" }}>
+            Pop
+          </button>
+        </div>
+
+        <div
+          style={{
+            border: "2px solid #333",
+            padding: "20px",
+            minHeight: "200px",
+          }}
+        >
+          {stack.length === 0 ? (
+            <p style={{ color: "#999" }}>Stack is empty</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column-reverse" }}>
+              {stack.map((item, index) => (
+                <div
+                  key={index}
+                  style={{
+                    padding: "15px",
+                    margin: "5px 0",
+                    backgroundColor:
+                      index === stack.length - 1 ? "#4CAF50" : "#2196F3",
+                    color: "white",
+                    borderRadius: "5px",
+                    textAlign: "center",
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {item} {index === stack.length - 1 && "← Top"}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Queue Section */}
+      <div>
+        <h2>Queue (FIFO)</h2>
+        <div style={{ marginBottom: "10px" }}>
+          <button
+            onClick={enqueue}
+            style={{ marginRight: "10px", padding: "8px 16px" }}
+          >
+            Enqueue
+          </button>
+          <button onClick={dequeue} style={{ padding: "8px 16px" }}>
+            Dequeue
+          </button>
+        </div>
+
+        <div
+          style={{
+            border: "2px solid #333",
+            padding: "20px",
+            minHeight: "100px",
+          }}
+        >
+          {queue.length === 0 ? (
+            <p style={{ color: "#999" }}>Queue is empty</p>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <span style={{ marginRight: "10px", fontWeight: "bold" }}>
+                Front →
+              </span>
+              {queue.map((item, index) => (
+                <div
+                  key={index}
+                  style={{
+                    padding: "15px 25px",
+                    margin: "0 5px",
+                    backgroundColor: index === 0 ? "#FF9800" : "#9C27B0",
+                    color: "white",
+                    borderRadius: "5px",
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {item}
+                </div>
+              ))}
+              <span style={{ marginLeft: "10px", fontWeight: "bold" }}>
+                ← Back
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Info Section */}
+      <div
+        style={{
+          marginTop: "40px",
+          padding: "20px",
+          backgroundColor: "#f5f5f5",
+          borderRadius: "5px",
+        }}
+      >
+        <h3>Current State:</h3>
+        <p>
+          <strong>Stack size:</strong> {stack.length}
+        </p>
+        <p>
+          <strong>Stack top:</strong>{" "}
+          {stack.length > 0 ? stack[stack.length - 1] : "N/A"}
+        </p>
+        <p>
+          <strong>Queue size:</strong> {queue.length}
+        </p>
+        <p>
+          <strong>Queue front:</strong> {queue.length > 0 ? queue[0] : "N/A"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default StackQueueVisualizer;
+```
+
+This visualizer shows:
+
+1. **Stack grows upward** - new items on top (green)
+2. **Queue grows rightward** - new items on back (purple)
+3. **Color coding** - Front/top highlighted differently
+4. **Real-time updates** - See structure change as you interact
+
+---
+
+**This is just the beginning!** We've covered:
+
+- ✅ Arrays and dynamic growth
+- ✅ Stacks (LIFO)
+- ✅ Queues (FIFO)
+- ✅ Building visualizers
+
+**Coming next:**
+
+- Linked Lists (with music player visualizer)
+- Trees (with file browser visualizer)
+- Graphs (with social network visualizer)
+- Sorting algorithms (with racing visualizer)
+- Search algorithms (with pathfinding visualizer)
+
+Would you like me to continue with the next sections?

@@ -14,6 +14,7 @@ nav:
   - GEMFinal: final_expansions.md
   - GrokF: grokf.md
   - newEx: newExp.md
+  - OneFile: oneFile.md
 
 theme:
   name: material

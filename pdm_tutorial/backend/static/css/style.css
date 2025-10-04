@@ -91,3 +91,92 @@ FILE LIST
   -o-transition: all 0.3s ease;
   transition: all 0.3s ease;
 }
+
+/* Hover status for file items */
+.file-item:hover {
+  background-color: #f9f9f9;
+  border-color: #667eea;
+  -webkit-transform: translateX(5px);
+  -moz-transform: translateX(5px);
+  -ms-transform: translateX(5px);
+  -o-transform: translateX(5px);
+  transform: translateX(5px);
+}
+
+/* File name text */
+.file-name {
+  font-weight: 600;
+  color: #333;
+}
+
+/* Status label */
+.file-status {
+  padding: 0.25rem 0.75rem;
+  -webkit-border-radius: 12px;
+  -moz-border-radius: 12px;
+  -ms-border-radius: 12px;
+  -o-border-radius: 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Available file status */
+.status-available {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+/* Checked out file status */
+.status-checked_out {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+/*===============
+FOOTER
+=============*/
+footer {
+  text-align: center;
+  padding: 2rem;
+  color: #667;
+  font-size: 0.9rem;
+}
+
+/*Buttons*/
+.btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  -ms-border-radius: 4px;
+  -o-border-radius: 4px;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  -webkit-transition: all 0.3s ease;
+  -moz-transition: all 0.3s ease;
+  -ms-transition: all 0.3s ease;
+  -o-transition: all 0.3s ease;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.btn:hover {
+  -webkit-transform: translateY(-2px);
+  -moz-transform: translateY(-2px);
+  -ms-transform: translateY(-2px);
+  -o-transform: translateY(-2px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn:active {
+  -webkit-transform: translateY(0);
+  -moz-transform: translateY(0);
+  -ms-transform: translateY(0);
+  -o-transform: translateY(0);
+  transform: translateY(0);
+}
