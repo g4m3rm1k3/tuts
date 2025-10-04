@@ -12,6 +12,7 @@ nav:
   - Cluadpy: claud.py.md
   - GEMJS: gemsJS.md
   - GEMFinal: final_expansions.md
+  - GrokF: grokf.md
 
 theme:
   name: material
