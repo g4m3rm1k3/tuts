@@ -468,3 +468,62 @@ Era How to do async Pros Cons
 ⸻
 
 I can also make a diagram showing how callbacks → promises → async/await flow in the event loop, which helps visually understand what happens under the hood.
+
+It looks like you're running into a syntax issue because you're using a `curl` command designed for a Unix-style shell (like Bash on Linux/macOS) inside of **Windows PowerShell**. PowerShell has its own way of handling commands and line continuation.
+
+The error `The term '-H' is not recognized as a name of a cmdlet` is the key clue. PowerShell isn't seeing `curl` as one single command; it's trying to interpret `-H` and `-d` as separate commands.
+
+---
+
+### The PowerShell Way (Recommended) 💡
+
+The best way to make API requests in PowerShell is to use its native command, `Invoke-RestMethod`. It's cleaner and designed for this environment.
+
+Here is the equivalent of your `curl` command:
+
+```powershell
+# 1. Define the request body as a PowerShell object (hashtable)
+$body = @{
+    filename = "PN1001_OP1.mcam"
+    user     = "mmclean"
+    message  = "Editing fixture plate"
+}
+
+# 2. Convert the object to a JSON string
+$jsonBody = $body | ConvertTo-Json
+
+# 3. Send the request
+Invoke-RestMethod -Uri http://127.0.0.1:8080/api/checkout -Method Post -ContentType "application/json" -Body $jsonBody
+```
+
+This is the idiomatic PowerShell approach and is much easier to read and debug.
+
+---
+
+### Fixing Your `curl` Command for PowerShell ✅
+
+If you want to make the original `curl` command work in PowerShell, you need to make two changes:
+
+1.  **Line Continuation:** PowerShell uses a backtick (`` ` ``) to continue a command on the next line, not a backslash (`\`).
+2.  **Quotes:** PowerShell can be tricky with nested quotes. It's often safer to write the JSON on a single line.
+
+Here is the corrected version of your command:
+
+```powershell
+curl -X POST http://127.0.0.1:8080/api/checkout `
+-H "Content-Type: application/json" `
+-d '{ "filename": "PN1001_OP1.mcam", "user": "mmclean", "message": "Editing fixture plate" }'
+```
+
+**Alternatively, and often easier, is to write it all on one line to avoid continuation issues:**
+
+```powershell
+curl -X POST http://127.0.0.1:8080/api/checkout -H "Content-Type: application/json" -d '{"filename": "PN1001_OP1.mcam", "user": "mmclean", "message": "Editing fixture plate"}'
+```
+
+### Summary of the Problem
+
+| Shell                    | Line Continuation | How it sees `-H`, `-d`                     |
+| :----------------------- | :---------------- | :----------------------------------------- |
+| **Bash** (Linux/macOS)   | Backslash `\`     | As flags/options for `curl`.               |
+| **PowerShell** (Windows) | Backtick `` ` ``  | As separate, unknown commands (`cmdlets`). |

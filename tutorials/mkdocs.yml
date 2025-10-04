@@ -7,6 +7,8 @@ nav:
   - GPT: tricks.md
   - FINAL: CLAUD2.md
   - GPT: gpt2.0.md
+  - ClaudCSS: CSS_claud.md
+  - GEMCSS: GemsCSS.md
 
 theme:
   name: material

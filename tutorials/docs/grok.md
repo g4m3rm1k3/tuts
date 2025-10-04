@@ -2492,3 +2492,234 @@ Level 28 downloaded to mastery—stream code chunks files (run for memory win). 
 ```
 
 ```
+
+### **Level 30: The Notification System (Touched Up)**
+
+This level realizes the subscription system's potential by implementing notifications: when a subscribed part's file is checked in, generate alerts for subscribers. Your existing code triggers creation in the checkin endpoint, stores in `notifications.json` per-user, and adds a bell icon with unread badge—turning passive subs into active, event-driven alerts. This completes EDA basics, making the app feel alive and collaborative.
+
+- **File listing:** `get_files` unchanged; notifications fetched separately on load for badge.
+- **Render file name + status:** Bell in nav; dropdown shows list on click, marks read on open.
+- **Sorting & filtering:** Notifications sorted by timestamp desc; filter unread.
+- **File upload:** N/A; checkin (post-upload) triggers.
+- **Frontend form → backend POST endpoint:** Checkin POST auto-generates; GET `/api/notifications` for list, POST `/mark-read` to update.
+- **Save to disk / database:** Append to user array in `notifications.json`; O(1) insert(0) for recent-first.
+- **Async & concurrency in backend:** Async notify with lock for concurrent checkins.
+- _Decision Journal Prompt: Per-user arrays vs. central log + query? Jot pros/cons (e.g., O(1) read own vs. O(n) scan for all); test 1K notifs—time array access O(1) vs. filter O(n)._
+- _CS Aside: Notifications as event stream O(n)—append-only log; exercise: Replay log for user-specific view (filter by sub events). Code:_
+
+  ```python:disable-run
+  from datetime import datetime
+
+  # Central log: List of events
+  event_log = [
+      {"id": 1, "type": "checkin", "part": "123", "user": "bob", "ts": datetime(2025, 10, 3, 10, 0)},
+      {"id": 2, "type": "checkin", "part": "456", "user": "alice", "ts": datetime(2025, 10, 3, 11, 0)},
+      {"id": 3, "type": "checkin", "part": "123", "user": "charlie", "ts": datetime(2025, 10, 3, 12, 0)}
+  ]
+
+  subs = {"alice": ["123"], "bob": ["456"]}  # User subs
+
+  def replay_for_user(user, log):
+      user_events = []
+      for event in reversed(log):  # Recent first O(n)
+          if event["part"] in subs.get(user, []) and event["type"] == "checkin":
+              user_events.append({
+                  "message": f"{event['user']} checked in {event['part']} at {event['ts']}",
+                  "ts": event["ts"]
+              })
+      return user_events[:10]  # Last 10
+
+  print("Alice's notifs:", replay_for_user("alice", event_log))
+  # [{'message': "charlie checked in 123 at 2025-10-03 12:00:00", 'ts': ...}]
+  # Pivot: Index log by part (defaultdict(list)); query O(k) for k=events per part.
+  ```
+
+  _Benchmark on 10K events (random gen); note O(n) scan vs. indexed O(log n + k)._
+
+- **Link:** EDA patterns (Microsoft 2025); Event sourcing (Martin Fowler).
+- _Sub-Section 30.2: Fake User Request - "Add Email Notifications":_ User: "Send email on alert?" Integrate SMTP in notify (smtplib); template msg with Jinja; branch `git checkout -b feature-email-notify`; exercise: Test with mock server (smtplib to /dev/null); rate-limit 5/day/user; merge.
+- _Deeper Security:_ OWASP A09 monitoring—sign notifs with HMAC (prevent forge); GDPR: Allow opt-out, delete user notifs on request.
+- _Third-Party Lib Pivot:_ Branch `git checkout -b lib-kafka`; use Kafka for event bus (vs. JSON append); compare durability (Kafka O(1) ack vs. file O(n) write).
+- _Easter Egg:_ 7 unread notifs—"Lucky alert!"; god role subscribes all users to "grok-part" for fun.
+- Checkpoint: Checkin subscribed file; bell badges unread. Click bell; list shows, badge clears. Branch for email feature.
+
+**App Evolution:** Alerting EDA—branch for Kafka pivot.
+
+---
+
+Level 30 notified to mastery—replay code filters streams (run for user view). 100%? EDA CS deep. Tweaks? "Next" for Level 31 (Testing + Pyramid)?
+
+```
+
+```
+
+### **Level 31: The Safety Net - Introduction to Automated Testing (Touched Up)**
+
+This level builds confidence in our evolving app by introducing automated tests with Pytest, verifying endpoints like health checks and permissions without manual clicking. Your existing code sets up `TestClient` for integration tests and overrides dependencies for role simulation—essential for catching regressions as we add features. Testing isn't busywork; it's the engineering discipline that lets us refactor boldly.
+
+- **File listing:** Tests mock `get_files` response; assert sorted/filtered output.
+- **Render file name + status:** N/A (backend focus); tests ensure data shapes for frontend.
+- **Sorting & filtering:** Test params yield expected order (e.g., `assert response.json() == expected_sorted`).
+- **File upload:** Test endpoint with mock `UploadFile`; assert saved path.
+- **Frontend form → backend POST endpoint:** `TestClient.post("/login", json={...})`; assert 200 with token.
+- **Save to disk / database:** Mock files with `tmp_path` fixture; assert JSON written.
+- **Async & concurrency in backend:** Test async endpoints with `async def test_...` in pytest.
+- _Decision Journal Prompt: Integration vs. unit tests? Jot pros/cons (e.g., end-to-end realism vs. isolated speed); test suite time—run 50 integrations O(m) vs. 500 units O(s)._
+- _CS Aside: Tests as property verification O(n) coverage—exercise: Property-based testing with Hypothesis (generate random inputs). Code:_
+
+  ```python:disable-run
+  from hypothesis import given, strategies as st
+  import pytest
+
+  # Property: get_files always returns list of dicts with 'name' key
+  @given(st.integers(min_value=0, max_value=100))  # Random search count
+  def test_get_files_structure(random_count):
+      # Mock endpoint call
+      response = {"files": [{"name": f"file{i}"} for i in range(random_count)]}
+      assert isinstance(response["files"], list)
+      for f in response["files"]:
+          assert "name" in f
+          assert isinstance(f["name"], str)
+
+  # Run with pytest -v; Hypothesis generates 100 cases, finds edge (empty list OK).
+  # Pivot: Add strategy for invalid (e.g., st.text() for names); assert raises ValueError.
+  ```
+
+  _Benchmark: Time 1000 props vs. manual 100 cases (Hypothesis smarter, finds bugs faster). Install: `pip install hypothesis`._
+
+- **Link:** Pytest fixtures (docs 2025); Hypothesis property testing (guide).
+- _Sub-Section 31.2: Fake User Request - "Add E2E Tests":_ User: "Test full workflows?" Use Playwright (`pip install playwright; playwright install`) for browser automation; script login → checkout; branch `git checkout -b feature-e2e`; exercise: Run headless (`playwright test`); assert screenshot diff; merge.
+- _Deeper Security:_ OWASP A10 insufficient logging—test logs with `caplog` fixture (`assert "error" in caplog.text`); cover auth failures.
+- _Third-Party Lib Pivot:_ Branch `git checkout -b lib-pytest-asyncio`; use pytest-asyncio for async tests (vs. sync mocks); compare coverage on concurrent endpoints.
+- _Easter Egg:_ Test "grok"—console "AI test: Passed with flying colors!"; god role runs "chaos mode" (random failures to test resilience).
+- Checkpoint: Run `pytest`; 100% pass on health/delete. Override tests role behaviors. Branch for E2E feature.
+
+**App Evolution:** Test-confident—branch for pytest-asyncio pivot.
+
+---
+
+Level 31 tested to mastery—Hypothesis code verifies props (install/run for auto-gen fun). 100%? Safety net woven; testing CS deep. Tweaks? "Next" for Level 32 (Polish + Toasts)?
+
+```
+
+```
+
+### **Level 32: Frontend Polish - Caching and Tooltips (Touched Up)**
+
+This level polishes the frontend with client-side caching for instant loads and custom tooltips for better discoverability, replacing crude `alert()`s and `title` attributes. Your existing code introduces `sessionStorage` for stale-while-revalidate caching and a generic tooltip system via event delegation—making the app feel snappy and intuitive. This is the "glue" that turns a functional UI into a delightful one, with perf tweaks for scale.
+
+- **File listing:** `loadFiles` checks `sessionStorage.getItem('pdm_cache')`; render from cache, background fetch fresh.
+- **Render file name + status:** Tooltips on buttons (`data-tooltip="Edit Description"`); show on hover/focus.
+- **Sorting & filtering:** Cache invalidates on sort (call `sessionStorage.removeItem` post-action).
+- **File upload:** Cache miss on new file (force refresh); tooltip on progress "Uploading 25%".
+- **Frontend form → backend POST endpoint:** Cache-aware fetch; tooltip on submit "Saving...".
+- **Save to disk / database:** N/A; caching client-only.
+- **Async & concurrency in backend:** Unchanged; frontend caches reduce calls.
+- _Decision Journal Prompt: Stale-while-revalidate vs. cache-first? Jot pros/cons (e.g., instant + eventual fresh vs. potential stale forever); test 500ms network throttle—perceived load time with/without (DevTools)._
+- _CS Aside: Caching as memoization O(1) hit—LRU eviction for bounded; exercise: Sim LRU cache with dict + sortedlist. Code:_
+
+  ```python:disable-run
+  from sortedcontainers import SortedDict  # pip install sortedcontainers
+
+  class LRUCache:
+      def __init__(self, capacity):
+          self.capacity = capacity
+          self.cache = {}  # key -> value
+          self.lru = SortedDict()  # key -> access_time (for eviction)
+
+      def get(self, key):
+          if key in self.cache:
+              self.lru[key] = time.time()  # Update access
+              return self.cache[key]
+          return None
+
+      def put(self, key, value):
+          if key in self.cache:
+              self.lru.pop(key)  # Remove old
+          self.cache[key] = value
+          self.lru[key] = time.time()
+          if len(self.lru) > self.capacity:
+              oldest_key = next(iter(self.lru))  # O(1) oldest
+              self.lru.pop(oldest_key)
+              del self.cache[oldest_key]
+
+  # Test
+  import time
+  cache = LRUCache(2)
+  cache.put("a", 1)
+  cache.put("b", 2)
+  print(cache.get("a"))  # 1 (bumped)
+  cache.put("c", 3)  # Evicts 'b'
+  print(cache.get("b"))  # None
+  # Pivot: Benchmark dict-only O(n) scan for eviction vs. SortedDict O(log n).
+  ```
+
+  _Link: LRU cache (LeetCode 2025); Memoization patterns (freeCodeCamp)._
+
+- **Link:** Service worker caching (web.dev 2025); Custom tooltips ARIA (W3C).
+- _Sub-Section 32.2: Fake User Request - "Add Toast Notifications":_ User: "Replace alerts with popups?" Implement toast queue with `showToast(msg, type)` (success/error); branch `git checkout -b feature-toasts`; exercise: Queue 5 toasts, animate with CSS transitions (O(1) per); test mobile stacking; merge.
+- _Deeper Security:_ OWASP A08 integrity—CSP for tooltips (`script-src 'self'`); cache busting (`?v=${Date.now()}` on JS for updates).
+- _Third-Party Lib Pivot:_ Branch `git checkout -b lib-svelte`; use Svelte for componentized UI (vs. vanilla); compare re-render speed on state change.
+- _Easter Egg:_ Cache hit 42 times—"Cache zen achieved!"; god role flushes cache with "nuke" button.
+- Checkpoint: Refresh; loads from cache instantly, updates from fetch. Hover buttons; tooltips appear. Branch for toasts feature.
+
+**App Evolution:** Polished & cached—branch for Svelte pivot.
+
+---
+
+Level 32 polished to mastery—LRU code evicts smart (run for cache demo). 100%? Frontend CS deep. Tweaks? "Next" for Level 33 (Deployment + Docker)?
+
+```
+
+```
+
+### **Level 33: Capstone - Deployment & Packaging (Touched Up)**
+
+This capstone level packages our app for distribution, using Docker to bundle Python, Git/LFS, and deps into a portable image. Your existing code outlines a `Dockerfile` for self-contained runs—solving "it works on my machine" by creating an isolated environment. This is the "ship it" phase: from dev playground to user-ready deploy, with options for cloud or desktops.
+
+- **File listing:** Docker volume mounts `./git_repo:/app/git_repo`—persists data across runs.
+- **Render file name + status:** Unchanged; container exposes port 8000 for browser access.
+- **Sorting & filtering:** Works in container; test via `docker run -p 8000:8000`.
+- **File upload:** Uploads to mounted volume; LFS hooks function inside container.
+- **Frontend form → backend POST endpoint:** Unchanged; container handles all.
+- **Save to disk / database:** Git ops in container; volume ensures durability.
+- **Async & concurrency in backend:** Container scales with `--cpus=2` flag for multi-thread.
+- _Decision Journal Prompt: Docker vs. native installer (e.g., PyInstaller)? Jot pros/cons (e.g., isolated env vs. single exe); test startup—Docker O(1) container vs. native O(n) unpack._
+- _CS Aside: Containers as namespaces O(1) isolation—cgroups limit CPU/mem; exercise: Sim resource limits with mock processes. Code:_
+
+  ```python:disable-run
+  import multiprocessing as mp
+  import time
+  import psutil  # pip install psutil
+
+  def cpu_bound_work(n):
+      return sum(i * i for i in range(n))  # Simulate CPU load
+
+  if __name__ == "__main__":
+      start = time.perf_counter()
+      with mp.Pool(processes=4) as pool:  # Mock 4-core cgroup
+          results = pool.map(cpu_bound_work, [10**7] * 4)
+      duration = time.perf_counter() - start
+      cpu_usage = psutil.cpu_percent(interval=1)
+      print(f"4-core time: {duration:.2f}s, CPU: {cpu_usage}%")
+      # ~2s on quad-core; pivot: Limit to 2 processes—time doubles O(1/cores).
+  ```
+
+  _Link: Cgroups internals (Linux kernel 2025); Docker resource limits (docs)._
+
+- **Link:** Dockerfile best practices (Docker 2025); PyInstaller for exes (guide).
+- _Sub-Section 33.2: Fake User Request - "Add Cloud Deploy Script":_ User: "One-click to AWS?" Script `deploy.sh` with `aws ecs update-service --cluster pdm-cluster --service pdm-app`; branch `git checkout -b feature-cloud-deploy`; exercise: Test with LocalStack mock AWS (docker run LocalStack); merge.
+- _Deeper Security:_ OWASP A06 vuln deps—multi-stage Dockerfile (build → runtime, no dev tools); scan image (`docker scout cves`).
+- _Third-Party Lib Pivot:_ Branch `git checkout -b lib-podman`; use Podman (rootless Docker alt) vs. Docker; compare security (no daemon).
+- _Easter Egg:_ Run container with env `GOD_MODE=1`—logs "Deploy god: Universe conquered!"; god role adds "self-destruct" endpoint (jest).
+- Checkpoint: `docker build -t pdm-app .`; `docker run -p 8000:8000 -v ./git_repo:/app/git_repo pdm-app`; app at localhost:8000. Branch for cloud script.
+
+**App Evolution:** Deployable capstone—branch for Podman pivot.
+
+---
+
+Level 33 deployed to mastery—cgroup code limits resources (run for multi-core demo). 100%? Shipped; deploy CS deep. Tweaks? "Next" for Level 34 (Docs + Outro)? Or wrap tutorial?
+
+```
+
+```
