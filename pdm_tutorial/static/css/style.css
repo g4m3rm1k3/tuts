@@ -1,0 +1,62 @@
+/* A modern font reset for consistancey */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  background-color: #f0f2f5;
+  color: #1c1e21;
+  margin: 0;
+  padding: 2rem;
+}
+
+h1 {
+  text-align: center;
+  color: #0b2e59;
+}
+
+/* A container for our file list */
+#file-list {
+  max-width: 800px;
+  margin: 2rem auto; /*Center the container*/
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Individual file item styling */
+.file-item {
+  padding: 1rem;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between; /* Pushes children to opposite ends */
+  align-items: center;
+}
+
+/* Remove border from the last item */
+.file-item:last-child {
+  border-bottom: none;
+}
+
+/*Base style for all status tags */
+.status {
+  padding: 0.25rem 0.75rem;
+  border: radius 12px;
+  -webkit-border-radius: 12px;
+  -moz-border-radius: 12px;
+  -ms-border-radius: 12px;
+  -o-border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+/* Specific styles for each status */
+.status-available {
+  background-color: #e7f3ff;
+  color: #1877f2;
+}
+
+/* WE don't have this satus yet, but we're preparing for it! */
+.status-checked_out {
+  background-color: #fff0f0;
+  color: #dd3c3c;
+}

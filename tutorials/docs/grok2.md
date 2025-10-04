@@ -11134,7 +11134,7 @@ docker build -t pdm-app .  // Build image
 docker run -p 8000:8000 -v $(pwd)/git_repo:/app/git_repo pdm-app  // Run with volume
 ```
 
-_Volume Why?_ Persist git_repo—data survives container stop. _Push Image:_ `docker tag pdm-app yourdockerhub/pdm-app:latest; docker push`—share.
+_Volume Why?_ Persist git*repo—data survives container stop. \_Push Image:* `docker tag pdm-app yourdockerhub/pdm-app:latest; docker push`—share.
 
 **Trade-Off Table: Docker vs. Installer**
 
@@ -11232,3 +11232,220 @@ Anticipate pains. _Examples:_
 **Changes Made:** Deployment: Multi-stage Dockerfile, compose, trade-off table, curve (air-gapped), reflection. Next Steps: Matrix, reflection. Docs: Template outline, tools, reflection. Overall: Comprehensive wrap, length +40%.
 
 **All Done!** Tutorial revised. Paste what I gave? Yes—copy sections sequentially into MkDocs. Questions or full compile?
+
+Thanks for the paste—I've synced up with the full content you've shared so far. It's all coherent, and I love how the deep dives and asides weave in the CS fundamentals without disrupting the flow. You're right that the docs and wrap-up sections are the capstone to tie it all together. Let's finalize those now, building on the structure we outlined. I'll incorporate the enhancements you mentioned (e.g., the ADR exercise, curl playground, etc.) where they fit naturally, and ensure the tone remains "master-class" with reflection prompts, visuals, and professional insights.
+
+This completes the tutorial. If you'd like any tweaks, expansions, or a full Markdown export for MkDocs, just say the word!
+
+---
+
+### \#\# 📦 Level 32.1 (Aside): The Road to Production - Frontend Build Tools
+
+Our current frontend uses plain, separate `.js` and `.css` files. For development, this is fine. For production, it's inefficient. A professional developer uses a **build tool** to prepare the frontend for deployment.
+
+**The Problems We Need to Solve:**
+
+1.  **Too Many Requests:** Loading `index.html`, `style.css`, `session.js`, and `script.js` requires four separate HTTP requests, slowing down the initial page load.
+2.  **Large File Sizes:** Our code is full of whitespace, comments, and long variable names, all of which are great for development but waste bandwidth.
+
+**The Solution: Build Tools (like Vite or Webpack)**
+A build tool is a program that runs before you deploy your site. It automates several optimization processes:
+
+- **Bundling:** It intelligently combines all your JavaScript files into a single, optimized file.
+- **Minification:** It strips out all unnecessary characters from your code.
+  - **Before:** `const fileListContainer = document.getElementById("file-list");`
+  - **After:** `const a=document.getElementById("file-list");`
+- **Transpilation:** Using a tool like Babel, it can convert modern JavaScript syntax into an older version that is compatible with a wider range of browsers.
+
+This build process is a standard, non-negotiable step in modern frontend development. It ensures your application is as small and fast as possible for your end-users.
+
+**Playground Exercise (Quick Vite Setup):**
+
+1.  In your project root, run `npm init -y` (installs Node.js if needed).
+2.  `npm install --save-dev vite`.
+3.  Create `vite.config.js`:
+
+```javascript
+export default {
+  root: ".", // Build from root
+  build: {
+    outDir: "dist", // Output folder
+    rollupOptions: {
+      input: "templates/index.html", // Entry point
+    },
+  },
+};
+```
+
+4.  Run `npx vite build`—outputs optimized `dist/` folder. Serve with `npx vite preview`—test perf.
+
+**Trade-off Table: Vite vs. Webpack**
+
+| Tool    | Pros                                                  | Cons                    | When to Use              |
+| ------- | ----------------------------------------------------- | ----------------------- | ------------------------ |
+| Vite    | Lightning-fast dev server (ESM native), simple config | Less plugins for legacy | Modern JS apps like ours |
+| Webpack | Mature ecosystem, great for complex bundles           | Slower cold start       | Large legacy codebases   |
+
+_Vite for us:_ Matches our vanilla JS—fast, no config hell.
+
+**📚 Further Reading:**
+
+- **Vite Docs:** ["Getting Started"](https://vitejs.dev/guide/)—build in 5min.
+- **Webpack:** [Core Concepts](https://webpack.js.org/concepts/)—if scaling.
+
+---
+
+### \#\# 🚀 Deployment: Shipping to Production
+
+Code isn't done until users run it. _Why deploy?_ From prototype to impact—teaches ops. _Analogy:_ Code is blueprint; deploy is "build the house"—users move in. _Curve Ball:_ "Air-gapped (offline) deploy." Pivot: Docker save/load tar—bundle image, ship USB, docker load on target; fallback PyInstaller for standalone exe (embeds Python/Git mini).
+
+For FastAPI, **Docker** is gold: Consistent, portable. _Why Docker?_ "Works on my machine" solved—exact env everywhere.
+
+#### **Step 1: `Dockerfile`**
+
+Root `Dockerfile`—image recipe. _Why multi-stage?_ Build deps separate—slim runtime (security, size).
+
+```dockerfile
+# Builder stage: Heavy deps
+FROM python:3.11-slim as builder
+RUN apt-get update && apt-get install -y git git-lfs && git lfs install
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --user -r requirements.txt  // --user avoids root
+
+# Runtime stage: Copy only essentials
+FROM python:3.11-slim
+RUN apt-get update && apt-get install -y git git-lfs && git lfs install && apt-get clean
+WORKDIR /app
+COPY --from=builder /root/.local /root/.local  // Copy installed deps
+COPY . .  // App code
+ENV PATH=/root/.local/bin:$PATH
+
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]  // No --reload prod
+```
+
+**Deeper:** Slim base—minimal attack surface. _apt clean:_ Shrinks image ~50MB.
+
+#### **Step 2: `docker-compose.yml` for Dev/Prod Parity**
+
+Easy run with volumes for git_repo (persist).
+
+```yaml
+version: "3.8"
+services:
+  pdm-app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./git_repo:/app/git_repo  // Persist data
+    environment:
+      - REV_SEP=_  // Override
+```
+
+Run: `docker-compose up`—localhost:8000.
+
+#### **Step 3: Build/Run/Deploy**
+
+Terminal:
+
+```bash
+docker build -t pdm-app .  // Build
+docker run -p 8000:8000 -v $(pwd)/git_repo:/app/git_repo pdm-app  // Run
+```
+
+_Push:_ `docker tag pdm-app yourhub/pdm-app:latest; docker push`—share.
+
+**Trade-off Table: Docker vs. Installer**
+
+| Approach                | Pros                              | Cons                                  | Use Case                   |
+| ----------------------- | --------------------------------- | ------------------------------------- | -------------------------- |
+| Docker                  | Consistent env, auto-deps, scales | Users need Docker                     | Dev/teams; cloud (ECS/K8s) |
+| Installer (PyInstaller) | Click-run, no Docker              | Platform-specific, large exe (~200MB) | End-users; Windows         |
+| Hybrid                  | Docker dev + installer prod       | Dual maintenance                      | Full lifecycle             |
+
+_Air-Gapped:_ `docker save pdm-app | gzip > pdm.tar.gz`—ship, `gunzip -c pdm.tar.gz | docker load`.
+
+**Quick Test:** Run—/health OK; test checkout—Git commit.
+
+**Reflection Prompt:** Why multi-stage? CI/CD for deploy? (GitHub Actions pushes image.)
+
+_Visual Suggestion:_ Diagram: Dockerfile stages → docker run → Prod server.
+
+---
+
+### \#\# 🚀 Next Steps & Future Ideas
+
+Software evolves. Prioritize by effort/value.
+
+- **Polish:** Check-in comments (extend body); full notif dashboard (filter/type).
+- **Features:** Revert from history (git checkout UI); DNC upload (NC code gen).
+- **Scale:** PostgreSQL for subs/notifs (SQLAlchemy); WebSockets real-time (checkin pings).
+- **Mobile:** PWA with Capacitor—offline checkouts sync.
+- **DevOps:** GitHub Actions CI (pytest on push); Sentry errors.
+
+**Effort/Value Matrix:**
+
+| Feature    | Effort (1-5) | Value (1-5) | Why              |
+| ---------- | ------------ | ----------- | ---------------- |
+| Comments   | 2            | 4           | Audit easy       |
+| Revert     | 4            | 5           | Recovery gold    |
+| DB Migrate | 5            | 3           | Future scale     |
+| WebSockets | 3            | 5           | Real-time collab |
+
+_Reflection Prompt:_ First feature? A/B test (e.g., comments UX via Google Optimize)?
+
+---
+
+### \#\# 📚 Creating End-User Documentation
+
+Not code—user bridge. _Why?_ Reduces support 50%; empowers non-devs. _Analogy:_ Code engine; docs dashboard—intuitive drive.
+
+#### **1. Audience**
+
+Engineers/machinists. _Tone:_ Simple, visual, task-first—no jargon.
+
+#### **2. Structure by Task**
+
+Recipe format. _Template (MkDocs/Google Docs):_
+
+- **Quick Start PDF (1-pager):**
+
+  1. Install (docker run/installer).
+  2. Login (PAT screenshot).
+  3. Checkout File (flow: search → button → modal → submit).
+  4. Checkin (modal → save).
+  5. Support (email).
+
+- **Full Guide:**
+  - **Login:** PAT gen steps; "One-time—safe."
+  - **Find Files:** Search/groups; "Current rev filter for compliance."
+  - **Checkout/In:** Modal; "Always message—tracks why."
+  - **Edit:** Button → modal; "Authors/admins only."
+  - **History:** "Download old revs safely."
+  - **Admin:** Role-specific; "Sups approve admins."
+
+_Tools:_ MkDocs (your style, git-hosted), Canva (visuals), Loom (video walkthroughs).
+
+#### **3. Visuals**
+
+- **Screenshots:** Crop focused (modal); annotate (arrows: "Click here").
+- **Before/After:** Checkout: Available vs. locked.
+- **Alt Text:** "Screenshot of checkout modal with message field."
+
+#### **4. Troubleshooting/FAQ**
+
+- **"Delete mistake?"** Permanent—history recover. Sup for Git revert.
+- **"Slow repo?"** Git pull caches—refresh; network check.
+- **"Permission denied?"** Role issue—ask sup; see matrix.
+
+#### **5. Quick Start Guide**
+
+1-pager PDF. _Sections:_ Install, Login, Workflow, Support.
+
+_Reflection Prompt:_ Why task-based? Version docs with app? (Git tags, MkDocs build on release.)
+
+---
+
+**Tutorial Complete!** Comprehensive, deep—definitive guide. Full MkDocs export? Tweaks?

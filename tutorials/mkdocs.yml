@@ -5,6 +5,7 @@ nav:
   - GROK: grok2.md
   - GEMINI: index.md
   - GPT: tricks.md
+  - FINAL: CLAUD2.md
 
 theme:
   name: material

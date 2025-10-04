@@ -743,6 +743,112 @@ def endswith(string, suffix):
     # Compare bytes from end backwards - stops early on mismatch
 ```
 
+Great question! Let me show you exactly how to use this pattern in practice.
+
+## **How to Use Set-Based Extension Validation**
+
+### **Basic Usage:**
+
+```python
+from pathlib import Path
+
+# Define allowed extensions as a set (at module level or in config)
+VALID_EXTENSIONS = {'.mcam', '.nc', '.tap'}
+
+# Method 1: Using Path (recommended)
+def validate_file_extension(filename: str) -> bool:
+    """Check if file has valid extension."""
+    suffix = Path(filename).suffix.lower()  # .lower() handles case-insensitivity
+    return suffix in VALID_EXTENSIONS
+
+# Usage
+filename = "part_design.mcam"
+if validate_file_extension(filename):
+    print("✓ Valid file")
+else:
+    print("✗ Invalid file type")
+```
+
+### **In FastAPI Endpoint:**
+
+```python
+from fastapi import UploadFile, HTTPException, status
+
+VALID_EXTENSIONS = {'.mcam', '.nc', '.tap'}
+
+@app.post("/upload")
+async def upload_file(file: UploadFile):
+    # Get file extension
+    file_extension = Path(file.filename).suffix.lower()
+
+    # Validate
+    if file_extension not in VALID_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type. Allowed: {', '.join(VALID_EXTENSIONS)}"
+        )
+
+    # File is valid - proceed with upload
+    # ... rest of upload logic
+```
+
+### **Complete Validation Function with Error Messages:**
+
+```python
+from pathlib import Path
+from typing import Tuple
+
+VALID_EXTENSIONS = {'.mcam', '.nc', '.tap'}
+
+def validate_file_extension(filename: str) -> Tuple[bool, str]:
+    """
+    Validate file extension.
+
+    Returns:
+        (is_valid, error_message)
+    """
+    # Get extension
+    suffix = Path(filename).suffix.lower()
+
+    # Check if extension exists
+    if not suffix:
+        return False, "File has no extension"
+
+    # Check if extension is valid
+    if suffix not in VALID_EXTENSIONS:
+        allowed = ', '.join(sorted(VALID_EXTENSIONS))
+        return False, f"Invalid file type '{suffix}'. Allowed types: {allowed}"
+
+    return True, ""
+
+# Usage
+filename = "myfile.mcam"
+is_valid, error = validate_file_extension(filename)
+
+if is_valid:
+    print("File is valid!")
+else:
+    print(f"Error: {error}")
+```
+
+### **With Case-Insensitive Matching:**
+
+```python
+# Both .MCAM and .mcam will be valid
+VALID_EXTENSIONS = {'.mcam', '.nc', '.tap'}
+
+def is_valid_extension(filename: str) -> bool:
+    return Path(filename).suffix.lower() in VALID_EXTENSIONS
+
+# These all work:
+is_valid_extension("file.mcam")   # True
+is_valid_extension("file.MCAM")   # True
+is_valid_extension("file.McAm")   # True
+is_valid_extension("file.pdf")    # False
+```
+
+### \*\*As a FastAPI Dependency (Re
+
 **Why this matters for performance:**
 
 ```python

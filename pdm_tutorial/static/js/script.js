@@ -2,7 +2,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   // We immediately call our main function to fetch and display the files.
   loadFiles();
-  debugLoadFiles();
 });
 
 // This is an async function because fetching data over a network takes time.
@@ -28,31 +27,52 @@ function renderFiles(files) {
   const fileListContainer = document.getElementById("file-list");
 
   // 2. Clear out any old content (liek a "loading..." message).
-  fileListContainer.innerHTML = "";
+  fileListContainer.innerHTML = ""; // Clear previous content
+
+  if (files.length === 0) {
+    filesListContainer.innerHTML = "<p>No Cam files found in repository</p>";
+  }
 
   // 3. Loop through each file object in the data array.
   files.forEach((file) => {
-    // 4. For each file, create a new paragraph element as a string.
-    const fileElement = `<p>${file.name} - Status: ${file.status}</p>`;
-    // 5. Add this new HTML string to our container.
-    fileListContainer.innerHTML += fileElement;
+    // Use template literals (`) to biuld a more complex HTML sgtring
+    const fileElementHTML = `
+        <div class="file-item">
+        <span class="file-name">${file.name}</span>
+        <span class="status status-${file.status}">${file.status.replace(
+      "_",
+      " "
+    )}</span>
+        </div>
+        `;
+    // Use insertAdjacentHTML which is slightly more efficient than innerHTML +=
+    fileListContainer.insertAdjacentHTML("beforeend", fileElementHTML);
   });
 }
 
-async function debugLoadFiles() {
-  console.log("[1] Starting load");
+// Test innerHTML vs DocumentFragment
+function testPerformance() {
+  const testData = Array(1000)
+    .fill()
+    .map((_, i) => ({ name: `Files${i}` }));
 
-  const response = await fetch("/api/files");
-  console.log("[2] Got reponse:", response.status);
-
-  const data = await response.json();
-  console.log("[3] Parsed JSON:", data.length, "items");
-
-  document.getElementById("file-list").innerHTML = "";
-  data.forEach((file) => {
-    const elem = document.createElement("div");
-    elem.textContent = file.name;
-    document.getElementById("file-list").appendChild(elem);
+  // Method 1: innerHTML
+  console.time("innerHTML");
+  let html = "";
+  testData.forEach((file) => {
+    html += `<div>${file.name}</div>`;
   });
-  console.log("[4] DOM updated");
+  document.getElementById("test1").innerHTML = html;
+  console.timeEnd("innerHTML");
+
+  // Method 2: DocumentFragment
+  console.time("fragment");
+  const fragment = document.createDocumentFragment();
+  testData.forEach((file) => {
+    const div = document.createElement("div");
+    div.textContent = file.name;
+    fragment.appendChild(div);
+  });
+  document.getElementById("test2").appendChild(fragment);
+  console.timeEnd("fragment");
 }
