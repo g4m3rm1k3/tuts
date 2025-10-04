@@ -11025,4 +11025,5668 @@ Your app is now a professional version control system. Next, we make it collabor
 
 ---
 
-**Copy this into MkDocs. When ready, request Stage 9.**
+# Stage 9: Real-Time Collaboration - WebSockets & Live Updates
+
+## Introduction: The Goal of This Stage
+
+Your app works great, but users don't know what others are doing. Someone locks a file? You won't know until you manually refresh. A file becomes available? You miss it.
+
+In this stage, you'll add **real-time collaboration** using WebSockets - turning your app from request-response to event-driven, live updates.
+
+By the end of this stage, you will:
+
+- Understand WebSockets vs HTTP (full-duplex communication)
+- Implement WebSocket server in FastAPI
+- Manage connected clients (connection pool)
+- Broadcast events to all users
+- Build a WebSocket client in JavaScript
+- Show presence indicators (who's online)
+- Display live file status updates
+- Handle reconnection after network failures
+- Design a message protocol
+
+**Time Investment:** 7-9 hours
+
+---
+
+## 9.1: WebSockets vs HTTP - Understanding the Difference
+
+### HTTP: Request-Response Pattern
+
+**Traditional HTTP:**
+
+```
+Client                          Server
+  │                               │
+  ├──── GET /api/files ──────────>│
+  │                               │ (processes request)
+  │<──── Response (JSON) ─────────┤
+  │                               │
+  │     (connection closes)       │
+  │                               │
+  │     (30 seconds pass...)      │
+  │                               │
+  ├──── GET /api/files ──────────>│  (poll for updates)
+  │<──── Response ────────────────┤
+```
+
+**Problems:**
+
+- **Polling** - Client must repeatedly ask "anything new?"
+- **Latency** - Updates delayed until next poll
+- **Inefficient** - Wastes bandwidth (most polls return "no change")
+- **Server load** - Constant requests, even when nothing changed
+
+### WebSockets: Full-Duplex Communication
+
+**WebSocket:**
+
+```
+Client                          Server
+  │                               │
+  ├──── WebSocket Handshake ─────>│
+  │<──── 101 Switching Protocols ─┤
+  │                               │
+  │═════════ Connection ══════════│ (stays open)
+  │                               │
+  │<──── "file_locked" event ─────┤ (server pushes)
+  │                               │
+  ├──── "subscribe" message ─────>│ (client sends)
+  │                               │
+  │<──── "file_unlocked" event ───┤ (server pushes)
+  │                               │
+  │     (connection stays open)   │
+```
+
+**Benefits:**
+
+- **Real-time** - Server pushes updates instantly
+- **Efficient** - Single persistent connection
+- **Bidirectional** - Both sides can send messages
+- **Low latency** - No request overhead
+
+### The WebSocket Handshake
+
+**Step 1: Client requests upgrade**
+
+```http
+GET /ws HTTP/1.1
+Host: localhost:8000
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+Sec-WebSocket-Version: 13
+```
+
+**Step 2: Server accepts**
+
+```http
+HTTP/1.1 101 Switching Protocols
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+```
+
+**Step 3: Connection established**
+
+- Protocol switches from HTTP to WebSocket
+- Bidirectional message channel open
+- Stays open until explicitly closed
+
+### WebSocket Frame Format
+
+**After handshake, messages are sent as frames:**
+
+```
+0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-------+-+-------------+-------------------------------+
+|F|R|R|R| opcode|M| Payload len |    Extended payload length    |
+|I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
+|N|V|V|V|       |S|             |   (if payload len==126/127)   |
+| |1|2|3|       |K|             |                               |
++-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
+|     Extended payload length continued, if payload len == 127  |
++ - - - - - - - - - - - - - - - +-------------------------------+
+|                               |Masking-key, if MASK set to 1  |
++-------------------------------+-------------------------------+
+| Masking-key (continued)       |          Payload Data         |
++-------------------------------- - - - - - - - - - - - - - - - +
+:                     Payload Data continued ...                :
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+|                     Payload Data continued ...                |
++---------------------------------------------------------------+
+```
+
+**Key fields:**
+
+- **FIN** - Final frame (messages can be fragmented)
+- **Opcode** - Message type (text, binary, ping, pong, close)
+- **MASK** - Client→Server messages must be masked (security)
+- **Payload** - The actual message content
+
+**You won't work with frames directly** - libraries handle this.
+
+---
+
+## 9.2: WebSocket Server in FastAPI
+
+### Install WebSocket Dependencies
+
+FastAPI has built-in WebSocket support, no extra packages needed!
+
+### Connection Manager
+
+Create a manager to track all connected clients.
+
+Add to `main.py`:
+
+```python
+from fastapi import WebSocket, WebSocketDisconnect
+from typing import Dict, Set
+import json
+from datetime import datetime, timezone
+
+# ============================================
+# WEBSOCKET CONNECTION MANAGER
+# ============================================
+
+class ConnectionManager:
+    """
+    Manages WebSocket connections and broadcasts messages.
+
+    Maintains a registry of active connections and provides
+    methods to send messages to one or all clients.
+    """
+
+    def __init__(self):
+        # Dictionary mapping username to WebSocket connection
+        self.active_connections: Dict[str, WebSocket] = {}
+
+    async def connect(self, websocket: WebSocket, username: str):
+        """
+        Accept a new WebSocket connection.
+
+        Args:
+            websocket: The WebSocket connection
+            username: Username of the connected user
+        """
+        await websocket.accept()
+        self.active_connections[username] = websocket
+        logger.info(f"WebSocket connected: {username} (total: {len(self.active_connections)})")
+
+        # Notify all users about the new connection
+        await self.broadcast({
+            "type": "user_connected",
+            "username": username,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "online_users": list(self.active_connections.keys())
+        })
+
+    def disconnect(self, username: str):
+        """
+        Remove a WebSocket connection.
+
+        Args:
+            username: Username of the disconnected user
+        """
+        if username in self.active_connections:
+            del self.active_connections[username]
+            logger.info(f"WebSocket disconnected: {username} (total: {len(self.active_connections)})")
+
+    async def send_personal_message(self, message: dict, username: str):
+        """
+        Send a message to a specific user.
+
+        Args:
+            message: Message dictionary (will be JSON-encoded)
+            username: Target username
+        """
+        if username in self.active_connections:
+            websocket = self.active_connections[username]
+            await websocket.send_json(message)
+
+    async def broadcast(self, message: dict, exclude: Set[str] = None):
+        """
+        Send a message to all connected users.
+
+        Args:
+            message: Message dictionary (will be JSON-encoded)
+            exclude: Optional set of usernames to exclude
+        """
+        if exclude is None:
+            exclude = set()
+
+        # Send to all connections except excluded ones
+        disconnected = []
+
+        for username, websocket in self.active_connections.items():
+            if username not in exclude:
+                try:
+                    await websocket.send_json(message)
+                except Exception as e:
+                    logger.error(f"Error sending to {username}: {e}")
+                    disconnected.append(username)
+
+        # Clean up disconnected clients
+        for username in disconnected:
+            self.disconnect(username)
+
+    def get_online_users(self) -> list:
+        """Get list of currently connected usernames."""
+        return list(self.active_connections.keys())
+
+# Create global connection manager
+manager = ConnectionManager()
+```
+
+### Understanding the Connection Manager
+
+**Why a dictionary?**
+
+```python
+self.active_connections: Dict[str, WebSocket] = {}
+```
+
+- Key: Username (string)
+- Value: WebSocket connection object
+- Allows sending messages to specific users
+- Allows listing who's online
+
+**Why `async/await` everywhere?**
+
+```python
+async def send_personal_message(self, message: dict, username: str):
+    await websocket.send_json(message)
+```
+
+- WebSocket I/O is asynchronous (network operations)
+- `await` prevents blocking
+- Multiple connections handled concurrently
+
+**Why track disconnected clients during broadcast?**
+
+```python
+disconnected = []
+for username, websocket in self.active_connections.items():
+    try:
+        await websocket.send_json(message)
+    except Exception as e:
+        disconnected.append(username)
+```
+
+**The problem:** Client might disconnect silently (network failure, closed browser)
+
+**The solution:** Catch send errors, mark for removal, clean up after loop
+
+**Why not remove during iteration?**
+
+```python
+# BAD - modifies dict during iteration
+for username, websocket in self.active_connections.items():
+    del self.active_connections[username]  # RuntimeError!
+
+# GOOD - collect, then remove
+disconnected = []
+for username, websocket in self.active_connections.items():
+    disconnected.append(username)
+for username in disconnected:
+    del self.active_connections[username]
+```
+
+---
+
+## 9.3: WebSocket Endpoint with Authentication
+
+### Extract User from Token
+
+WebSockets don't have standard headers, so we'll use query parameters for auth.
+
+Add helper function:
+
+```python
+async def get_current_user_ws(token: str) -> User:
+    """
+    Get current user from WebSocket token.
+    Similar to get_current_user but for WebSocket context.
+    """
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authentication token"
+        )
+
+    # Decode token
+    token_data = decode_access_token(token)
+
+    # Get user
+    user = get_user(token_data.username)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+
+    return User(
+        username=user["username"],
+        full_name=user["full_name"],
+        role=user["role"]
+    )
+```
+
+### WebSocket Endpoint
+
+```python
+@app.websocket("/ws")
+async def websocket_endpoint(
+    websocket: WebSocket,
+    token: str = None
+):
+    """
+    WebSocket endpoint for real-time updates.
+
+    Query parameters:
+        token: JWT authentication token
+
+    Message protocol:
+        Client → Server:
+            {"type": "ping"}
+            {"type": "subscribe", "file": "filename.mcam"}
+
+        Server → Client:
+            {"type": "file_locked", "filename": "...", "user": "..."}
+            {"type": "file_unlocked", "filename": "..."}
+            {"type": "file_uploaded", "filename": "..."}
+            {"type": "user_connected", "username": "..."}
+            {"type": "user_disconnected", "username": "..."}
+    """
+    # Authenticate
+    try:
+        user = await get_current_user_ws(token)
+    except HTTPException as e:
+        await websocket.close(code=1008, reason="Authentication failed")
+        return
+
+    # Connect
+    await manager.connect(websocket, user.username)
+
+    try:
+        while True:
+            # Receive messages from client
+            data = await websocket.receive_json()
+
+            message_type = data.get("type")
+
+            if message_type == "ping":
+                # Respond to ping with pong
+                await websocket.send_json({
+                    "type": "pong",
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                })
+
+            elif message_type == "get_online_users":
+                # Send list of online users
+                await websocket.send_json({
+                    "type": "online_users",
+                    "users": manager.get_online_users()
+                })
+
+            else:
+                logger.warning(f"Unknown message type: {message_type}")
+
+    except WebSocketDisconnect:
+        manager.disconnect(user.username)
+
+        # Notify others
+        await manager.broadcast({
+            "type": "user_disconnected",
+            "username": user.username,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "online_users": manager.get_online_users()
+        })
+
+    except Exception as e:
+        logger.error(f"WebSocket error for {user.username}: {e}")
+        manager.disconnect(user.username)
+```
+
+### Understanding WebSocket Lifecycle
+
+**The flow:**
+
+1. **Client connects** - `websocket.accept()`
+2. **Event loop starts** - `while True:`
+3. **Receive messages** - `await websocket.receive_json()`
+4. **Process message** - Handle based on type
+5. **Send response** - `await websocket.send_json()`
+6. **Loop continues** - Back to step 3
+7. **Client disconnects** - `WebSocketDisconnect` exception
+8. **Cleanup** - Remove from manager
+
+**Why `while True`?**
+
+- Keep connection alive
+- Continuously listen for messages
+- Exits only on disconnect or error
+
+**Why `receive_json()`?**
+
+```python
+data = await websocket.receive_json()
+```
+
+- Waits for next message from client
+- Automatically parses JSON
+- Blocks until message arrives (async, so doesn't block other connections)
+
+**Alternative methods:**
+
+```python
+text = await websocket.receive_text()    # Raw text
+bytes = await websocket.receive_bytes()  # Binary data
+```
+
+### Close Codes
+
+```python
+await websocket.close(code=1008, reason="Authentication failed")
+```
+
+**Standard WebSocket close codes:**
+
+| Code | Meaning                                |
+| ---- | -------------------------------------- |
+| 1000 | Normal closure                         |
+| 1001 | Going away (browser closing)           |
+| 1002 | Protocol error                         |
+| 1003 | Unsupported data                       |
+| 1006 | Abnormal closure (no close frame sent) |
+| 1008 | Policy violation (e.g., auth failure)  |
+| 1011 | Internal server error                  |
+
+---
+
+## 9.4: Broadcasting File Events
+
+### Update Checkout to Broadcast
+
+Modify `checkout_file()` endpoint:
+
+```python
+@app.post("/api/files/checkout")
+async def checkout_file(  # Note: async now
+    request: CheckoutRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Checkout a file with real-time notification."""
+    logger.info(f"Checkout request: {request.filename} by {current_user.username}")
+
+    file_path = REPO_PATH / request.filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    locks = load_locks()
+
+    if request.filename in locks:
+        existing_lock = locks[request.filename]
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "File is already checked out",
+                "locked_by": existing_lock["user"],
+                "locked_at": existing_lock["timestamp"]
+            }
+        )
+
+    # Create lock
+    locks[request.filename] = {
+        "user": current_user.username,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "message": request.message
+    }
+
+    # Save with Git commit
+    commit_msg = f"Checkout: {request.filename} by {current_user.username}"
+    save_locks_with_commit(locks, current_user.username, commit_msg)
+
+    # Audit log
+    log_audit_event(
+        user=current_user.username,
+        action="CHECKOUT_FILE",
+        target=request.filename,
+        details={"message": request.message}
+    )
+    save_audit_log_with_commit(f"Audit: Checkout {request.filename}")
+
+    # ✨ BROADCAST TO ALL CONNECTED CLIENTS ✨
+    await manager.broadcast({
+        "type": "file_locked",
+        "filename": request.filename,
+        "user": current_user.username,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "message": request.message
+    })
+
+    return {
+        "success": True,
+        "message": f"File '{request.filename}' checked out"
+    }
+```
+
+### Update Checkin to Broadcast
+
+```python
+@app.post("/api/files/checkin")
+async def checkin_file(  # async
+    request: CheckinRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Checkin a file with real-time notification."""
+    logger.info(f"Checkin request: {request.filename} by {current_user.username}")
+
+    check_file_ownership(request.filename, current_user, allow_admin_override=True)
+
+    locks = load_locks()
+    was_forced = locks[request.filename]["user"] != current_user.username
+
+    # Remove lock
+    del locks[request.filename]
+
+    # Save with Git commit
+    commit_msg = f"Checkin: {request.filename} by {current_user.username}"
+    if was_forced:
+        commit_msg += " (forced by admin)"
+
+    save_locks_with_commit(locks, current_user.username, commit_msg)
+
+    # Audit log
+    log_audit_event(
+        user=current_user.username,
+        action="CHECKIN_FILE",
+        target=request.filename,
+        details={"forced": was_forced}
+    )
+    save_audit_log_with_commit(f"Audit: Checkin {request.filename}")
+
+    # ✨ BROADCAST ✨
+    await manager.broadcast({
+        "type": "file_unlocked",
+        "filename": request.filename,
+        "user": current_user.username,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "was_forced": was_forced
+    })
+
+    return {
+        "success": True,
+        "message": f"File '{request.filename}' checked in"
+    }
+```
+
+### Update Upload to Broadcast
+
+```python
+@app.post("/api/files/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    # ... existing upload logic ...
+
+    # After successful commit:
+
+    # ✨ BROADCAST ✨
+    await manager.broadcast({
+        "type": "file_uploaded",
+        "filename": safe_filename,
+        "user": current_user.username,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "size": len(content)
+    })
+
+    return {
+        "success": True,
+        "message": f"File '{safe_filename}' uploaded successfully",
+        "commit": commit.hexsha[:8],
+        "size": len(content)
+    }
+```
+
+---
+
+## 9.5: WebSocket Client - Frontend
+
+### Connect to WebSocket
+
+Add to `app.js`:
+
+```javascript
+// ============================================
+// WEBSOCKET CONNECTION
+// ============================================
+
+let ws = null;
+let reconnectInterval = null;
+
+function connectWebSocket() {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    console.log("No token, skipping WebSocket connection");
+    return;
+  }
+
+  // Determine WebSocket URL
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
+
+  console.log("Connecting to WebSocket:", wsUrl);
+
+  try {
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = handleWebSocketOpen;
+    ws.onmessage = handleWebSocketMessage;
+    ws.onerror = handleWebSocketError;
+    ws.onclose = handleWebSocketClose;
+  } catch (error) {
+    console.error("WebSocket connection error:", error);
+    scheduleReconnect();
+  }
+}
+
+function handleWebSocketOpen(event) {
+  console.log("WebSocket connected");
+
+  // Clear reconnect timer
+  if (reconnectInterval) {
+    clearInterval(reconnectInterval);
+    reconnectInterval = null;
+  }
+
+  // Show connection indicator
+  updateConnectionStatus(true);
+
+  // Request online users
+  ws.send(
+    JSON.stringify({
+      type: "get_online_users",
+    })
+  );
+}
+
+function handleWebSocketMessage(event) {
+  try {
+    const message = JSON.parse(event.data);
+    console.log("WebSocket message:", message);
+
+    // Route message to appropriate handler
+    switch (message.type) {
+      case "file_locked":
+        handleFileLocked(message);
+        break;
+
+      case "file_unlocked":
+        handleFileUnlocked(message);
+        break;
+
+      case "file_uploaded":
+        handleFileUploaded(message);
+        break;
+
+      case "user_connected":
+        handleUserConnected(message);
+        break;
+
+      case "user_disconnected":
+        handleUserDisconnected(message);
+        break;
+
+      case "online_users":
+        handleOnlineUsers(message);
+        break;
+
+      case "pong":
+        // Heartbeat response
+        break;
+
+      default:
+        console.warn("Unknown message type:", message.type);
+    }
+  } catch (error) {
+    console.error("Error handling WebSocket message:", error);
+  }
+}
+
+function handleWebSocketError(error) {
+  console.error("WebSocket error:", error);
+}
+
+function handleWebSocketClose(event) {
+  console.log("WebSocket closed:", event.code, event.reason);
+  updateConnectionStatus(false);
+
+  // Attempt reconnect
+  scheduleReconnect();
+}
+
+function scheduleReconnect() {
+  if (reconnectInterval) return;
+
+  console.log("Scheduling WebSocket reconnect...");
+
+  reconnectInterval = setInterval(() => {
+    console.log("Attempting WebSocket reconnect...");
+    connectWebSocket();
+  }, 5000); // Retry every 5 seconds
+}
+
+function updateConnectionStatus(connected) {
+  // Update UI to show connection status
+  const statusEl = document.getElementById("connection-status");
+  if (!statusEl) return;
+
+  if (connected) {
+    statusEl.textContent = "🟢 Connected";
+    statusEl.className = "status-connected";
+  } else {
+    statusEl.textContent = "🔴 Disconnected";
+    statusEl.className = "status-disconnected";
+  }
+}
+```
+
+### Understanding WebSocket Client API
+
+**Creating connection:**
+
+```javascript
+ws = new WebSocket(wsUrl);
+```
+
+**Event handlers:**
+
+```javascript
+ws.onopen; // Connection established
+ws.onmessage; // Message received
+ws.onerror; // Error occurred
+ws.onclose; // Connection closed
+```
+
+**Sending messages:**
+
+```javascript
+ws.send(JSON.stringify({ type: "ping" }));
+```
+
+**Connection states:**
+
+```javascript
+WebSocket.CONNECTING; // 0
+WebSocket.OPEN; // 1
+WebSocket.CLOSING; // 2
+WebSocket.CLOSED; // 3
+
+if (ws.readyState === WebSocket.OPEN) {
+  ws.send(data);
+}
+```
+
+### Reconnection Logic
+
+**Why automatic reconnection?**
+
+**Scenarios:**
+
+- Network glitch (WiFi drops)
+- Server restart
+- Load balancer timeout
+- Browser sleep/wake
+
+**Without reconnection:** User loses real-time updates until manual refresh
+
+**With reconnection:** Seamlessly reconnects in background
+
+**The implementation:**
+
+```javascript
+function scheduleReconnect() {
+  if (reconnectInterval) return; // Already scheduled
+
+  reconnectInterval = setInterval(() => {
+    connectWebSocket();
+  }, 5000); // Try every 5 seconds
+}
+```
+
+**Exponential backoff (better approach):**
+
+```javascript
+let reconnectDelay = 1000;
+const maxDelay = 30000;
+
+function scheduleReconnect() {
+  setTimeout(() => {
+    connectWebSocket();
+    reconnectDelay = Math.min(reconnectDelay * 2, maxDelay);
+  }, reconnectDelay);
+}
+```
+
+This prevents hammering the server (waits longer after each failure).
+
+---
+
+## 9.6: Handling Real-Time Events
+
+### File Locked Handler
+
+```javascript
+function handleFileLocked(message) {
+  console.log("File locked:", message.filename, "by", message.user);
+
+  // Update file list in memory
+  const file = allFiles.find((f) => f.name === message.filename);
+  if (file) {
+    file.status = "checked_out";
+    file.locked_by = message.user;
+  }
+
+  // Re-render file list
+  displayFilteredFiles();
+
+  // Show notification (unless it's the current user)
+  const currentUser = localStorage.getItem("username");
+  if (message.user !== currentUser) {
+    showNotification(`${message.user} locked ${message.filename}`, "info");
+  }
+}
+
+function handleFileUnlocked(message) {
+  console.log("File unlocked:", message.filename);
+
+  // Update file list
+  const file = allFiles.find((f) => f.name === message.filename);
+  if (file) {
+    file.status = "available";
+    file.locked_by = null;
+  }
+
+  // Re-render
+  displayFilteredFiles();
+
+  // Show notification
+  const currentUser = localStorage.getItem("username");
+  if (message.user !== currentUser) {
+    const forceMsg = message.was_forced ? " (forced by admin)" : "";
+    showNotification(
+      `${message.filename} is now available${forceMsg}`,
+      "success"
+    );
+  }
+}
+
+function handleFileUploaded(message) {
+  console.log("File uploaded:", message.filename);
+
+  // Reload file list to include new file
+  loadFiles();
+
+  // Show notification
+  const currentUser = localStorage.getItem("username");
+  if (message.user !== currentUser) {
+    showNotification(`${message.user} uploaded ${message.filename}`, "info");
+  }
+}
+```
+
+### Understanding the Pattern
+
+**The update flow:**
+
+1. **Server broadcasts event** - "file_locked"
+2. **All clients receive** - Including the one who triggered it
+3. **Update local state** - Modify `allFiles` array
+4. **Re-render UI** - Call `displayFilteredFiles()`
+5. **Show notification** - If it wasn't the current user
+
+**Why check `if (message.user !== currentUser)`?**
+
+- User locks file
+- Gets immediate response from HTTP endpoint (success message)
+- Also receives WebSocket broadcast
+- Don't want to show notification for their own action
+
+**Alternative approach: Optimistic updates**
+
+```javascript
+async function handleCheckout(filename) {
+    // 1. Update UI immediately (optimistic)
+    const file = allFiles.find(f => f.name === filename);
+    file.status = 'checked_out';
+    file.locked_by = currentUser;
+    displayFilteredFiles();
+
+    try {
+        // 2. Send request
+        await fetch('/api/files/checkout', ...);
+
+        // 3. Success - already updated!
+
+    } catch (error) {
+        // 4. Failure - revert optimistic update
+        file.status = 'available';
+        file.locked_by = null;
+        displayFilteredFiles();
+        showNotification('Checkout failed', 'error');
+    }
+}
+```
+
+This makes the UI feel instant, but adds complexity.
+
+---
+
+## 9.7: Presence Indicators - Who's Online
+
+### Online Users Handler
+
+```javascript
+let onlineUsers = [];
+
+function handleUserConnected(message) {
+  console.log("User connected:", message.username);
+  onlineUsers = message.online_users;
+  updateOnlineUsersList();
+}
+
+function handleUserDisconnected(message) {
+  console.log("User disconnected:", message.username);
+  onlineUsers = message.online_users;
+  updateOnlineUsersList();
+}
+
+function handleOnlineUsers(message) {
+  console.log("Online users:", message.users);
+  onlineUsers = message.users;
+  updateOnlineUsersList();
+}
+
+function updateOnlineUsersList() {
+  const container = document.getElementById("online-users");
+  if (!container) return;
+
+  if (onlineUsers.length === 0) {
+    container.innerHTML = "<p>No other users online</p>";
+    return;
+  }
+
+  const currentUser = localStorage.getItem("username");
+
+  let html = '<ul class="user-list">';
+
+  onlineUsers.forEach((user) => {
+    const isCurrentUser = user === currentUser;
+    const className = isCurrentUser ? "current-user" : "";
+    const label = isCurrentUser ? " (you)" : "";
+
+    html += `
+            <li class="${className}">
+                <span class="status-indicator"></span>
+                ${user}${label}
+            </li>
+        `;
+  });
+
+  html += "</ul>";
+  container.innerHTML = html;
+}
+```
+
+### Add Online Users Section to HTML
+
+Add to `index.html`:
+
+```html
+<section>
+  <h2>Online Users</h2>
+  <div id="online-users">
+    <p>Connecting...</p>
+  </div>
+</section>
+```
+
+### Connection Status Indicator
+
+Add to header in `index.html`:
+
+```html
+<header>
+  <div class="header-content">
+    <div>
+      <h1>PDM System</h1>
+      <p>Parts Data Management</p>
+    </div>
+    <div class="header-actions">
+      <span id="connection-status" class="status-disconnected">
+        🔴 Disconnected
+      </span>
+      <button
+        id="admin-panel-btn"
+        class="btn btn-secondary"
+        style="display: none;"
+      >
+        Admin Panel
+      </button>
+      <button id="logout-btn" class="btn btn-secondary">Logout</button>
+    </div>
+  </div>
+</header>
+```
+
+### Presence CSS
+
+```css
+/* ============================================
+   ONLINE USERS & PRESENCE
+   ============================================ */
+
+.user-list {
+  list-style: none;
+  padding: 0;
+}
+
+.user-list li {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+}
+
+.user-list li:last-child {
+  border-bottom: none;
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #28a745;
+  margin-right: 0.5rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.current-user {
+  font-weight: bold;
+  background: #f0f1ff;
+}
+
+/* Connection Status */
+.status-connected {
+  color: #28a745;
+  font-weight: 500;
+  margin-right: 1rem;
+}
+
+.status-disconnected {
+  color: #dc3545;
+  font-weight: 500;
+  margin-right: 1rem;
+}
+```
+
+### Initialize WebSocket on Page Load
+
+Update `app.js` DOMContentLoaded:
+
+```javascript
+document.addEventListener("DOMContentLoaded", function () {
+  console.log("DOM fully loaded");
+
+  // Initialize WebSocket
+  connectWebSocket();
+
+  // Load files
+  loadFiles();
+
+  // ... rest of initialization ...
+});
+```
+
+---
+
+## 9.8: Heartbeat - Keeping Connections Alive
+
+### Why Heartbeat?
+
+**The problem:**
+
+- Network intermediaries (proxies, load balancers) close idle connections
+- Default timeout: often 60-90 seconds
+- WebSocket appears connected, but is actually dead
+
+**The solution:**
+
+- Periodically send "ping" messages
+- Server responds with "pong"
+- Keeps connection active
+- Detects dead connections
+
+### Implement Client Heartbeat
+
+Add to `app.js`:
+
+```javascript
+let heartbeatInterval = null;
+
+function handleWebSocketOpen(event) {
+  console.log("WebSocket connected");
+
+  // Clear reconnect timer
+  if (reconnectInterval) {
+    clearInterval(reconnectInterval);
+    reconnectInterval = null;
+  }
+
+  // Start heartbeat
+  startHeartbeat();
+
+  // Show connection indicator
+  updateConnectionStatus(true);
+
+  // Request online users
+  ws.send(
+    JSON.stringify({
+      type: "get_online_users",
+    })
+  );
+}
+
+function handleWebSocketClose(event) {
+  console.log("WebSocket closed:", event.code, event.reason);
+  updateConnectionStatus(false);
+
+  // Stop heartbeat
+  stopHeartbeat();
+
+  // Attempt reconnect
+  scheduleReconnect();
+}
+
+function startHeartbeat() {
+  // Send ping every 30 seconds
+  heartbeatInterval = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log("Sending heartbeat ping");
+      ws.send(JSON.stringify({ type: "ping" }));
+    }
+  }, 30000); // 30 seconds
+}
+
+function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+}
+```
+
+### Server-Side Heartbeat Handling
+
+Already implemented in the WebSocket endpoint:
+
+```python
+if message_type == "ping":
+    await websocket.send_json({
+        "type": "pong",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+```
+
+### Advanced: Detect Missed Pongs
+
+```javascript
+let lastPongTime = null;
+let pongCheckInterval = null;
+
+function startHeartbeat() {
+  lastPongTime = Date.now();
+
+  // Send ping every 30 seconds
+  heartbeatInterval = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "ping" }));
+    }
+  }, 30000);
+
+  // Check if we're receiving pongs
+  pongCheckInterval = setInterval(() => {
+    const timeSinceLastPong = Date.now() - lastPongTime;
+
+    if (timeSinceLastPong > 90000) {
+      // 90 seconds = 3 missed pongs
+      console.warn("No pong received, connection might be dead");
+
+      // Force reconnect
+      if (ws) {
+        ws.close();
+      }
+    }
+  }, 45000); // Check every 45 seconds
+}
+
+function handleWebSocketMessage(event) {
+  const message = JSON.parse(event.data);
+
+  if (message.type === "pong") {
+    lastPongTime = Date.now();
+    console.log("Received pong");
+  }
+
+  // ... rest of message handling ...
+}
+
+function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+
+  if (pongCheckInterval) {
+    clearInterval(pongCheckInterval);
+    pongCheckInterval = null;
+  }
+}
+```
+
+This actively detects dead connections and forces reconnection.
+
+---
+
+## Stage 9 Complete - Real-Time Collaboration!
+
+### What You Built
+
+You now have:
+
+- WebSocket server with connection management
+- Real-time file status updates
+- Live notifications for all actions
+- Presence indicators (who's online)
+- Automatic reconnection
+- Heartbeat to keep connections alive
+- Broadcast messaging to all clients
+
+### Key Concepts Mastered
+
+**WebSocket Protocol:**
+
+- Full-duplex communication
+- WebSocket handshake
+- Frame format
+- Close codes
+
+**Connection Management:**
+
+- Connection pool (tracking all clients)
+- Broadcasting to all/specific users
+- Handling disconnections gracefully
+
+**Client-Side Patterns:**
+
+- Reconnection with backoff
+- Heartbeat/ping-pong
+- Event-driven UI updates
+- Presence tracking
+
+**Real-Time UX:**
+
+- Instant feedback
+- Live notifications
+- Connection status indicators
+- Online user lists
+
+### Verification Checklist
+
+- [ ] WebSocket connects on page load
+- [ ] Can see other users online
+- [ ] When someone locks a file, see it update live
+- [ ] When someone unlocks a file, see it update live
+- [ ] Receive notifications for others' actions
+- [ ] Connection status shows green when connected
+- [ ] Automatically reconnects after network failure
+- [ ] Heartbeat keeps connection alive
+- [ ] Understand WebSocket vs HTTP
+- [ ] Understand broadcast pattern
+
+### The Real-Time Experience
+
+**Before WebSockets:**
+
+```
+User A locks file → User B sees nothing
+User B refreshes → "Oh, it's locked now"
+```
+
+**With WebSockets:**
+
+```
+User A locks file → User B sees status change INSTANTLY
+User B gets notification: "User A locked file.mcam"
+User B sees User A in online users list
+```
+
+### What's Next?
+
+In **Stage 10**, we'll add **Testing & Quality Assurance**:
+
+- Unit tests with pytest
+- Integration tests
+- WebSocket testing
+- Test coverage measurement
+- Continuous Integration (CI)
+- Test-Driven Development (TDD) principles
+
+Your app is now collaborative in real-time. Next, we make sure it's bulletproof with comprehensive testing!
+
+---
+
+# Stage 10: Testing & Quality Assurance - Building Bulletproof Software
+
+## Introduction: The Goal of This Stage
+
+Your app has many features, but how do you know they all work correctly? How do you ensure a new feature doesn't break existing functionality? How do you refactor with confidence?
+
+In this stage, you'll master **software testing** - the practice that separates hobby projects from production systems.
+
+By the end of this stage, you will:
+
+- Understand the testing pyramid (unit, integration, e2e)
+- Write unit tests with pytest
+- Use fixtures for test setup/teardown
+- Test FastAPI endpoints
+- Mock external dependencies (Git, filesystem)
+- Test async code and WebSockets
+- Measure test coverage
+- Implement Test-Driven Development (TDD)
+- Set up Continuous Integration (CI)
+- Understand testing best practices
+
+**Time Investment:** 8-10 hours
+
+---
+
+## 10.1: Why Testing Matters - The Cost of Bugs
+
+### The Bug Cost Curve
+
+**When you find a bug:**
+
+| Stage                  | Cost to Fix | Example                                |
+| ---------------------- | ----------- | -------------------------------------- |
+| **During development** | $1          | You catch it while writing code        |
+| **During code review** | $10         | Teammate spots it before merge         |
+| **During QA testing**  | $100        | QA team finds it before release        |
+| **In production**      | $1,000+     | Customer data corrupted, emergency fix |
+
+**Real example from your PDM app:**
+
+**Without tests:**
+
+```python
+# Bug: Anyone can delete any file (forgot to check admin role)
+@app.delete("/api/files/{filename}")
+def delete_file(filename: str, current_user: User = Depends(get_current_user)):
+    os.remove(REPO_PATH / filename)  # OOPS! No role check!
+```
+
+**Cost:** User accidentally deletes critical file → hours of Git recovery → angry customers
+
+**With tests:**
+
+```python
+def test_delete_file_requires_admin():
+    # Regular user tries to delete
+    response = client.delete("/api/files/test.mcam", headers=user_headers)
+    assert response.status_code == 403  # Forbidden
+    # TEST FAILS → You catch bug before it reaches production
+```
+
+**Cost:** 30 seconds to fix
+
+### The Testing Pyramid
+
+```
+       /\
+      /  \     E2E (End-to-End)
+     /____\    - Few tests
+    /      \   - Slow
+   /        \  - Brittle
+  /__________\
+  /          \ Integration
+ /            \ - Some tests
+/______________\- Medium speed
+/              \
+/                \
+/                  \ Unit Tests
+/____________________\ - Many tests
+                      - Fast
+                      - Focused
+```
+
+**Unit Tests** (70%)
+
+- Test individual functions in isolation
+- Fast (milliseconds)
+- Many of them
+- Example: "Does `verify_password()` work correctly?"
+
+**Integration Tests** (20%)
+
+- Test components working together
+- Medium speed (seconds)
+- Fewer of them
+- Example: "Does checkout → Git commit → broadcast work?"
+
+**E2E Tests** (10%)
+
+- Test entire user workflows
+- Slow (minutes)
+- Few of them
+- Example: "Can user log in, upload file, and download it?"
+
+---
+
+## 10.2: Setting Up pytest
+
+### Install Testing Dependencies
+
+```bash
+pip install pytest pytest-asyncio pytest-cov httpx
+```
+
+**What each does:**
+
+- `pytest` - The testing framework
+- `pytest-asyncio` - Support for testing async code
+- `pytest-cov` - Code coverage measurement
+- `httpx` - HTTP client for testing FastAPI (supports async)
+
+### Update requirements.txt
+
+```bash
+pip freeze > requirements.txt
+```
+
+### Create Test Directory Structure
+
+```bash
+cd backend
+mkdir tests
+touch tests/__init__.py
+touch tests/test_auth.py
+touch tests/test_files.py
+touch tests/test_git.py
+```
+
+**Your structure:**
+
+```
+backend/
+├── main.py
+├── tests/
+│   ├── __init__.py
+│   ├── test_auth.py
+│   ├── test_files.py
+│   └── test_git.py
+└── git_repo/
+```
+
+---
+
+## 10.3: pytest Basics - Your First Test
+
+### Simple Unit Test
+
+Create `tests/test_auth.py`:
+
+```python
+"""
+Tests for authentication and authorization.
+"""
+import pytest
+from main import verify_password, pwd_context
+
+# ============================================
+# UNIT TESTS - Password Hashing
+# ============================================
+
+def test_password_hashing():
+    """Test that password hashing and verification work."""
+    password = "MySecurePassword123"
+
+    # Hash the password
+    hashed = pwd_context.hash(password)
+
+    # Verify correct password
+    assert verify_password(password, hashed) == True
+
+    # Verify wrong password
+    assert verify_password("WrongPassword", hashed) == False
+
+def test_password_hash_is_different():
+    """Test that same password produces different hashes (salt)."""
+    password = "SamePassword"
+
+    hash1 = pwd_context.hash(password)
+    hash2 = pwd_context.hash(password)
+
+    # Hashes should be different (due to random salt)
+    assert hash1 != hash2
+
+    # But both should verify
+    assert verify_password(password, hash1) == True
+    assert verify_password(password, hash2) == True
+
+def test_empty_password():
+    """Test handling of empty password."""
+    with pytest.raises(ValueError):
+        pwd_context.hash("")
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run specific test file
+pytest tests/test_auth.py
+
+# Run specific test function
+pytest tests/test_auth.py::test_password_hashing
+```
+
+### Understanding pytest Assertions
+
+**Basic assertions:**
+
+```python
+assert 1 + 1 == 2
+assert "hello".upper() == "HELLO"
+assert len([1, 2, 3]) == 3
+```
+
+**When assertion fails:**
+
+```python
+def test_example():
+    result = 1 + 1
+    assert result == 3  # FAIL
+
+# Output:
+# AssertionError: assert 2 == 3
+```
+
+pytest automatically shows you what went wrong!
+
+**Advanced assertions:**
+
+```python
+# Check if exception is raised
+with pytest.raises(ValueError):
+    int("not a number")
+
+# Check if exception message contains text
+with pytest.raises(ValueError, match="invalid literal"):
+    int("not a number")
+
+# Check dictionary contents
+result = {"name": "John", "age": 30}
+assert result["name"] == "John"
+
+# Check if item in list
+assert "apple" in ["apple", "banana", "orange"]
+```
+
+---
+
+## 10.4: Test Fixtures - Setup and Teardown
+
+### What are Fixtures?
+
+**Fixtures** are functions that provide data/setup for tests.
+
+**Without fixtures:**
+
+```python
+def test_checkout():
+    # Setup
+    create_test_user()
+    create_test_file()
+    login_user()
+
+    # Test
+    response = checkout_file()
+
+    # Teardown
+    delete_test_user()
+    delete_test_file()
+    logout_user()
+
+def test_checkin():
+    # Setup (DUPLICATED!)
+    create_test_user()
+    create_test_file()
+    login_user()
+
+    # Test
+    response = checkin_file()
+
+    # Teardown (DUPLICATED!)
+    delete_test_user()
+    delete_test_file()
+    logout_user()
+```
+
+**With fixtures:**
+
+```python
+@pytest.fixture
+def authenticated_user():
+    user = create_test_user()
+    login_user(user)
+    yield user  # Provide to test
+    # Cleanup after test
+    logout_user()
+    delete_test_user()
+
+def test_checkout(authenticated_user):
+    # authenticated_user is automatically provided!
+    response = checkout_file()
+    assert response.status_code == 200
+
+def test_checkin(authenticated_user):
+    response = checkin_file()
+    assert response.status_code == 200
+```
+
+### Create Test Configuration
+
+Create `tests/conftest.py`:
+
+```python
+"""
+pytest configuration and shared fixtures.
+
+conftest.py is automatically loaded by pytest.
+Fixtures defined here are available to all tests.
+"""
+import pytest
+from fastapi.testclient import TestClient
+from pathlib import Path
+import tempfile
+import shutil
+import os
+
+from main import app, GIT_REPO_PATH, REPO_PATH, LOCKS_FILE, USERS_FILE
+
+# ============================================
+# FIXTURES - Test Setup/Teardown
+# ============================================
+
+@pytest.fixture(scope="function")
+def temp_git_repo(monkeypatch):
+    """
+    Create a temporary Git repository for testing.
+
+    This prevents tests from modifying the real repo.
+    Uses 'function' scope - created fresh for each test.
+    """
+    # Create temporary directory
+    temp_dir = tempfile.mkdtemp()
+    temp_repo_path = Path(temp_dir) / 'git_repo'
+    temp_repo_path.mkdir()
+
+    # Monkey-patch the global paths
+    monkeypatch.setattr('main.GIT_REPO_PATH', temp_repo_path)
+    monkeypatch.setattr('main.REPO_PATH', temp_repo_path / 'repo')
+    monkeypatch.setattr('main.LOCKS_FILE', temp_repo_path / 'locks.json')
+    monkeypatch.setattr('main.USERS_FILE', temp_repo_path / 'users.json')
+
+    # Initialize Git repo
+    from main import initialize_git_repo
+    initialize_git_repo()
+
+    yield temp_repo_path
+
+    # Cleanup after test
+    shutil.rmtree(temp_dir)
+
+@pytest.fixture(scope="function")
+def client(temp_git_repo):
+    """
+    FastAPI test client.
+
+    Provides a client for making HTTP requests to the app.
+    """
+    from fastapi.testclient import TestClient
+    return TestClient(app)
+
+@pytest.fixture(scope="function")
+def admin_token(client):
+    """
+    Get JWT token for admin user.
+    """
+    # Login as admin
+    response = client.post(
+        "/api/auth/login",
+        data={"username": "admin", "password": "admin123"}
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    return data["access_token"]
+
+@pytest.fixture(scope="function")
+def user_token(client):
+    """
+    Get JWT token for regular user.
+    """
+    response = client.post(
+        "/api/auth/login",
+        data={"username": "john", "password": "password123"}
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    return data["access_token"]
+
+@pytest.fixture(scope="function")
+def admin_headers(admin_token):
+    """
+    Authorization headers for admin user.
+    """
+    return {"Authorization": f"Bearer {admin_token}"}
+
+@pytest.fixture(scope="function")
+def user_headers(user_token):
+    """
+    Authorization headers for regular user.
+    """
+    return {"Authorization": f"Bearer {user_token}"}
+
+@pytest.fixture(scope="function")
+def sample_file(temp_git_repo):
+    """
+    Create a sample .mcam file for testing.
+    """
+    file_path = temp_git_repo / 'repo' / 'TEST001.mcam'
+    file_path.write_text("G0 X0 Y0\nG1 X10 Y10\n")
+
+    return file_path
+```
+
+### Understanding Fixtures
+
+**`@pytest.fixture` decorator:**
+
+```python
+@pytest.fixture
+def my_data():
+    return {"name": "John"}
+
+def test_something(my_data):  # Fixture automatically passed
+    assert my_data["name"] == "John"
+```
+
+**Fixture scopes:**
+
+```python
+@pytest.fixture(scope="function")  # Default - new for each test
+@pytest.fixture(scope="class")     # Shared across test class
+@pytest.fixture(scope="module")    # Shared across test file
+@pytest.fixture(scope="session")   # Shared across entire test run
+```
+
+**The `yield` pattern:**
+
+```python
+@pytest.fixture
+def resource():
+    # Setup (before yield)
+    r = create_resource()
+
+    yield r  # Provide to test
+
+    # Teardown (after yield)
+    r.cleanup()
+```
+
+**Example execution:**
+
+```python
+def test_example(resource):
+    # Before this: create_resource() runs
+
+    use(resource)
+
+    # After this: r.cleanup() runs
+```
+
+**`monkeypatch` fixture:**
+
+Built-in pytest fixture for temporarily modifying code:
+
+```python
+def test_with_monkeypatch(monkeypatch):
+    # Replace global variable
+    monkeypatch.setattr('main.SECRET_KEY', 'test-key')
+
+    # Replace function
+    monkeypatch.setattr('main.send_email', lambda x: None)
+
+    # Set environment variable
+    monkeypatch.setenv('API_KEY', 'test-key')
+
+    # After test: everything is restored automatically
+```
+
+---
+
+## 10.5: Testing FastAPI Endpoints
+
+### Authentication Tests
+
+Update `tests/test_auth.py`:
+
+```python
+def test_login_success(client):
+    """Test successful login."""
+    response = client.post(
+        "/api/auth/login",
+        data={
+            "username": "admin",
+            "password": "admin123"
+        }
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+    assert len(data["access_token"]) > 0
+
+def test_login_wrong_password(client):
+    """Test login with wrong password."""
+    response = client.post(
+        "/api/auth/login",
+        data={
+            "username": "admin",
+            "password": "wrongpassword"
+        }
+    )
+
+    assert response.status_code == 401
+    data = response.json()
+    assert "detail" in data
+
+def test_login_nonexistent_user(client):
+    """Test login with non-existent user."""
+    response = client.post(
+        "/api/auth/login",
+        data={
+            "username": "doesnotexist",
+            "password": "password"
+        }
+    )
+
+    assert response.status_code == 401
+
+def test_protected_endpoint_without_token(client):
+    """Test accessing protected endpoint without authentication."""
+    response = client.get("/api/files")
+
+    assert response.status_code == 401
+
+def test_protected_endpoint_with_invalid_token(client):
+    """Test accessing protected endpoint with invalid token."""
+    response = client.get(
+        "/api/files",
+        headers={"Authorization": "Bearer invalid-token"}
+    )
+
+    assert response.status_code == 401
+
+def test_protected_endpoint_with_valid_token(client, user_token):
+    """Test accessing protected endpoint with valid token."""
+    response = client.get(
+        "/api/files",
+        headers={"Authorization": f"Bearer {user_token}"}
+    )
+
+    assert response.status_code == 200
+```
+
+### File Operations Tests
+
+Create `tests/test_files.py`:
+
+```python
+"""
+Tests for file operations (checkout, checkin, upload, download).
+"""
+import pytest
+from io import BytesIO
+
+def test_get_files_authenticated(client, user_headers):
+    """Test getting file list with authentication."""
+    response = client.get("/api/files", headers=user_headers)
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "files" in data
+    assert isinstance(data["files"], list)
+
+def test_checkout_file(client, user_headers, sample_file):
+    """Test checking out a file."""
+    response = client.post(
+        "/api/files/checkout",
+        headers=user_headers,
+        json={
+            "filename": "TEST001.mcam",
+            "user": "john",
+            "message": "Testing checkout"
+        }
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["success"] == True
+    assert "checked out" in data["message"].lower()
+
+def test_checkout_already_locked_file(client, user_headers, sample_file):
+    """Test checking out a file that's already locked."""
+    # First checkout
+    client.post(
+        "/api/files/checkout",
+        headers=user_headers,
+        json={
+            "filename": "TEST001.mcam",
+            "user": "john",
+            "message": "First checkout"
+        }
+    )
+
+    # Second checkout should fail
+    response = client.post(
+        "/api/files/checkout",
+        headers=user_headers,
+        json={
+            "filename": "TEST001.mcam",
+            "user": "jane",
+            "message": "Second checkout"
+        }
+    )
+
+    assert response.status_code == 409  # Conflict
+
+def test_checkin_file(client, user_headers, sample_file):
+    """Test checking in a file."""
+    # First checkout
+    client.post(
+        "/api/files/checkout",
+        headers=user_headers,
+        json={
+            "filename": "TEST001.mcam",
+            "user": "john",
+            "message": "Testing"
+        }
+    )
+
+    # Then checkin
+    response = client.post(
+        "/api/files/checkin",
+        headers=user_headers,
+        json={
+            "filename": "TEST001.mcam",
+            "user": "john"
+        }
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] == True
+
+def test_checkin_wrong_user(client, user_headers, admin_headers, sample_file):
+    """Test that only the lock owner can checkin."""
+    # User checks out
+    client.post(
+        "/api/files/checkout",
+        headers=user_headers,
+        json={
+            "filename": "TEST001.mcam",
+            "user": "john",
+            "message": "Testing"
+        }
+    )
+
+    # Different user tries to checkin
+    response = client.post(
+        "/api/files/checkin",
+        headers=user_headers,
+        json={
+            "filename": "TEST001.mcam",
+            "user": "admin"  # Different user!
+        }
+    )
+
+    assert response.status_code == 403  # Forbidden
+
+def test_upload_file(client, user_headers):
+    """Test file upload."""
+    file_content = b"G0 X0 Y0\nG1 X10 Y10\n"
+
+    response = client.post(
+        "/api/files/upload",
+        headers=user_headers,
+        files={
+            "file": ("UPLOAD_TEST.mcam", BytesIO(file_content), "application/octet-stream")
+        }
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] == True
+
+def test_upload_wrong_extension(client, user_headers):
+    """Test that only .mcam files can be uploaded."""
+    response = client.post(
+        "/api/files/upload",
+        headers=user_headers,
+        files={
+            "file": ("badfile.txt", BytesIO(b"content"), "text/plain")
+        }
+    )
+
+    assert response.status_code == 400
+
+def test_download_file(client, user_headers, sample_file):
+    """Test file download."""
+    response = client.get(
+        "/api/files/TEST001.mcam/download",
+        headers=user_headers
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"G0 X0 Y0\nG1 X10 Y10\n"
+
+def test_delete_file_as_user(client, user_headers, sample_file):
+    """Test that regular users cannot delete files."""
+    response = client.delete(
+        "/api/admin/files/TEST001.mcam",
+        headers=user_headers
+    )
+
+    assert response.status_code == 403  # Forbidden
+
+def test_delete_file_as_admin(client, admin_headers, sample_file):
+    """Test that admins can delete files."""
+    response = client.delete(
+        "/api/admin/files/TEST001.mcam",
+        headers=admin_headers
+    )
+
+    assert response.status_code == 200
+
+    # Verify file is gone
+    assert not sample_file.exists()
+```
+
+---
+
+## 10.6: Mocking and Patching
+
+### Why Mock?
+
+**Problem:** You want to test checkout logic, but don't want to:
+
+- Actually push to GitLab (slow, requires network)
+- Send real emails
+- Charge real credit cards
+- Delete real files
+
+**Solution:** **Mock** external dependencies - replace them with fake versions for testing.
+
+### Mocking GitLab Push
+
+```python
+from unittest.mock import Mock, patch
+
+def test_checkout_without_gitlab_push(client, user_headers, sample_file):
+    """Test checkout without actually pushing to GitLab."""
+
+    # Mock the push_to_gitlab function
+    with patch('main.push_to_gitlab') as mock_push:
+        response = client.post(
+            "/api/files/checkout",
+            headers=user_headers,
+            json={
+                "filename": "TEST001.mcam",
+                "user": "john",
+                "message": "Testing"
+            }
+        )
+
+        assert response.status_code == 200
+
+        # Verify push was called
+        mock_push.assert_called_once()
+```
+
+### Understanding `patch`
+
+**What `patch` does:**
+
+```python
+with patch('main.push_to_gitlab') as mock_push:
+    # Inside this block:
+    # - main.push_to_gitlab is replaced with a Mock object
+    # - All calls to it are recorded
+
+    checkout_file()  # This calls push_to_gitlab
+
+    # After block: original function is restored
+```
+
+**Checking if mock was called:**
+
+```python
+mock_push.assert_called()              # Called at least once
+mock_push.assert_called_once()         # Called exactly once
+mock_push.assert_not_called()          # Never called
+
+# Check arguments
+mock_push.assert_called_with(arg1, arg2)
+```
+
+**Making mock return a value:**
+
+```python
+with patch('main.get_user') as mock_get_user:
+    # Make it return specific data
+    mock_get_user.return_value = {
+        "username": "testuser",
+        "role": "admin"
+    }
+
+    user = get_user("testuser")
+    assert user["role"] == "admin"
+```
+
+**Making mock raise an exception:**
+
+```python
+with patch('main.push_to_gitlab') as mock_push:
+    mock_push.side_effect = Exception("Network error")
+
+    # Now push_to_gitlab() raises Exception
+```
+
+### Mocking Git Operations
+
+Create `tests/test_git.py`:
+
+```python
+"""
+Tests for Git integration.
+"""
+import pytest
+from unittest.mock import patch, Mock
+
+def test_git_commit_on_checkout(client, user_headers, sample_file, temp_git_repo):
+    """Test that checkout creates a Git commit."""
+    from main import git_repo
+
+    # Get initial commit count
+    initial_commits = len(list(git_repo.iter_commits()))
+
+    # Checkout file
+    client.post(
+        "/api/files/checkout",
+        headers=user_headers,
+        json={
+            "filename": "TEST001.mcam",
+            "user": "john",
+            "message": "Testing Git commit"
+        }
+    )
+
+    # Verify new commit was created
+    new_commits = len(list(git_repo.iter_commits()))
+    assert new_commits == initial_commits + 2  # checkout + audit log
+
+def test_commit_message_format(client, user_headers, sample_file, temp_git_repo):
+    """Test that commit messages follow expected format."""
+    from main import git_repo
+
+    client.post(
+        "/api/files/checkout",
+        headers=user_headers,
+        json={
+            "filename": "TEST001.mcam",
+            "user": "john",
+            "message": "Testing"
+        }
+    )
+
+    # Get latest commit
+    latest_commit = list(git_repo.iter_commits())[0]
+
+    # Verify message format
+    assert "TEST001.mcam" in latest_commit.message
+    assert "john" in latest_commit.message
+
+def test_git_push_failure_handling(client, user_headers, sample_file):
+    """Test that push failures don't break checkout."""
+
+    with patch('main.push_to_gitlab') as mock_push:
+        # Make push fail
+        mock_push.side_effect = Exception("GitLab unavailable")
+
+        # Checkout should still succeed
+        response = client.post(
+            "/api/files/checkout",
+            headers=user_headers,
+            json={
+                "filename": "TEST001.mcam",
+                "user": "john",
+                "message": "Testing"
+            }
+        )
+
+        # Checkout succeeds even though push failed
+        assert response.status_code == 200
+```
+
+---
+
+## 10.7: Testing Async Code
+
+### The Problem with Async Tests
+
+```python
+# This DOESN'T WORK
+def test_async_function():
+    result = await my_async_function()  # SyntaxError!
+    assert result == "expected"
+```
+
+**Solution:** Use `pytest-asyncio`:
+
+```python
+import pytest
+
+@pytest.mark.asyncio
+async def test_async_function():
+    result = await my_async_function()
+    assert result == "expected"
+```
+
+### Testing WebSocket Connection
+
+```python
+"""
+Tests for WebSocket functionality.
+"""
+import pytest
+from fastapi.testclient import TestClient
+
+def test_websocket_requires_auth(client):
+    """Test that WebSocket requires authentication."""
+    with client.websocket_connect("/ws") as websocket:
+        # Should close immediately (no token)
+        data = websocket.receive()
+        # Connection should be closed
+        assert websocket.closed
+
+def test_websocket_with_auth(client, user_token):
+    """Test WebSocket connection with authentication."""
+    with client.websocket_connect(f"/ws?token={user_token}") as websocket:
+        # Should connect successfully
+        assert not websocket.closed
+
+        # Send ping
+        websocket.send_json({"type": "ping"})
+
+        # Receive pong
+        data = websocket.receive_json()
+        assert data["type"] == "pong"
+
+def test_websocket_broadcasts_file_lock(client, user_token, admin_token, sample_file):
+    """Test that file lock events are broadcast to all connected users."""
+
+    # Connect two clients
+    with client.websocket_connect(f"/ws?token={user_token}") as ws1, \
+         client.websocket_connect(f"/ws?token={admin_token}") as ws2:
+
+        # User 1 checks out file
+        client.post(
+            "/api/files/checkout",
+            headers={"Authorization": f"Bearer {user_token}"},
+            json={
+                "filename": "TEST001.mcam",
+                "user": "john",
+                "message": "Testing broadcast"
+            }
+        )
+
+        # Both WebSocket clients should receive the event
+        msg1 = ws1.receive_json()
+        msg2 = ws2.receive_json()
+
+        # At least one should be the file_locked event
+        messages = [msg1, msg2]
+        file_locked = [m for m in messages if m.get("type") == "file_locked"]
+
+        assert len(file_locked) > 0
+        assert file_locked[0]["filename"] == "TEST001.mcam"
+```
+
+---
+
+## 10.8: Test Coverage
+
+### What is Test Coverage?
+
+**Coverage** = percentage of code executed by tests
+
+**Example:**
+
+```python
+def divide(a, b):
+    if b == 0:           # Line 1
+        return None      # Line 2 (never tested!)
+    return a / b         # Line 3
+
+# Test
+def test_divide():
+    assert divide(10, 2) == 5
+    # Coverage: 66% (lines 1 and 3, but not 2)
+```
+
+### Measuring Coverage
+
+```bash
+# Run tests with coverage
+pytest --cov=main --cov-report=html
+
+# Open coverage report
+open htmlcov/index.html
+```
+
+**Output:**
+
+```
+---------- coverage: platform darwin, python 3.11.5 -----------
+Name      Stmts   Miss  Cover
+-----------------------------
+main.py     450     45    90%
+```
+
+### Coverage Report Example
+
+The HTML report shows:
+
+- Green lines: Covered by tests
+- Red lines: Not covered
+- Yellow lines: Partially covered (e.g., if statement)
+
+### Improving Coverage
+
+**Find untested code:**
+
+```bash
+pytest --cov=main --cov-report=term-missing
+```
+
+**Output shows missing lines:**
+
+```
+main.py    450     45    90%   123-145, 200-210
+```
+
+Lines 123-145 and 200-210 are not tested!
+
+### Add Tests for Uncovered Code
+
+```python
+# Uncovered error handling
+def test_upload_file_too_large(client, user_headers):
+    """Test file size limit."""
+    # Create 20MB file (over 10MB limit)
+    large_file = b"X" * (20 * 1024 * 1024)
+
+    response = client.post(
+        "/api/files/upload",
+        headers=user_headers,
+        files={
+            "file": ("LARGE.mcam", BytesIO(large_file), "application/octet-stream")
+        }
+    )
+
+    assert response.status_code == 413  # Payload Too Large
+```
+
+### Coverage Goals
+
+- **70-80%** - Good
+- **80-90%** - Very good
+- **90%+** - Excellent
+- **100%** - Usually overkill (diminishing returns)
+
+**Don't chase 100%!** Some code is hard/impossible to test:
+
+- Exception handlers for impossible conditions
+- Defensive assertions
+- Logging code
+
+---
+
+## 10.9: Test-Driven Development (TDD)
+
+### The TDD Cycle: Red-Green-Refactor
+
+```
+1. RED: Write a failing test
+   ↓
+2. GREEN: Write minimal code to make it pass
+   ↓
+3. REFACTOR: Improve code while keeping tests passing
+   ↓
+(Repeat)
+```
+
+### TDD Example: Add User Registration
+
+**Step 1: RED - Write failing test**
+
+```python
+def test_register_new_user(client):
+    """Test user registration."""
+    response = client.post(
+        "/api/auth/register",
+        json={
+            "username": "newuser",
+            "password": "securepass123",
+            "full_name": "New User"
+        }
+    )
+
+    assert response.status_code == 201  # Created
+    data = response.json()
+    assert data["username"] == "newuser"
+    assert "password" not in data  # Don't leak password!
+
+# Run test: FAILS (endpoint doesn't exist)
+```
+
+**Step 2: GREEN - Implement minimal code**
+
+```python
+@app.post("/api/auth/register", status_code=201)
+def register_user(
+    username: str,
+    password: str,
+    full_name: str
+):
+    """Register a new user."""
+    users = load_users()
+
+    if username in users:
+        raise HTTPException(status_code=409, detail="User already exists")
+
+    users[username] = {
+        "username": username,
+        "password_hash": pwd_context.hash(password),
+        "full_name": full_name,
+        "role": "user"
+    }
+
+    save_users_with_commit(users, "system", f"Register user: {username}")
+
+    return {
+        "username": username,
+        "full_name": full_name,
+        "role": "user"
+    }
+
+# Run test: PASSES
+```
+
+**Step 3: REFACTOR - Improve code**
+
+```python
+# Add validation
+from pydantic import BaseModel, Field, validator
+
+class RegisterRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=8)
+    full_name: str = Field(..., min_length=1, max_length=100)
+
+    @validator('username')
+    def username_alphanumeric(cls, v):
+        assert v.isalnum(), 'must be alphanumeric'
+        return v
+
+@app.post("/api/auth/register", status_code=201)
+def register_user(request: RegisterRequest):
+    # ... implementation ...
+
+# Run test: STILL PASSES (refactoring didn't break it)
+```
+
+**Step 4: Add more tests**
+
+```python
+def test_register_duplicate_username(client):
+    """Test that duplicate usernames are rejected."""
+    # Register first user
+    client.post("/api/auth/register", json={
+        "username": "duplicate",
+        "password": "password123",
+        "full_name": "First User"
+    })
+
+    # Try to register same username
+    response = client.post("/api/auth/register", json={
+        "username": "duplicate",
+        "password": "different123",
+        "full_name": "Second User"
+    })
+
+    assert response.status_code == 409
+
+def test_register_weak_password(client):
+    """Test that weak passwords are rejected."""
+    response = client.post("/api/auth/register", json={
+        "username": "newuser",
+        "password": "123",  # Too short!
+        "full_name": "New User"
+    })
+
+    assert response.status_code == 422  # Validation error
+```
+
+### Benefits of TDD
+
+✅ **Prevents over-engineering** - Write only what's needed to pass tests  
+✅ **Living documentation** - Tests show how code should be used  
+✅ **Confidence** - Refactor without fear  
+✅ **Better design** - Testable code is usually better code  
+✅ **Fewer bugs** - Bugs caught during development
+
+---
+
+## 10.10: Continuous Integration (CI)
+
+### What is CI?
+
+**Continuous Integration** - Automatically run tests on every code change
+
+**The flow:**
+
+```
+Developer pushes code to GitHub
+    ↓
+GitHub Actions triggers
+    ↓
+CI server:
+  - Checks out code
+  - Installs dependencies
+  - Runs tests
+  - Reports results
+    ↓
+Pull request shows: ✅ All tests passed
+(or ❌ Tests failed)
+```
+
+### Create GitHub Actions Workflow
+
+Create `.github/workflows/tests.yml`:
+
+```yaml
+name: Tests
+
+# Run on push and pull request
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - uses: actions/checkout@v3
+
+      # Setup Python
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Run tests
+      - name: Run tests with pytest
+        run: |
+          pytest --cov=main --cov-report=xml --cov-report=term
+
+      # Upload coverage to Codecov (optional)
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+```
+
+### Understanding GitHub Actions
+
+**Workflow** - Automated process defined in YAML  
+**Job** - Set of steps that run on the same runner  
+**Step** - Individual task (run command, use action)  
+**Runner** - Server that runs the workflow (GitHub-hosted or self-hosted)
+
+**Triggers:**
+
+```yaml
+on:
+  push: # On every push
+  pull_request: # On PR creation/update
+  schedule: # Cron-like schedule
+    - cron: "0 0 * * *" # Daily at midnight
+  workflow_dispatch: # Manual trigger
+```
+
+### Badge in README
+
+Add test status badge to `README.md`:
+
+```markdown
+# PDM Tutorial
+
+![Tests](https://github.com/YOUR_USERNAME/pdm-tutorial/workflows/Tests/badge.svg)
+
+A production-grade Parts Data Management system.
+```
+
+The badge shows: ✅ passing or ❌ failing
+
+---
+
+## 10.11: Testing Best Practices
+
+### 1. Test Names Should Describe Behavior
+
+**Bad:**
+
+```python
+def test_checkout():
+    ...
+```
+
+**Good:**
+
+```python
+def test_checkout_locks_file_for_current_user():
+    ...
+
+def test_checkout_fails_if_file_already_locked():
+    ...
+```
+
+### 2. Arrange-Act-Assert (AAA) Pattern
+
+```python
+def test_checkout():
+    # ARRANGE - Set up test data
+    create_test_file()
+    user = login_user()
+
+    # ACT - Perform the action
+    response = checkout_file()
+
+    # ASSERT - Verify results
+    assert response.status_code == 200
+    assert file_is_locked()
+```
+
+### 3. One Assertion Per Test (Usually)
+
+**Bad:**
+
+```python
+def test_everything():
+    assert checkout() == 200
+    assert checkin() == 200
+    assert delete() == 200
+    assert upload() == 200  # If this fails, we don't know about previous steps
+```
+
+**Good:**
+
+```python
+def test_checkout():
+    assert checkout() == 200
+
+def test_checkin():
+    assert checkin() == 200
+
+def test_delete():
+    assert delete() == 200
+```
+
+### 4. Don't Test Implementation Details
+
+**Bad:**
+
+```python
+def test_checkout_calls_git_commit():
+    """This is testing HOW, not WHAT."""
+    with patch('main.git_repo.commit') as mock:
+        checkout()
+        assert mock.called
+```
+
+**Good:**
+
+```python
+def test_checkout_creates_commit():
+    """Test the OUTCOME, not the implementation."""
+    before = get_commit_count()
+    checkout()
+    after = get_commit_count()
+    assert after == before + 1
+```
+
+**Why?** If you refactor implementation (use different Git library), the bad test breaks even though behavior is correct.
+
+### 5. Keep Tests Fast
+
+**Slow tests = tests that don't get run**
+
+```python
+# BAD - slow
+def test_checkout():
+    time.sleep(5)  # Simulating slow operation
+    ...
+
+# GOOD - mock slow operations
+def test_checkout():
+    with patch('main.slow_operation'):
+        ...
+```
+
+### 6. Don't Use Random Data
+
+**Bad:**
+
+```python
+def test_checkout():
+    filename = f"file_{random.randint(1, 9999)}.mcam"
+    # Test is non-deterministic - might fail randomly!
+```
+
+**Good:**
+
+```python
+def test_checkout():
+    filename = "TEST_FILE.mcam"
+    # Always the same - failures are reproducible
+```
+
+### 7. Tests Should Be Independent
+
+**Bad:**
+
+```python
+def test_a():
+    global user_id
+    user_id = create_user()
+
+def test_b():
+    # Depends on test_a running first!
+    checkout(user_id)
+```
+
+**Good:**
+
+```python
+def test_a():
+    user_id = create_user()
+    # Use user_id...
+
+def test_b():
+    user_id = create_user()  # Create its own user
+    checkout(user_id)
+```
+
+---
+
+## Stage 10 Complete - Testing Mastery!
+
+### What You Built
+
+You now have:
+
+- Comprehensive test suite
+- Unit tests for all core functions
+- Integration tests for API endpoints
+- WebSocket tests
+- Mocked external dependencies
+- Test coverage measurement
+- CI pipeline with GitHub Actions
+- TDD workflow understanding
+
+### Key Testing Concepts Mastered
+
+**Testing Fundamentals:**
+
+- Testing pyramid (unit, integration, e2e)
+- Test fixtures and setup/teardown
+- AAA pattern (Arrange-Act-Assert)
+- Test independence
+
+**pytest Features:**
+
+- Fixtures with different scopes
+- Parameterized tests
+- Mocking with `unittest.mock`
+- Coverage measurement
+- Async test support
+
+**Best Practices:**
+
+- Test behavior, not implementation
+- Descriptive test names
+- Fast, deterministic tests
+- TDD cycle (Red-Green-Refactor)
+
+**CI/CD:**
+
+- GitHub Actions workflows
+- Automated testing on push
+- Status badges
+- Coverage reporting
+
+### Verification Checklist
+
+- [ ] Can run all tests with `pytest`
+- [ ] Tests pass consistently
+- [ ] Coverage > 80%
+- [ ] CI pipeline runs on GitHub
+- [ ] Understand fixtures
+- [ ] Can mock external dependencies
+- [ ] Can test async code
+- [ ] Understand TDD cycle
+- [ ] Tests are fast (< 10 seconds total)
+
+### The Test Suite You Built
+
+```
+tests/
+├── conftest.py              # Shared fixtures
+├── test_auth.py             # Authentication tests
+├── test_files.py            # File operations tests
+└── test_git.py              # Git integration tests
+
+Coverage: ~85%
+Speed: ~5 seconds
+CI: ✅ Passing
+```
+
+### Impact of Testing
+
+**Before testing:**
+
+- "Does it work?" → "It works on my machine"
+- Refactoring = terror
+- Bugs discovered by users
+- No confidence in changes
+
+**With testing:**
+
+- "Does it work?" → "94 tests pass"
+- Refactoring = routine
+- Bugs discovered in development
+- Confidence to ship
+
+### What's Next?
+
+In **Stage 11**, we'll add **Deployment & Production** features:
+
+- Environment configuration
+- Docker containerization
+- Production secrets management
+- Database migration from JSON
+- Logging and monitoring
+- Health checks and graceful shutdown
+- Nginx reverse proxy
+- HTTPS with Let's Encrypt
+
+Your app is now bulletproof through testing. Next, we make it production-ready!
+
+---
+
+# Stage 11: Production Deployment - From Development to Production
+
+## Introduction: The Goal of This Stage
+
+Your app works perfectly on your laptop. But production is a different world - different OS, multiple users, security threats, uptime requirements, and configuration challenges.
+
+In this stage, you'll transform your development project into a **production-ready system**.
+
+By the end of this stage, you will:
+
+- Understand development vs production environments
+- Use environment variables for configuration
+- Containerize your app with Docker
+- Migrate from JSON files to PostgreSQL
+- Implement structured logging and monitoring
+- Deploy with Docker Compose
+- Set up Nginx as a reverse proxy
+- Secure with HTTPS (Let's Encrypt)
+- Implement health checks and graceful shutdown
+- Understand the 12-factor app methodology
+
+**Time Investment:** 10-12 hours
+
+**WARNING:** This stage involves DevOps concepts. Take it slowly, test at each step.
+
+---
+
+## 11.1: Development vs Production - Understanding the Gap
+
+### The Differences
+
+| Aspect           | Development           | Production                  |
+| ---------------- | --------------------- | --------------------------- |
+| **Users**        | Just you              | Thousands                   |
+| **Data**         | Test data             | Real customer data          |
+| **Secrets**      | Hardcoded             | Environment variables       |
+| **Errors**       | Show full stack trace | Log, show generic message   |
+| **Dependencies** | Latest versions       | Pinned versions             |
+| **Database**     | JSON files            | PostgreSQL/MySQL            |
+| **Server**       | `uvicorn --reload`    | Gunicorn + Uvicorn workers  |
+| **HTTPS**        | Not needed            | Required                    |
+| **Monitoring**   | Print statements      | Structured logging, metrics |
+| **Downtime**     | Acceptable            | Minimize to zero            |
+
+### What Can Go Wrong in Production
+
+**1. Hardcoded Secrets**
+
+```python
+# DEV: Fine
+SECRET_KEY = "my-secret-key"
+
+# PROD: DISASTER! Key visible in code, git history, logs
+```
+
+**2. JSON Files Under Load**
+
+```python
+# 1000 users simultaneously read/write locks.json
+# Result: File corruption, race conditions, data loss
+```
+
+**3. No Monitoring**
+
+```python
+# App crashes at 3am
+# You wake up at 9am
+# 6 hours of downtime
+# Customers: 😡
+```
+
+**4. Development Server in Production**
+
+```bash
+# DEV: uvicorn main:app --reload
+# PROD: --reload restarts on every change (disaster!)
+#       Single process (can't use multiple CPU cores)
+```
+
+### The 12-Factor App
+
+A methodology for building production-ready apps:
+
+1. **Codebase** - One codebase in version control
+2. **Dependencies** - Explicitly declare dependencies
+3. **Config** - Store config in environment
+4. **Backing Services** - Treat as attached resources
+5. **Build/Release/Run** - Separate stages
+6. **Processes** - Execute as stateless processes
+7. **Port Binding** - Export services via port binding
+8. **Concurrency** - Scale via process model
+9. **Disposability** - Fast startup, graceful shutdown
+10. **Dev/Prod Parity** - Keep environments similar
+11. **Logs** - Treat as event streams
+12. **Admin Processes** - Run as one-off processes
+
+We'll implement many of these principles.
+
+---
+
+## 11.2: Environment Variables - Configuration Management
+
+### Why Environment Variables?
+
+**The Problem:**
+
+```python
+# config.py
+DATABASE_URL = "postgresql://user:password@localhost/db"
+SECRET_KEY = "super-secret-key-123"
+GITLAB_TOKEN = "glpat-xxxxxxxxxxxx"
+
+# This file is in Git!
+# Secrets are exposed!
+# Can't use different values for dev/staging/prod!
+```
+
+**The Solution:**
+
+```python
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+SECRET_KEY = os.getenv("SECRET_KEY")
+GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")
+
+# Values come from environment, not code
+# Can be different per environment
+# No secrets in Git
+```
+
+### Create Configuration Module
+
+Create `backend/config.py`:
+
+```python
+"""
+Configuration management using environment variables.
+
+This follows the 12-factor app methodology: all configuration
+comes from the environment, allowing the same code to run in
+different environments (dev, staging, production).
+"""
+import os
+from pathlib import Path
+from functools import lru_cache
+from pydantic import BaseSettings, Field, validator
+
+class Settings(BaseSettings):
+    """
+    Application settings.
+
+    Uses Pydantic BaseSettings to automatically load from environment
+    variables with type validation and default values.
+    """
+
+    # Application
+    app_name: str = "PDM System"
+    debug: bool = Field(default=False, env="DEBUG")
+
+    # Security
+    secret_key: str = Field(..., env="SECRET_KEY")
+    access_token_expire_minutes: int = Field(default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
+
+    # Database
+    database_url: str = Field(
+        default="sqlite:///./pdm.db",
+        env="DATABASE_URL"
+    )
+
+    # Git/GitLab
+    gitlab_url: str = Field(default="", env="GITLAB_URL")
+    gitlab_token: str = Field(default="", env="GITLAB_TOKEN")
+    auto_push: bool = Field(default=False, env="AUTO_PUSH")
+    auto_pull: bool = Field(default=False, env="AUTO_PULL")
+
+    # Paths
+    base_dir: Path = Path(__file__).resolve().parent
+    repo_path: Path = None
+
+    # Server
+    host: str = Field(default="0.0.0.0", env="HOST")
+    port: int = Field(default=8000, env="PORT")
+    workers: int = Field(default=1, env="WORKERS")
+
+    # CORS
+    cors_origins: list = Field(
+        default=["http://localhost:3000"],
+        env="CORS_ORIGINS"
+    )
+
+    @validator('cors_origins', pre=True)
+    def parse_cors_origins(cls, v):
+        """Parse comma-separated CORS origins."""
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(',')]
+        return v
+
+    @validator('repo_path', always=True)
+    def set_repo_path(cls, v, values):
+        """Set repo_path based on base_dir."""
+        if v is None:
+            return values['base_dir'] / 'git_repo' / 'repo'
+        return v
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = 'utf-8'
+
+@lru_cache()
+def get_settings() -> Settings:
+    """
+    Get cached settings instance.
+
+    Using lru_cache ensures we only load settings once,
+    improving performance.
+    """
+    return Settings()
+
+# Convenience: import settings directly
+settings = get_settings()
+```
+
+### Understanding Pydantic Settings
+
+**`BaseSettings` features:**
+
+1. **Automatic environment loading**
+
+```python
+class Settings(BaseSettings):
+    secret_key: str  # Looks for SECRET_KEY env var
+```
+
+2. **Type validation**
+
+```python
+port: int  # "8000" (string) → 8000 (int) automatically
+debug: bool  # "true" (string) → True (bool)
+```
+
+3. **Default values**
+
+```python
+workers: int = Field(default=4)
+# If WORKERS not set, uses 4
+```
+
+4. **`.env` file support**
+
+```python
+class Config:
+    env_file = ".env"
+# Loads from .env file if it exists
+```
+
+### Create `.env` File
+
+Create `backend/.env`:
+
+```bash
+# Application
+DEBUG=true
+SECRET_KEY=dev-secret-key-change-in-production
+
+# Database
+DATABASE_URL=postgresql://pdm_user:pdm_password@localhost/pdm_db
+
+# GitLab
+GITLAB_URL=https://gitlab.com/yourusername/pdm-repo.git
+GITLAB_TOKEN=
+AUTO_PUSH=false
+AUTO_PULL=false
+
+# Server
+HOST=127.0.0.1
+PORT=8000
+WORKERS=1
+
+# CORS (comma-separated)
+CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+```
+
+### Add `.env` to `.gitignore`
+
+**CRITICAL:** Never commit `.env` to Git!
+
+Create/update `backend/.gitignore`:
+
+```
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+*.egg-info/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Application
+git_repo/
+*.db
+*.sqlite
+```
+
+### Create `.env.example`
+
+Create a template (this CAN be committed):
+
+`backend/.env.example`:
+
+```bash
+# Copy this to .env and fill in your values
+# DO NOT commit .env to Git!
+
+# Application
+DEBUG=false
+SECRET_KEY=your-secret-key-here-use-strong-random-string
+
+# Database
+DATABASE_URL=postgresql://user:password@localhost/dbname
+
+# GitLab
+GITLAB_URL=https://gitlab.com/username/repo.git
+GITLAB_TOKEN=your-gitlab-token
+AUTO_PUSH=true
+AUTO_PULL=true
+
+# Server
+HOST=0.0.0.0
+PORT=8000
+WORKERS=4
+
+# CORS
+CORS_ORIGINS=https://yourdomain.com
+```
+
+### Update `main.py` to Use Config
+
+Replace hardcoded values:
+
+```python
+from config import settings
+
+# OLD
+# SECRET_KEY = "your-secret-key-change-this"
+# ALGORITHM = "HS256"
+# ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# NEW
+SECRET_KEY = settings.secret_key
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
+
+# OLD
+# BASE_DIR = Path(__file__).resolve().parent
+
+# NEW
+BASE_DIR = settings.base_dir
+REPO_PATH = settings.repo_path
+```
+
+### Generate Strong Secret Key
+
+**NEVER use a weak secret key in production!**
+
+```python
+# Generate a secure secret key
+import secrets
+
+print(secrets.token_urlsafe(32))
+# Output: "xvXlz8pQ2J6NnK9mYp7wR3uT5vX8zC1dF4gH6jK9m"
+```
+
+Use this value for `SECRET_KEY` in production `.env`.
+
+---
+
+## 11.3: Docker - Containerization
+
+### What is Docker?
+
+**Docker** packages your app and all dependencies into a **container** - a lightweight, portable, self-contained unit.
+
+**Analogy:** Shipping containers
+
+- Before containers: Load ship with boxes, barrels, crates (different shapes, slow)
+- With containers: Everything in standard containers (uniform, efficient, stackable)
+
+**Benefits:**
+
+- **Works everywhere** - "Works on my machine" becomes "Works in any Docker environment"
+- **Reproducible** - Same container = identical behavior
+- **Isolated** - App + dependencies in one package
+- **Fast deployment** - Pull image, run container
+
+### Docker Architecture
+
+```
+┌─────────────────────────────────────┐
+│         Your Computer               │
+│                                     │
+│  ┌──────────────────────────────┐  │
+│  │      Docker Engine           │  │
+│  │                              │  │
+│  │  ┌────────────┐              │  │
+│  │  │ Container  │              │  │
+│  │  │            │              │  │
+│  │  │  PDM App   │              │  │
+│  │  │  Python    │              │  │
+│  │  │  FastAPI   │              │  │
+│  │  │            │              │  │
+│  │  └────────────┘              │  │
+│  │                              │  │
+│  │  ┌────────────┐              │  │
+│  │  │ Container  │              │  │
+│  │  │ PostgreSQL │              │  │
+│  │  └────────────┘              │  │
+│  │                              │  │
+│  └──────────────────────────────┘  │
+└─────────────────────────────────────┘
+```
+
+### Install Docker
+
+**macOS/Windows:** Download Docker Desktop from docker.com
+
+**Linux:**
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+```
+
+**Verify:**
+
+```bash
+docker --version
+# Docker version 24.0.0
+
+docker run hello-world
+# Should download and run test container
+```
+
+### Create Dockerfile
+
+Create `backend/Dockerfile`:
+
+```dockerfile
+# Use official Python runtime as base image
+FROM python:3.11-slim
+
+# Set working directory in container
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first (for layer caching)
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create directory for Git repository
+RUN mkdir -p git_repo
+
+# Expose port
+EXPOSE 8000
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Understanding the Dockerfile
+
+**`FROM python:3.11-slim`**
+
+- Base image (starting point)
+- `python:3.11-slim` = Python 3.11 on Debian (minimal)
+- "slim" = smaller image size
+
+**`WORKDIR /app`**
+
+- Sets working directory inside container
+- Like `cd /app` but also creates the directory
+
+**`COPY requirements.txt .`**
+
+- Copy file from host to container
+- `.` means current directory (`/app`)
+
+**Why copy requirements first?**
+
+**Docker layer caching:**
+
+```dockerfile
+COPY requirements.txt .      # Layer 1: Changes rarely
+RUN pip install ...          # Layer 2: Cached if Layer 1 unchanged
+
+COPY . .                     # Layer 3: Changes often (your code)
+```
+
+If you change code but not requirements, Docker reuses cached pip install layer (much faster builds).
+
+**`EXPOSE 8000`**
+
+- Documents which port the container listens on
+- Doesn't actually publish the port (that's `-p` in `docker run`)
+
+**`ENV PYTHONUNBUFFERED=1`**
+
+- Disable Python output buffering
+- Makes logs appear immediately (important for debugging)
+
+**`CMD ["uvicorn", ...]`**
+
+- Command to run when container starts
+- JSON array format = exec form (preferred)
+
+### Build Docker Image
+
+```bash
+cd backend
+
+docker build -t pdm-app:latest .
+```
+
+**Breakdown:**
+
+- `docker build` - Build an image
+- `-t pdm-app:latest` - Tag (name) the image
+- `.` - Build context (current directory)
+
+**Output:**
+
+```
+[+] Building 45.2s (12/12) FINISHED
+ => [1/7] FROM python:3.11-slim
+ => [2/7] WORKDIR /app
+ => [3/7] RUN apt-get update
+ => [4/7] COPY requirements.txt .
+ => [5/7] RUN pip install
+ => [6/7] COPY . .
+ => [7/7] RUN mkdir -p git_repo
+ => exporting to image
+```
+
+### Run Docker Container
+
+```bash
+docker run -d \
+  --name pdm-app \
+  -p 8000:8000 \
+  -e SECRET_KEY="your-secret-key" \
+  -e DATABASE_URL="sqlite:///./pdm.db" \
+  pdm-app:latest
+```
+
+**Flags:**
+
+- `-d` - Detached mode (run in background)
+- `--name pdm-app` - Container name
+- `-p 8000:8000` - Port mapping (host:container)
+- `-e KEY=value` - Environment variable
+- `pdm-app:latest` - Image to run
+
+**Check if running:**
+
+```bash
+docker ps
+
+# Output:
+# CONTAINER ID   IMAGE              STATUS         PORTS
+# abc123def456   pdm-app:latest     Up 2 minutes   0.0.0.0:8000->8000/tcp
+```
+
+**View logs:**
+
+```bash
+docker logs pdm-app
+
+# Follow logs (like tail -f)
+docker logs -f pdm-app
+```
+
+**Stop container:**
+
+```bash
+docker stop pdm-app
+docker rm pdm-app
+```
+
+---
+
+## 11.4: PostgreSQL - Real Database
+
+### Why Move from JSON to PostgreSQL?
+
+**JSON files:**
+
+- ❌ Slow with many files
+- ❌ File locking issues
+- ❌ Race conditions
+- ❌ No complex queries
+- ❌ No transactions
+
+**PostgreSQL:**
+
+- ✅ Fast (even with millions of records)
+- ✅ ACID transactions
+- ✅ Concurrent access
+- ✅ Complex queries
+- ✅ Industry standard
+
+### Install PostgreSQL
+
+**macOS:**
+
+```bash
+brew install postgresql@15
+brew services start postgresql@15
+```
+
+**Ubuntu/Debian:**
+
+```bash
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+```
+
+**Docker (easiest for development):**
+
+```bash
+docker run -d \
+  --name postgres \
+  -e POSTGRES_PASSWORD=pdm_password \
+  -e POSTGRES_DB=pdm_db \
+  -p 5432:5432 \
+  postgres:15
+```
+
+### Install SQLAlchemy
+
+```bash
+pip install sqlalchemy psycopg2-binary alembic
+```
+
+**What each does:**
+
+- `sqlalchemy` - ORM (Object-Relational Mapper)
+- `psycopg2-binary` - PostgreSQL driver
+- `alembic` - Database migrations
+
+### Create Database Models
+
+Create `backend/models.py`:
+
+```python
+"""
+Database models using SQLAlchemy ORM.
+
+Models define the database schema as Python classes.
+"""
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
+
+Base = declarative_base()
+
+class User(Base):
+    """User model."""
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    full_name = Column(String(100), nullable=False)
+    role = Column(String(20), nullable=False, default="user")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    locks = relationship("FileLock", back_populates="user")
+    audit_logs = relationship("AuditLog", back_populates="user")
+
+class FileLock(Base):
+    """File lock model."""
+    __tablename__ = "file_locks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String(255), unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    message = Column(Text, nullable=True)
+    locked_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    user = relationship("User", back_populates="locks")
+
+class AuditLog(Base):
+    """Audit log model."""
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    action = Column(String(50), nullable=False, index=True)
+    target = Column(String(255), nullable=False)
+    details = Column(Text, nullable=True)  # JSON string
+    status = Column(String(20), default="SUCCESS")
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    # Relationships
+    user = relationship("User", back_populates="audit_logs")
+```
+
+### Understanding SQLAlchemy
+
+**ORM (Object-Relational Mapper):**
+
+**Instead of SQL:**
+
+```sql
+SELECT * FROM users WHERE username = 'john';
+```
+
+**Write Python:**
+
+```python
+user = session.query(User).filter(User.username == 'john').first()
+```
+
+**Column types:**
+
+```python
+Column(Integer)           # 4-byte integer
+Column(String(50))        # VARCHAR(50)
+Column(Text)              # Unlimited text
+Column(DateTime)          # Timestamp
+Column(Boolean)           # True/False
+```
+
+**Constraints:**
+
+```python
+primary_key=True          # Primary key
+unique=True               # UNIQUE constraint
+nullable=False            # NOT NULL
+index=True                # Create index for faster queries
+```
+
+**Relationships:**
+
+```python
+class User(Base):
+    locks = relationship("FileLock", back_populates="user")
+
+class FileLock(Base):
+    user_id = Column(Integer, ForeignKey("users.id"))
+    user = relationship("User", back_populates="locks")
+
+# Now you can do:
+user = session.query(User).first()
+print(user.locks)  # All locks for this user
+```
+
+### Create Database Connection
+
+Create `backend/database.py`:
+
+```python
+"""
+Database connection and session management.
+"""
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+from config import settings
+from models import Base
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Create engine
+engine = create_engine(
+    settings.database_url,
+    echo=settings.debug,  # Log SQL queries in debug mode
+    pool_pre_ping=True    # Check connection health before using
+)
+
+# Create session factory
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
+
+def init_db():
+    """
+    Initialize database - create all tables.
+    """
+    logger.info("Creating database tables...")
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created successfully")
+
+def get_db():
+    """
+    Dependency for getting database session.
+
+    Usage:
+        @app.get("/users")
+        def get_users(db: Session = Depends(get_db)):
+            return db.query(User).all()
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+```
+
+### Database Migration with Alembic
+
+**Why migrations?**
+
+Imagine you deploy your app with this schema:
+
+```python
+class User(Base):
+    username = Column(String(50))
+    password_hash = Column(String(255))
+```
+
+Later, you add `email`:
+
+```python
+class User(Base):
+    username = Column(String(50))
+    password_hash = Column(String(255))
+    email = Column(String(100))  # NEW!
+```
+
+**Problem:** Existing production database doesn't have `email` column!
+
+**Solution:** **Migrations** - versioned database schema changes
+
+**Initialize Alembic:**
+
+```bash
+cd backend
+alembic init alembic
+```
+
+**Configure Alembic:**
+
+Edit `alembic/env.py`:
+
+```python
+from models import Base
+from config import settings
+
+# Add this near the top
+target_metadata = Base.metadata
+
+# Update sqlalchemy.url
+config.set_main_option('sqlalchemy.url', settings.database_url)
+```
+
+**Create initial migration:**
+
+```bash
+alembic revision --autogenerate -m "Initial schema"
+```
+
+**Apply migration:**
+
+```bash
+alembic upgrade head
+```
+
+**Future changes:**
+
+```bash
+# 1. Modify models.py
+# 2. Generate migration
+alembic revision --autogenerate -m "Add email to users"
+
+# 3. Apply migration
+alembic upgrade head
+```
+
+### Update `main.py` to Use Database
+
+```python
+from sqlalchemy.orm import Session
+from database import get_db, init_db
+import models
+
+# Initialize database on startup
+@app.on_event("startup")
+def startup_event():
+    init_db()
+    logger.info("Application startup complete")
+
+# Example: Get users endpoint
+@app.get("/api/users")
+def get_users(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get all users (admin only)."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    users = db.query(models.User).all()
+
+    return {
+        "users": [
+            {
+                "username": u.username,
+                "full_name": u.full_name,
+                "role": u.role,
+                "created_at": u.created_at.isoformat()
+            }
+            for u in users
+        ]
+    }
+```
+
+---
+
+## 11.5: Docker Compose - Multi-Container Setup
+
+### What is Docker Compose?
+
+**Docker Compose** manages multi-container applications.
+
+**Instead of:**
+
+```bash
+docker run postgres ...
+docker run pdm-app ...
+docker network create ...
+docker volume create ...
+# (many commands)
+```
+
+**Do this:**
+
+```bash
+docker-compose up
+# (one command, everything starts)
+```
+
+### Create `docker-compose.yml`
+
+Create `backend/docker-compose.yml`:
+
+```yaml
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15
+    container_name: pdm-db
+    environment:
+      POSTGRES_USER: pdm_user
+      POSTGRES_PASSWORD: pdm_password
+      POSTGRES_DB: pdm_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pdm_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PDM Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pdm-app
+    environment:
+      - DEBUG=false
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql://pdm_user:pdm_password@db:5432/pdm_db
+      - GITLAB_URL=${GITLAB_URL}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+    volumes:
+      - ./git_repo:/app/git_repo
+      - ./static:/app/static
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: pdm-nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./static:/usr/share/nginx/html:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+```
+
+### Understanding docker-compose.yml
+
+**Services:**
+
+```yaml
+services:
+  db: # Service name (can be referenced as hostname)
+    image: # Docker image to use
+    environment: # Environment variables
+    volumes: # Persistent storage
+    ports: # Port mapping
+```
+
+**Volumes:**
+
+```yaml
+volumes:
+  - postgres_data:/var/lib/postgresql/data
+  #   ↑ named volume      ↑ path in container
+
+  - ./static:/app/static
+#   ↑ bind mount (host path) ↑ container path
+```
+
+**Named volume** - Managed by Docker, persists data  
+**Bind mount** - Map host directory to container
+
+**Health checks:**
+
+```yaml
+healthcheck:
+  test: ["CMD-SHELL", "pg_isready -U pdm_user"]
+  interval: 10s # Check every 10 seconds
+  timeout: 5s # Fail if takes > 5 seconds
+  retries: 5 # Fail after 5 consecutive failures
+```
+
+**depends_on with condition:**
+
+```yaml
+depends_on:
+  db:
+    condition: service_healthy
+# Wait for db to be healthy before starting app
+```
+
+### Create Nginx Configuration
+
+Create `backend/nginx.conf`:
+
+```nginx
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    upstream pdm_app {
+        server app:8000;
+    }
+
+    server {
+        listen 80;
+        server_name localhost;
+
+        # Static files
+        location /static/ {
+            alias /usr/share/nginx/html/;
+            expires 7d;
+            add_header Cache-Control "public, immutable";
+        }
+
+        # Proxy API requests
+        location / {
+            proxy_pass http://pdm_app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # WebSocket support
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+    }
+}
+```
+
+### Start the Stack
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Check status
+docker-compose ps
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (WARNING: deletes data!)
+docker-compose down -v
+```
+
+---
+
+## 11.6: Production Logging & Monitoring
+
+### Structured Logging
+
+**Bad logging:**
+
+```python
+print(f"User {username} logged in")
+# Output: "User john logged in"
+# Hard to parse, search, analyze
+```
+
+**Good logging (structured):**
+
+```python
+logger.info("User logged in", extra={
+    "username": username,
+    "ip": request.client.host,
+    "timestamp": datetime.now().isoformat()
+})
+# Output: JSON - easy to parse, search, analyze
+```
+
+### Install Logging Libraries
+
+```bash
+pip install python-json-logger
+```
+
+### Configure Structured Logging
+
+Create `backend/logging_config.py`:
+
+```python
+"""
+Logging configuration for production.
+"""
+import logging
+import sys
+from pythonjsonlogger import jsonlogger
+from config import settings
+
+def setup_logging():
+    """
+    Configure structured JSON logging.
+    """
+    # Create logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO if not settings.debug else logging.DEBUG)
+
+    # Create handler
+    handler = logging.StreamHandler(sys.stdout)
+
+    # Create JSON formatter
+    formatter = jsonlogger.JsonFormatter(
+        '%(asctime)s %(name)s %(levelname)s %(message)s',
+        timestamp=True
+    )
+
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    return logger
+```
+
+### Update `main.py`:
+
+```python
+from logging_config import setup_logging
+
+# Setup logging on startup
+logger = setup_logging()
+
+@app.on_event("startup")
+def startup_event():
+    logger.info("Application starting", extra={
+        "environment": "production" if not settings.debug else "development",
+        "database_url": settings.database_url.split('@')[0] + '@***'  # Hide password
+    })
+    init_db()
+```
+
+### Log Important Events
+
+```python
+@app.post("/api/files/checkout")
+async def checkout_file(request: CheckoutRequest, current_user: User = Depends(get_current_user)):
+    logger.info("File checkout", extra={
+        "action": "checkout",
+        "filename": request.filename,
+        "user": current_user.username,
+        "message": request.message
+    })
+
+    # ... checkout logic ...
+```
+
+**JSON output:**
+
+```json
+{
+  "asctime": "2025-10-03T20:30:45.123456Z",
+  "name": "main",
+  "levelname": "INFO",
+  "message": "File checkout",
+  "action": "checkout",
+  "filename": "PN1001.mcam",
+  "user": "john",
+  "message": "Editing offsets"
+}
+```
+
+---
+
+## 11.7: Health Checks & Graceful Shutdown
+
+### Health Check Endpoint
+
+```python
+from fastapi.responses import JSONResponse
+
+@app.get("/health")
+def health_check(db: Session = Depends(get_db)):
+    """
+    Health check endpoint for load balancers and monitoring.
+
+    Returns 200 if healthy, 503 if unhealthy.
+    """
+    try:
+        # Check database connection
+        db.execute("SELECT 1")
+
+        # Check Git repository
+        if not settings.repo_path.exists():
+            raise Exception("Git repository not found")
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "healthy",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "version": "1.0.0"
+            }
+        )
+
+    except Exception as e:
+        logger.error("Health check failed", extra={"error": str(e)})
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "unhealthy",
+                "error": str(e)
+            }
+        )
+```
+
+### Graceful Shutdown
+
+Handle shutdown signals properly:
+
+```python
+import signal
+import sys
+
+def signal_handler(sig, frame):
+    """Handle shutdown signals gracefully."""
+    logger.info("Shutdown signal received", extra={"signal": sig})
+
+    # Close WebSocket connections
+    for username in list(manager.active_connections.keys()):
+        try:
+            ws = manager.active_connections[username]
+            ws.close(code=1001, reason="Server shutting down")
+        except Exception as e:
+            logger.error(f"Error closing WebSocket: {e}")
+
+    logger.info("Shutdown complete")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+signal.signal(signal.SIGTERM, signal_handler)  # Docker stop
+```
+
+---
+
+## Stage 11 Complete - Production Ready!
+
+### What You Built
+
+You now have:
+
+- Environment-based configuration (`.env`)
+- Docker containerization
+- PostgreSQL database (replacing JSON)
+- Docker Compose multi-container setup
+- Nginx reverse proxy
+- Structured JSON logging
+- Health checks
+- Graceful shutdown
+- Production-ready deployment
+
+### Key Production Concepts Mastered
+
+**Configuration:**
+
+- 12-factor app methodology
+- Environment variables
+- Pydantic Settings
+- Secret management
+
+**Containerization:**
+
+- Docker images and containers
+- Dockerfile best practices
+- Docker Compose orchestration
+- Volume management
+
+**Database:**
+
+- SQLAlchemy ORM
+- Database models
+- Migrations with Alembic
+- Connection pooling
+
+**Deployment:**
+
+- Nginx as reverse proxy
+- Multi-container architecture
+- Health checks
+- Logging strategies
+
+### Verification Checklist
+
+- [ ] `.env` file created (not in Git!)
+- [ ] Docker image builds successfully
+- [ ] `docker-compose up` starts all services
+- [ ] Can connect to PostgreSQL
+- [ ] Database tables created
+- [ ] Nginx serves static files
+- [ ] Health check returns 200
+- [ ] Logs are JSON formatted
+- [ ] Graceful shutdown works
+
+### Your Production Architecture
+
+```
+                    Internet
+                       ↓
+                   [Port 80]
+                       ↓
+              ┌────────────────┐
+              │  Nginx         │
+              │  (Reverse      │
+              │   Proxy)       │
+              └────────────────┘
+                       ↓
+              ┌────────────────┐
+              │  PDM App       │
+              │  (FastAPI)     │
+              └────────────────┘
+                       ↓
+              ┌────────────────┐
+              │  PostgreSQL    │
+              │  (Database)    │
+              └────────────────┘
+```
+
+### Deployment Commands
+
+**Development:**
+
+```bash
+uvicorn main:app --reload
+```
+
+**Production:**
+
+```bash
+docker-compose up -d
+```
+
+### What's Next?
+
+Your app is production-ready! Potential next steps:
+
+- **Stage 12 (Optional):** Advanced topics
+  - HTTPS with Let's Encrypt
+  - Kubernetes deployment
+  - Redis caching
+  - Celery background tasks
+  - Advanced monitoring (Prometheus, Grafana)
+  - Load testing
+  - Blue-green deployments
+
+You've built a complete, production-grade application from scratch. Congratulations! 🎉
+
+---
+
+**You've completed the PDM Tutorial! You now understand:**
+
+✅ Python fundamentals  
+✅ FastAPI and REST APIs  
+✅ Frontend (HTML/CSS/JavaScript)  
+✅ Git and version control  
+✅ Authentication & Authorization  
+✅ Real-time WebSockets  
+✅ Testing with pytest  
+✅ Docker & containerization  
+✅ Production deployment
+
+**You're ready to build real-world applications!**
+
+---
+
+# Phase 2: Advanced Features - Enterprise Capabilities
+
+# Stage 12: HTTPS & SSL/TLS - Securing Production Traffic
+
+## Introduction: The Goal of This Stage
+
+Your app runs over HTTP - all traffic is **unencrypted**. Passwords, tokens, user data - everything is sent in plain text across the network. Any attacker on the network can read it all.
+
+In this stage, you'll implement **HTTPS** with SSL/TLS certificates, encrypting all communication between clients and your server.
+
+By the end of this stage, you will:
+
+- Understand how HTTPS and SSL/TLS work
+- Grasp the certificate authority (CA) system
+- Implement Let's Encrypt for free certificates
+- Configure Nginx for SSL/TLS
+- Set up automatic certificate renewal
+- Implement security headers (HSTS, CSP)
+- Force HTTPS redirection
+- Understand SSL/TLS best practices
+- Test your SSL configuration
+- Handle certificate errors
+
+**Time Investment:** 4-6 hours
+
+---
+
+## 12.1: HTTP vs HTTPS - The Security Gap
+
+### The Problem with HTTP
+
+**HTTP (Hypertext Transfer Protocol):**
+
+```
+Client                    Network                    Server
+  │                                                     │
+  ├──── GET /api/auth/login ──────────────────────────>│
+  │     username=admin                                  │
+  │     password=admin123     ← Anyone can read this!  │
+  │                                                     │
+  │<──── access_token=eyJ... ──────────────────────────┤
+  │                           ← Token exposed too!     │
+```
+
+**What attackers can do:**
+
+- **Read credentials** - Capture usernames/passwords
+- **Steal tokens** - Hijack user sessions
+- **Modify requests** - Change data in transit
+- **Inject content** - Insert malicious code
+
+**Tools for this:** Wireshark, tcpdump, mitmproxy (freely available)
+
+### HTTPS to the Rescue
+
+**HTTPS (HTTP Secure) = HTTP + TLS (Transport Layer Security)**
+
+```
+Client                    Network                    Server
+  │                                                     │
+  ├──── Encrypted: aBc3F9... ────────────────────────>│
+  │     (handshake establishes encryption)             │
+  │                                                     │
+  │<──── Encrypted: xYz7K2... ──────────────────────┤
+  │     ← Gibberish to attackers!                      │
+```
+
+**What HTTPS provides:**
+
+- ✅ **Encryption** - Data scrambled, unreadable
+- ✅ **Authentication** - Verify server identity
+- ✅ **Integrity** - Detect tampering
+
+### Why HTTPS is Now Required
+
+**Browser warnings:**
+
+```
+🔒 Secure     https://example.com  ← Good
+⚠️  Not Secure  http://example.com   ← Bad (browser warning)
+```
+
+**Requirements:**
+
+- **Chrome/Firefox** - Mark HTTP sites as "Not Secure"
+- **PWAs** - Require HTTPS
+- **HTTP/2** - Requires HTTPS
+- **Service Workers** - Require HTTPS
+- **Geolocation API** - Requires HTTPS
+- **WebSockets (WSS)** - Requires HTTPS in production
+- **SEO** - Google ranks HTTPS sites higher
+- **Payment processors** - Require HTTPS (PCI DSS)
+
+---
+
+## 12.2: How SSL/TLS Works - The Handshake
+
+### SSL vs TLS - Terminology
+
+**History:**
+
+- **SSL 1.0** - Never released (security flaws)
+- **SSL 2.0** - 1995 (deprecated, insecure)
+- **SSL 3.0** - 1996 (deprecated, insecure)
+- **TLS 1.0** - 1999 (SSL's successor, deprecated 2020)
+- **TLS 1.1** - 2006 (deprecated 2020)
+- **TLS 1.2** - 2008 (current standard)
+- **TLS 1.3** - 2018 (latest, faster, more secure)
+
+**Common usage:**
+
+- People say "SSL certificate" but mean "TLS certificate"
+- We'll use "TLS" (technically correct) and "SSL/TLS" (common parlance)
+
+### The TLS Handshake (Simplified)
+
+**Step-by-step:**
+
+**1. Client Hello**
+
+```
+Client → Server:
+"Hi! I support TLS 1.2 and TLS 1.3.
+I can use these cipher suites: AES-GCM, ChaCha20-Poly1305..."
+```
+
+**2. Server Hello**
+
+```
+Server → Client:
+"Let's use TLS 1.3 with AES-256-GCM.
+Here's my certificate (proves I'm really example.com)."
+```
+
+**3. Certificate Verification**
+
+```
+Client checks:
+1. Is certificate signed by a trusted CA? ✓
+2. Is certificate for the domain I'm visiting? ✓
+3. Is certificate not expired? ✓
+```
+
+**4. Key Exchange**
+
+```
+Client and Server:
+Use public-key cryptography (RSA or ECDH) to agree on a
+shared secret key, without ever transmitting the key itself!
+```
+
+**5. Encrypted Communication**
+
+```
+All further communication encrypted with the shared secret key.
+```
+
+### Public Key Cryptography (Asymmetric)
+
+**The magic that makes TLS work:**
+
+```python
+# Server has two keys:
+private_key  # Keep secret! Never share!
+public_key   # Share with everyone
+
+# Encryption:
+encrypted = encrypt(data, public_key)
+# Only private_key can decrypt it!
+
+decrypted = decrypt(encrypted, private_key)
+
+# Anyone can encrypt, only server can decrypt
+```
+
+**Real-world analogy:**
+
+- **Public key** = Your mailbox (anyone can drop letters in)
+- **Private key** = Your mailbox key (only you can open it)
+
+### Certificate Authority (CA) System
+
+**The trust chain:**
+
+```
+┌─────────────────────────────┐
+│  Root CA                    │  ← Trusted by browsers
+│  (e.g., DigiCert)           │     (pre-installed)
+└─────────────────────────────┘
+              │
+              │ signs
+              ↓
+┌─────────────────────────────┐
+│  Intermediate CA            │
+│  (e.g., Let's Encrypt)      │
+└─────────────────────────────┘
+              │
+              │ signs
+              ↓
+┌─────────────────────────────┐
+│  Your Certificate           │
+│  (example.com)              │
+└─────────────────────────────┘
+```
+
+**How browsers verify:**
+
+1. Browser receives your certificate
+2. Certificate says: "Signed by Let's Encrypt"
+3. Browser checks: "Do I trust Let's Encrypt?"
+4. Let's Encrypt certificate says: "Signed by IdenTrust"
+5. Browser checks: "Do I trust IdenTrust?"
+6. IdenTrust is a root CA → YES, trusted!
+7. Chain complete → Your certificate is trusted!
+
+**If any link breaks:** Browser shows scary warning
+
+---
+
+## 12.3: Let's Encrypt - Free SSL Certificates
+
+### What is Let's Encrypt?
+
+**Let's Encrypt** is a free, automated, and open Certificate Authority.
+
+**Before Let's Encrypt (pre-2016):**
+
+- Buy certificate: $50-$500/year
+- Manual process: Generate CSR, submit, wait, install
+- Renewal: Manual every year
+
+**With Let's Encrypt:**
+
+- Free certificates
+- Automated issuance (90 seconds)
+- Automated renewal
+- Command-line tool (Certbot)
+
+**The catch:**
+
+- Certificates expire every **90 days** (not 1 year)
+- Must renew frequently
+- But renewal is automated! (so this is actually better)
+
+### How Let's Encrypt Verifies Domain Ownership
+
+**ACME Protocol (Automatic Certificate Management Environment):**
+
+**HTTP-01 Challenge:**
+
+```
+1. You: "I want a certificate for example.com"
+
+2. Let's Encrypt: "Prove you control example.com:
+   Create this file at:
+   http://example.com/.well-known/acme-challenge/random123
+   with this content: token456"
+
+3. You: Create the file
+
+4. Let's Encrypt: Fetch the file
+   - File exists? ✓
+   - Content matches? ✓
+   - You control the domain! Issue certificate.
+```
+
+**DNS-01 Challenge:**
+
+```
+1. You: "I want a certificate for example.com"
+
+2. Let's Encrypt: "Prove you control example.com:
+   Create this DNS TXT record:
+   _acme-challenge.example.com = token456"
+
+3. You: Create DNS record
+
+4. Let's Encrypt: Query DNS
+   - Record exists? ✓
+   - Content matches? ✓
+   - You control the domain! Issue certificate.
+```
+
+**HTTP-01** is easier for most cases. **DNS-01** is required for wildcards (\*.example.com).
+
+---
+
+## 12.4: Installing Certbot
+
+### Prerequisites
+
+You need a **domain name** pointing to your server.
+
+**Get a domain:**
+
+- Namecheap, GoDaddy, Google Domains, etc.
+- Cost: ~$10-15/year
+
+**Point domain to server:**
+
+```
+DNS A Record:
+example.com      →  YOUR_SERVER_IP
+www.example.com  →  YOUR_SERVER_IP
+```
+
+**Verify DNS propagation:**
+
+```bash
+dig example.com
+# Should show your server IP
+```
+
+### Install Certbot
+
+**Ubuntu/Debian:**
+
+```bash
+sudo apt update
+sudo apt install certbot python3-certbot-nginx
+```
+
+**macOS (for local testing with domain):**
+
+```bash
+brew install certbot
+```
+
+**Docker (we'll use this):**
+
+```yaml
+# Add to docker-compose.yml
+services:
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+```
+
+---
+
+## 12.5: Obtaining SSL Certificate
+
+### Update Nginx for ACME Challenge
+
+Update `backend/nginx.conf`:
+
+```nginx
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    upstream pdm_app {
+        server app:8000;
+    }
+
+    server {
+        listen 80;
+        server_name example.com www.example.com;  # Replace with your domain
+
+        # ACME challenge for Let's Encrypt
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+
+        # Redirect all other traffic to HTTPS
+        location / {
+            return 301 https://$server_name$request_uri;
+        }
+    }
+
+    server {
+        listen 443 ssl http2;
+        server_name example.com www.example.com;
+
+        # SSL certificates (will be created by certbot)
+        ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+
+        # SSL configuration (modern, secure)
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
+        ssl_prefer_server_ciphers off;
+
+        # SSL session optimization
+        ssl_session_cache shared:SSL:10m;
+        ssl_session_timeout 10m;
+
+        # OCSP stapling
+        ssl_stapling on;
+        ssl_stapling_verify on;
+        ssl_trusted_certificate /etc/letsencrypt/live/example.com/chain.pem;
+
+        # Static files
+        location /static/ {
+            alias /usr/share/nginx/html/;
+            expires 7d;
+            add_header Cache-Control "public, immutable";
+        }
+
+        # Proxy API requests
+        location / {
+            proxy_pass http://pdm_app;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # WebSocket support
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+    }
+}
+```
+
+### Update docker-compose.yml
+
+Update `backend/docker-compose.yml`:
+
+```yaml
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    container_name: pdm-db
+    environment:
+      POSTGRES_USER: pdm_user
+      POSTGRES_PASSWORD: pdm_password
+      POSTGRES_DB: pdm_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pdm_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pdm-app
+    environment:
+      - DEBUG=false
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql://pdm_user:pdm_password@db:5432/pdm_db
+      - GITLAB_URL=${GITLAB_URL}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+    volumes:
+      - ./git_repo:/app/git_repo
+      - ./static:/app/static
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: pdm-nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./static:/usr/share/nginx/html:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+    restart: unless-stopped
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+
+  certbot:
+    image: certbot/certbot
+    container_name: pdm-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  postgres_data:
+```
+
+### Create Directories
+
+```bash
+cd backend
+mkdir -p certbot/conf certbot/www
+```
+
+### Initial Certificate Request
+
+**First, start nginx without SSL:**
+
+Temporarily comment out the `server` block listening on 443 in `nginx.conf` (we need the cert before we can reference it).
+
+```bash
+docker-compose up -d nginx
+```
+
+**Request certificate:**
+
+```bash
+docker-compose run --rm certbot certonly \
+  --webroot \
+  --webroot-path=/var/www/certbot \
+  --email your-email@example.com \
+  --agree-tos \
+  --no-eff-email \
+  -d example.com \
+  -d www.example.com
+```
+
+**What this does:**
+
+- `certonly` - Get certificate, don't install
+- `--webroot` - Use HTTP-01 challenge
+- `--webroot-path` - Where to place challenge files
+- `--email` - For renewal notices
+- `--agree-tos` - Agree to Let's Encrypt terms
+- `-d` - Domain(s) to certify
+
+**Output:**
+
+```
+Congratulations! Your certificate has been saved at:
+/etc/letsencrypt/live/example.com/fullchain.pem
+Your key file has been saved at:
+/etc/letsencrypt/live/example.com/privkey.pem
+Your cert will expire on 2026-01-01.
+```
+
+**Now uncomment the SSL server block in `nginx.conf` and restart:**
+
+```bash
+docker-compose restart nginx
+```
+
+**Test:**
+
+```
+https://example.com
+```
+
+You should see 🔒 Secure in your browser!
+
+---
+
+## 12.6: Understanding SSL Certificate Files
+
+### What Let's Encrypt Creates
+
+```
+certbot/conf/live/example.com/
+├── fullchain.pem     ← Use this for ssl_certificate
+├── privkey.pem       ← Use this for ssl_certificate_key
+├── chain.pem         ← Intermediate cert chain
+└── cert.pem          ← Your certificate only
+```
+
+**File explanations:**
+
+**`privkey.pem`** - Your private key
+
+- **Keep secret!** Never share, never commit to Git
+- If compromised, attacker can impersonate your server
+
+**`cert.pem`** - Your certificate
+
+- Contains: Your public key, domain name, expiration date
+- Signed by Let's Encrypt
+
+**`chain.pem`** - Intermediate certificates
+
+- Let's Encrypt → IdenTrust chain
+- Browsers use this to verify trust
+
+**`fullchain.pem`** - `cert.pem` + `chain.pem`
+
+- Most servers need this (includes full chain)
+
+### Nginx SSL Directives Explained
+
+```nginx
+ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+```
+
+**The certificate and key must match!** They're a cryptographic pair.
+
+```nginx
+ssl_protocols TLSv1.2 TLSv1.3;
+```
+
+**Only allow modern TLS versions:**
+
+- TLSv1.0, TLSv1.1 - Disabled (insecure)
+- TLSv1.2 - Supported (current standard)
+- TLSv1.3 - Supported (latest, fastest)
+
+```nginx
+ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:...';
+```
+
+**Cipher suites** - encryption algorithms
+
+**Good cipher properties:**
+
+- **ECDHE** - Elliptic Curve Diffie-Hellman Ephemeral (perfect forward secrecy)
+- **AES-GCM** - Advanced Encryption Standard in GCM mode (authenticated encryption)
+- **SHA256/SHA384** - Secure hash algorithms
+
+**Bad ciphers (disabled):**
+
+- RC4, MD5, DES - Broken/weak
+- Non-ECDHE - No forward secrecy
+
+```nginx
+ssl_prefer_server_ciphers off;
+```
+
+**TLS 1.3:** Let client choose (they know their hardware)
+**TLS 1.2:** Server should choose (more secure ciphers)
+
+```nginx
+ssl_session_cache shared:SSL:10m;
+ssl_session_timeout 10m;
+```
+
+**Session resumption** - performance optimization
+
+- Cache SSL sessions for 10 minutes
+- Subsequent connections skip expensive handshake
+- 10MB cache ≈ 40,000 sessions
+
+```nginx
+ssl_stapling on;
+ssl_stapling_verify on;
+```
+
+**OCSP Stapling:**
+
+- OCSP = Online Certificate Status Protocol
+- Checks if certificate is revoked
+- **Without stapling:** Browser contacts CA (slow, privacy leak)
+- **With stapling:** Server includes OCSP response (fast, private)
+
+---
+
+## 12.7: Security Headers
+
+### Add Security Headers to Nginx
+
+Update the `server` block in `nginx.conf`:
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name example.com www.example.com;
+
+    # ... SSL configuration ...
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss://example.com" always;
+
+    # ... rest of configuration ...
+}
+```
+
+### Understanding Security Headers
+
+**1. HSTS (Strict-Transport-Security)**
+
+```nginx
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+```
+
+**What it does:**
+
+- Tells browser: "Always use HTTPS for this domain"
+- Even if user types `http://example.com`, browser converts to HTTPS
+- Prevents SSL stripping attacks
+
+**Parameters:**
+
+- `max-age=31536000` - Remember for 1 year (seconds)
+- `includeSubDomains` - Apply to all subdomains
+- `preload` - Include in browser's preload list (hardcoded HTTPS-only)
+
+**HSTS Preload:**
+
+- Submit your domain to: https://hstspreload.org/
+- Chrome, Firefox, Safari will always use HTTPS
+- Even on first visit (no initial HTTP request)
+
+**2. X-Content-Type-Options**
+
+```nginx
+add_header X-Content-Type-Options "nosniff" always;
+```
+
+**Prevents MIME sniffing attacks:**
+
+**Attack scenario:**
+
+```
+1. Attacker uploads "image.jpg" (actually contains JavaScript)
+2. Browser ignores Content-Type: image/jpeg
+3. Browser "sniffs" content, detects JavaScript
+4. Browser executes malicious code
+```
+
+**With nosniff:**
+
+- Browser trusts server's Content-Type header
+- Won't execute image.jpg as JavaScript
+
+**3. X-Frame-Options**
+
+```nginx
+add_header X-Frame-Options "SAMEORIGIN" always;
+```
+
+**Prevents clickjacking:**
+
+**Attack:**
+
+```html
+<!-- Attacker's site -->
+<iframe src="https://yourbank.com/transfer"></iframe>
+<!-- Invisible frame positioned over "Click to win!" button -->
+<!-- User thinks they're clicking game, actually transferring money -->
+```
+
+**Options:**
+
+- `DENY` - Never allow framing
+- `SAMEORIGIN` - Only allow same-origin framing
+- `ALLOW-FROM uri` - Allow specific origin (deprecated)
+
+**4. X-XSS-Protection**
+
+```nginx
+add_header X-XSS-Protection "1; mode=block" always;
+```
+
+**Legacy XSS filter:**
+
+- Older browsers had XSS filters
+- `1; mode=block` - Enable and block on detection
+- **Modern approach:** Use CSP instead
+
+**5. Referrer-Policy**
+
+```nginx
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+```
+
+**Controls Referer header:**
+
+**Options:**
+
+- `no-referrer` - Never send
+- `same-origin` - Only to same origin
+- `strict-origin-when-cross-origin` - Send origin only to other sites
+
+**Privacy benefit:**
+
+```
+User on: https://example.com/admin/secret-project
+Clicks link to: https://external.com
+
+Without policy:
+Referer: https://example.com/admin/secret-project  ← Leak!
+
+With strict-origin-when-cross-origin:
+Referer: https://example.com  ← Safe
+```
+
+**6. Content Security Policy (CSP)**
+
+```nginx
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; ..." always;
+```
+
+**Most powerful security header - prevents XSS:**
+
+**Directives:**
+
+```
+default-src 'self'          - Default: only load from same origin
+script-src 'self'           - JavaScript only from same origin
+style-src 'self'            - CSS only from same origin
+img-src 'self' data: https: - Images from same origin, data URIs, any HTTPS
+connect-src 'self' wss:     - AJAX/WebSocket only to same origin or WSS
+```
+
+**`'unsafe-inline'` caveat:**
+
+```nginx
+script-src 'self' 'unsafe-inline'
+```
+
+This allows `<script>` tags in HTML. **Not ideal** (vulnerable to XSS).
+
+**Better approach (without 'unsafe-inline'):**
+
+- Move all JavaScript to external `.js` files
+- Use nonces or hashes for unavoidable inline scripts
+
+**Example with nonce:**
+
+```nginx
+add_header Content-Security-Policy "script-src 'self' 'nonce-$request_id'" always;
+```
+
+```html
+<script nonce="abc123">
+  console.log("This is allowed");
+</script>
+
+<script>
+  console.log("This is BLOCKED");
+</script>
+```
+
+---
+
+## 12.8: Testing SSL Configuration
+
+### Online SSL Test
+
+**SSL Labs Test:**
+
+```
+https://www.ssllabs.com/ssltest/analyze.html?d=example.com
+```
+
+**What it checks:**
+
+- Certificate validity
+- Protocol support
+- Cipher strength
+- Vulnerabilities (POODLE, BEAST, etc.)
+- Certificate chain
+
+**Goal:** **A+ rating**
+
+### Command-Line Testing
+
+**Test certificate:**
+
+```bash
+openssl s_client -connect example.com:443 -servername example.com
+```
+
+**Test specific TLS version:**
+
+```bash
+# Should work (TLS 1.2)
+openssl s_client -connect example.com:443 -tls1_2
+
+# Should work (TLS 1.3)
+openssl s_client -connect example.com:443 -tls1_3
+
+# Should FAIL (TLS 1.0 disabled)
+openssl s_client -connect example.com:443 -tls1
+```
+
+**Check certificate expiration:**
+
+```bash
+echo | openssl s_client -connect example.com:443 2>/dev/null | openssl x509 -noout -dates
+```
+
+### Browser Developer Tools
+
+**Chrome DevTools:**
+
+1. Open DevTools (F12)
+2. Security tab
+3. View certificate
+4. Check "Connection" section
+
+**Look for:**
+
+- ✅ Valid certificate
+- ✅ Secure connection (TLS 1.2 or 1.3)
+- ✅ Strong cipher suite
+- ❌ Mixed content warnings
+
+### Mixed Content
+
+**The problem:**
+
+```html
+<!-- HTTPS page -->
+<script src="http://example.com/script.js"></script>
+<!--           ↑ HTTP! Mixed content! -->
+```
+
+**Browser blocks this:**
+
+- HTTPS page loading HTTP resources = security hole
+- Attacker can modify HTTP content
+
+**Solution:** Use HTTPS for all resources:
+
+```html
+<script src="https://example.com/script.js"></script>
+<!-- Or protocol-relative: -->
+<script src="//example.com/script.js"></script>
+```
+
+---
+
+## 12.9: Automatic Certificate Renewal
+
+### Why Renewal Matters
+
+**Let's Encrypt certificates expire after 90 days.**
+
+**If certificate expires:**
+
+- Browser shows error: "Your connection is not private"
+- Users can't access your site
+- Emergency scramble to renew
+
+**Solution:** Automate renewal
+
+### Certbot Renewal
+
+**Our Docker Compose already handles this!**
+
+```yaml
+certbot:
+  image: certbot/certbot
+  entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+```
+
+**What this does:**
+
+- Runs `certbot renew` every 12 hours
+- Certbot checks if renewal needed (≤30 days until expiry)
+- If needed, renews certificate
+- If not needed, does nothing
+
+**Nginx reload:**
+
+```yaml
+nginx:
+  command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+```
+
+**What this does:**
+
+- Reloads Nginx every 6 hours
+- Picks up new certificates
+- No downtime (graceful reload)
+
+### Manual Renewal (Testing)
+
+**Dry run (test without actually renewing):**
+
+```bash
+docker-compose run --rm certbot renew --dry-run
+```
+
+**Force renewal (for testing):**
+
+```bash
+docker-compose run --rm certbot renew --force-renewal
+```
+
+**Check certificate status:**
+
+```bash
+docker-compose run --rm certbot certificates
+```
+
+### Monitoring Certificate Expiration
+
+**Set up monitoring:**
+
+Create `backend/check_cert_expiry.py`:
+
+```python
+"""
+Check SSL certificate expiration and alert if < 30 days.
+Run this as a cron job or in CI.
+"""
+import ssl
+import socket
+from datetime import datetime, timezone
+import sys
+
+def check_cert_expiry(hostname, port=443):
+    """Check SSL certificate expiration."""
+    context = ssl.create_default_context()
+
+    with socket.create_connection((hostname, port)) as sock:
+        with context.wrap_socket(sock, server_hostname=hostname) as ssock:
+            cert = ssock.getpeercert()
+
+            # Parse expiration date
+            not_after = cert['notAfter']
+            expire_date = datetime.strptime(not_after, '%b %d %H:%M:%S %Y %Z')
+            expire_date = expire_date.replace(tzinfo=timezone.utc)
+
+            # Calculate days until expiry
+            now = datetime.now(timezone.utc)
+            days_remaining = (expire_date - now).days
+
+            print(f"Certificate expires: {expire_date}")
+            print(f"Days remaining: {days_remaining}")
+
+            # Alert if < 30 days
+            if days_remaining < 30:
+                print("⚠️  WARNING: Certificate expires soon!")
+                sys.exit(1)
+            else:
+                print("✅ Certificate is valid")
+                sys.exit(0)
+
+if __name__ == "__main__":
+    check_cert_expiry("example.com")
+```
+
+**Run daily via cron:**
+
+```bash
+0 9 * * * /usr/bin/python3 /path/to/check_cert_expiry.py
+```
+
+---
+
+## 12.10: Update Frontend for HTTPS
+
+### Update WebSocket Connection
+
+Update `static/js/app.js`:
+
+```javascript
+function connectWebSocket() {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    console.log("No token, skipping WebSocket connection");
+    return;
+  }
+
+  // Determine WebSocket URL based on page protocol
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
+
+  console.log("Connecting to WebSocket:", wsUrl);
+
+  // ... rest of WebSocket code ...
+}
+```
+
+**Key change:** `wss:` (WebSocket Secure) instead of `ws:`
+
+### Update CORS Settings
+
+Update `backend/config.py`:
+
+```python
+cors_origins: list = Field(
+    default=["https://example.com"],
+    env="CORS_ORIGINS"
+)
+```
+
+Update `.env`:
+
+```bash
+CORS_ORIGINS=https://example.com,https://www.example.com
+```
+
+### Update FastAPI CORS
+
+Update `backend/main.py`:
+
+```python
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+---
+
+## Stage 12 Complete - Secure HTTPS Deployment!
+
+### What You Built
+
+You now have:
+
+- HTTPS encryption with TLS 1.2/1.3
+- Free SSL certificate from Let's Encrypt
+- Automatic certificate renewal
+- Security headers (HSTS, CSP, etc.)
+- HTTP → HTTPS redirection
+- A+ SSL Labs rating
+- Secure WebSocket (WSS) connection
+- Production-ready security
+
+### Key Security Concepts Mastered
+
+**SSL/TLS:**
+
+- Public key cryptography
+- TLS handshake process
+- Certificate authorities
+- Certificate chain verification
+
+**Let's Encrypt:**
+
+- ACME protocol
+- HTTP-01 and DNS-01 challenges
+- Certificate files (fullchain, privkey)
+- Automated renewal
+
+**Nginx SSL:**
+
+- SSL directives
+- Cipher suites
+- Session caching
+- OCSP stapling
+
+**Security Headers:**
+
+- HSTS (force HTTPS)
+- CSP (prevent XSS)
+- X-Frame-Options (prevent clickjacking)
+- Other protective headers
+
+### Verification Checklist
+
+- [ ] HTTPS works at https://example.com
+- [ ] Browser shows 🔒 secure icon
+- [ ] HTTP redirects to HTTPS
+- [ ] No mixed content warnings
+- [ ] WebSocket uses WSS
+- [ ] SSL Labs test shows A/A+
+- [ ] Certificate auto-renewal configured
+- [ ] Security headers present
+- [ ] Certificate expires in ~90 days
+
+### Security Best Practices Applied
+
+✅ **Encryption** - All traffic encrypted  
+✅ **Strong ciphers** - Modern TLS 1.2/1.3 only  
+✅ **Perfect forward secrecy** - ECDHE ciphers  
+✅ **HSTS** - Force HTTPS  
+✅ **Security headers** - Defense in depth  
+✅ **Automated renewal** - No manual intervention  
+✅ **Monitoring** - Alert on expiration
+
+### Common SSL Issues & Solutions
+
+**Issue:** "Certificate not trusted"
+
+- **Cause:** Incomplete certificate chain
+- **Fix:** Use `fullchain.pem`, not `cert.pem`
+
+**Issue:** "Mixed content blocked"
+
+- **Cause:** HTTPS page loading HTTP resources
+- **Fix:** Update all resources to HTTPS
+
+**Issue:** "Certificate expired"
+
+- **Cause:** Renewal failed
+- **Fix:** Check certbot logs, verify webroot path
+
+**Issue:** "Wrong host"
+
+- **Cause:** Certificate for wrong domain
+- **Fix:** Ensure `-d example.com` matches your domain
+
+### What's Next?
+
+In **Stage 13**, we'll add **Redis Caching**:
+
+- Cache frequently accessed data
+- Session storage
+- Rate limiting
+- Background job queues
+- Real-time analytics
+- Massive performance improvements
+
+Your app is now secure with HTTPS! Next, we'll make it blazingly fast.
+
+---
+
+**Copy this into MkDocs. When ready, request Stage 13.**
