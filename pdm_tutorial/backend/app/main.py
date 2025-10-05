@@ -10,6 +10,8 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import logging
 import asyncio
+
+
 IS_WINDOWS = os.name == 'nt'
 
 if IS_WINDOWS:
@@ -91,15 +93,22 @@ class LockedFile:
         self.filepath = filepath
         self.mode = mode
         self.file = None
+        self.fd = None
 
     def __enter__(self):
         self.file = open(self.filepath, self.mode)
         # Acquire exlusive lock (blocks until available)
-        self.fd = self.file.fileno()
+        self.fd = self.file.fileno()  # file descriptor
+        # Lock the file here
 
         if IS_WINDOWS:
             # On windows, lock a portion of the file. Locking the whole file is complex
             # We lock the first byte to act as a mutex
+            if 'r' in self.mode and '+' not in self.mode:
+                self.file.close()
+                self.file = open(self.filepath, 'r+')
+                self.fd = self.file.fileno()
+            # Lock first byte
             msvcrt.locking(self.fd, msvcrt.LK_LOCK, 1)
         else:
             # On Unix, acquire an exlusive lock on teh entire file.

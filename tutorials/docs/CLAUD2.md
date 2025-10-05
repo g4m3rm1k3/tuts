@@ -1,4 +1,4 @@
-# Stage 0: Absolute Beginner & Environment Setup
+### Stage 0: Absolute Beginner & Environment Setup
 
 ## Introduction: The Goal of This Stage
 
@@ -108,13 +108,13 @@ When you "install Python," you're installing an **interpreter** - a program that
 **macOS:**
 
 ```bash
-# First, install Homebrew (the Mac package manager)
+### First, install Homebrew (the Mac package manager)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# Then install Python
+### Then install Python
 brew install python@3.11
 
-# Verify
+### Verify
 python3 --version
 ```
 
@@ -134,7 +134,7 @@ When you installed Python, you also got `pip` (Pip Installs Packages). This is h
 
 ```bash
 pip --version
-# or on Mac/Linux:
+### or on Mac/Linux:
 pip3 --version
 ```
 
@@ -290,14 +290,14 @@ The **terminal** (also called command line, shell, or console) is a text-based i
 
 ```bash
 pwd
-# Output: /Users/yourname/pdm-tutorial
+### Output: /Users/yourname/pdm-tutorial
 ```
 
 **`ls`** (List) - What's in this folder? (Windows: `dir`)
 
 ```bash
 ls
-# Shows all files and folders in current directory
+### Shows all files and folders in current directory
 ```
 
 **`cd`** (Change Directory) - Move to a different folder
@@ -322,7 +322,7 @@ mkdir frontend
 
 ```bash
 touch main.py          # Creates main.py
-# Windows:
+### Windows:
 New-Item main.py
 ```
 
@@ -330,7 +330,7 @@ New-Item main.py
 
 ```bash
 cat main.py
-# Windows:
+### Windows:
 type main.py
 ```
 
@@ -355,10 +355,10 @@ When you type `python` in the terminal, how does your computer know where to fin
 **View your PATH:**
 
 ```bash
-# macOS/Linux:
+### macOS/Linux:
 echo $PATH
 
-# Windows PowerShell:
+### Windows PowerShell:
 $env:PATH
 ```
 
@@ -392,17 +392,17 @@ touch hello.py
 Open `hello.py` in VS Code and type:
 
 ```python
-# This is a comment - Python ignores it
-# Comments explain what the code does
+### This is a comment - Python ignores it
+### Comments explain what the code does
 
 print("Hello, World!")
 print("Welcome to PDM Development")
 
-# Variables - boxes that store data
+### Variables - boxes that store data
 name = "Your Name"
 print("My name is:", name)
 
-# Simple math
+### Simple math
 x = 10
 y = 20
 print(f"{x} + {y} = {x + y}")
@@ -445,7 +445,7 @@ My name is: Your Name
 Try changing the code:
 
 ```python
-# What happens with different data types?
+### What happens with different data types?
 age = 25                    # Integer (whole number)
 price = 19.99              # Float (decimal)
 is_student = True          # Boolean (True/False)
@@ -555,14 +555,14 @@ When you create a venv:
 In your `pdm-tutorial` folder:
 
 ```bash
-# Create the venv
+### Create the venv
 python -m venv venv
 
-# Activate it
-# Windows PowerShell:
+### Activate it
+### Windows PowerShell:
 venv\Scripts\Activate.ps1
 
-# macOS/Linux:
+### macOS/Linux:
 source venv/bin/activate
 ```
 
@@ -577,7 +577,7 @@ Let's SEE what the venv does.
 **BEFORE activating venv:**
 
 ```bash
-# Make sure venv is NOT activated
+### Make sure venv is NOT activated
 python -c "import sys; print('\n'.join(sys.path))"
 ```
 
@@ -586,7 +586,7 @@ You'll see system-wide Python directories.
 **AFTER activating venv:**
 
 ```bash
-# Now activate
+### Now activate
 source venv/bin/activate  # or venv\Scripts\Activate.ps1 on Windows
 
 python -c "import sys; print('\n'.join(sys.path))"
@@ -603,10 +603,10 @@ python -c "import sys; print('\n'.join(sys.path))"
 ### Installing Packages in the venv
 
 ```bash
-# Make sure venv is activated (you see (venv) in prompt)
+### Make sure venv is activated (you see (venv) in prompt)
 pip install requests
 
-# Check what's installed
+### Check what's installed
 pip list
 ```
 
@@ -633,13 +633,13 @@ You'll see your SYSTEM-WIDE packages - a much longer list.
 Let's visualize the tree of dependencies.
 
 ```bash
-# Activate venv
+### Activate venv
 source venv/bin/activate
 
-# Install the visualization tool
+### Install the visualization tool
 pip install pipdeptree
 
-# Run it
+### Run it
 pipdeptree
 ```
 
@@ -723,7 +723,7 @@ git config --global user.email "your.email@example.com"
 A **repository** (repo) is a project tracked by Git.
 
 ```bash
-# In your pdm-tutorial folder
+### In your pdm-tutorial folder
 git init
 ```
 
@@ -873,13 +873,13 @@ When you push code to GitLab, it needs to verify you're YOU. You could type your
 ### Generating SSH Keys
 
 ```bash
-# Check if you already have keys
+### Check if you already have keys
 ls -la ~/.ssh
 
-# If you don't see id_rsa and id_rsa.pub, generate them:
+### If you don't see id_rsa and id_rsa.pub, generate them:
 ssh-keygen -t rsa -b 4096 -C "your.email@example.com"
 
-# Press Enter for all prompts (accept defaults)
+### Press Enter for all prompts (accept defaults)
 ```
 
 **What You Created:**
@@ -938,7 +938,7 @@ This tells Git: "The remote server (called 'origin') is at this URL."
 ### Pushing Your Code
 
 ```bash
-# Push your main branch to GitLab
+### Push your main branch to GitLab
 git push -u origin main
 ```
 
@@ -949,16 +949,16 @@ The `-u` flag sets up tracking. Future pushes can just be `git push`.
 ### The Workflow (This is What You'll Do Daily)
 
 ```bash
-# 1. Make changes to files
+### 1. Make changes to files
 echo "New content" >> README.md
 
-# 2. Stage changes
+### 2. Stage changes
 git add README.md
 
-# 3. Commit
+### 3. Commit
 git commit -m "Update README with new content"
 
-# 4. Push to GitLab
+### 4. Push to GitLab
 git push
 ```
 
@@ -1016,7 +1016,7 @@ Take a break, experiment with the commands you've learned, and when you're ready
 
 **Copy this entire section into your MkDocs. When you're ready, I'll give you Stage 1.**
 
-# Stage 1: First Backend - FastAPI Hello World
+### Stage 1: First Backend - FastAPI Hello World
 
 ## Introduction: The Goal of This Stage
 
@@ -1120,9 +1120,9 @@ We'll see this in action shortly.
 **ALWAYS do this first when working on this project:**
 
 ```bash
-# In your pdm-tutorial folder
+### In your pdm-tutorial folder
 source venv/bin/activate  # macOS/Linux
-# or
+### or
 venv\Scripts\Activate.ps1  # Windows
 ```
 
@@ -1187,7 +1187,7 @@ fastapi==0.104.1
 ### Create the File Structure
 
 ```bash
-# Make sure you're in pdm-tutorial folder
+### Make sure you're in pdm-tutorial folder
 mkdir backend
 cd backend
 touch main.py
@@ -1253,7 +1253,7 @@ That's it. This is a complete web server.
 def read_root():
     return {"message": "Hello World"}
 
-# Manually register the route
+### Manually register the route
 app.add_route("/", read_root, methods=["GET"])
 ```
 
@@ -1279,7 +1279,7 @@ def read_root():
 Create `test_decorators.py`:
 
 ```python
-# A simple decorator that prints before and after
+### A simple decorator that prints before and after
 def logger(func):
     def wrapper(*args, **kwargs):
         print(f"BEFORE calling {func.__name__}")
@@ -1288,13 +1288,13 @@ def logger(func):
         return result
     return wrapper
 
-# Using the decorator
+### Using the decorator
 @logger
 def greet(name):
     print(f"Hello, {name}!")
     return f"Greeted {name}"
 
-# Call it
+### Call it
 result = greet("Alice")
 print(f"Result: {result}")
 ```
@@ -2004,10 +2004,10 @@ def get_file_detail(filename: str):
 **Test it:**
 
 ```bash
-# Valid file
+### Valid file
 curl http://127.0.0.1:8000/api/files/PN1001_OP1.mcam
 
-# Invalid file
+### Invalid file
 curl http://127.0.0.1:8000/api/files/NOTREAL.mcam
 ```
 
@@ -2030,7 +2030,7 @@ Add to the top of `main.py`:
 ```python
 import logging
 
-# Configure logging
+### Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -2150,7 +2150,7 @@ Create `backend/test_main.py`:
 from fastapi.testclient import TestClient
 from main import app
 
-# Create a test client
+### Create a test client
 client = TestClient(app)
 
 def test_read_root():
@@ -2246,7 +2246,7 @@ from pydantic import BaseModel
 import logging
 import asyncio
 
-# Configure logging
+### Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -2255,7 +2255,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Data model for checkout
+### Data model for checkout
 class FileCheckout(BaseModel):
     filename: str
     user: str
@@ -2336,7 +2336,7 @@ The pieces are coming together. You now have a working backend that can accept a
 
 **Copy this into MkDocs. When ready, request Stage 2.**
 
-# Stage 2: First Frontend - HTML, CSS, and JavaScript Basics
+### Stage 2: First Frontend - HTML, CSS, and JavaScript Basics
 
 ## Introduction: The Goal of This Stage
 
@@ -2390,7 +2390,7 @@ By the end of this stage, you will:
 ### Create the Frontend Folder
 
 ```bash
-# In your pdm-tutorial directory
+### In your pdm-tutorial directory
 mkdir -p backend/static/css
 mkdir -p backend/static/js
 ```
@@ -2427,15 +2427,15 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Mount static files directory
+### Mount static files directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Serve the main HTML file at the root
+### Serve the main HTML file at the root
 @app.get("/")
 def serve_frontend():
     return FileResponse("static/index.html")
 
-# Keep your existing API endpoints
+### Keep your existing API endpoints
 @app.get("/api/files")
 def get_files():
     logger.info("Fetching all files")
@@ -3142,7 +3142,7 @@ Nice — you asked for a full, deep, practical tutorial. I’ll explain the _exa
 
 I'll start with a corrected, annotated version of your function (fixed typos and added defensive behavior), then dive into details.
 
-# Corrected, annotated example
+### Corrected, annotated example
 
 ```javascript
 // loadFiles.js
@@ -3175,7 +3175,7 @@ async function loadFiles() {
 
 ---
 
-# 1) Short summary — what this code does
+### 1) Short summary — what this code does
 
 1. Logs "Loading files from API..."
 2. Calls `fetch("/api/files")`, which returns a **Promise** for a `Response` object (async network request).
@@ -3186,7 +3186,7 @@ async function loadFiles() {
 
 ---
 
-# 2) Line-by-line execution _at runtime_ (step-by-step)
+### 2) Line-by-line execution _at runtime_ (step-by-step)
 
 When `loadFiles()` is invoked:
 
@@ -3206,7 +3206,7 @@ When `loadFiles()` is invoked:
 
 ---
 
-# 3) Under-the-hood: Promises, `await`, and the event loop
+### 3) Under-the-hood: Promises, `await`, and the event loop
 
 - **Promises**: represent future values. `fetch()` returns a Promise. `response.json()` returns a Promise.
 
@@ -3235,7 +3235,7 @@ When `loadFiles()` is invoked:
 
 ---
 
-# 4) Short history — how we got here
+### 4) Short history — how we got here
 
 - **1999 (late/early 2000s)**: `XMLHttpRequest` existed in early browsers (IE introduced a variant earlier); people used it directly with callbacks for asynchronous network requests.
 - **2005**: The term **AJAX** ("Asynchronous JavaScript and XML") popularized the pattern of async requests from the browser (Jesse James Garrett).
@@ -3250,7 +3250,7 @@ When `loadFiles()` is invoked:
 
 ---
 
-# 5) Equivalent forms (showing the relation)
+### 5) Equivalent forms (showing the relation)
 
 ### Callback + XHR (old style)
 
@@ -3311,7 +3311,7 @@ async function loadFiles() {
 
 ---
 
-# 6) Mapping conceptually to Python `httpx` / `requests`
+### 6) Mapping conceptually to Python `httpx` / `requests`
 
 **Sync (requests):**
 
@@ -3339,7 +3339,7 @@ async def load_files_async():
         data = resp.json()
         display_files(data["files"])
 
-# run with: asyncio.run(load_files_async())
+### run with: asyncio.run(load_files_async())
 ```
 
 - `await` in JS ≈ `await` in Python `asyncio`.
@@ -3348,7 +3348,7 @@ async def load_files_async():
 
 ---
 
-# 7) Advanced practical patterns
+### 7) Advanced practical patterns
 
 ### a) Timeouts with `AbortController`
 
@@ -3438,7 +3438,7 @@ async function limitedMap(inputs, mapper, limit = 3) {
 
 ---
 
-# 8) Best practices checklist (quick)
+### 8) Best practices checklist (quick)
 
 - Always check `response.ok` for HTTP status errors.
 - Use `AbortController` for timeouts and cancellation.
@@ -3452,7 +3452,7 @@ async function limitedMap(inputs, mapper, limit = 3) {
 
 ---
 
-# 9) Common gotchas
+### 9) Common gotchas
 
 - `fetch` won’t reject on 404 — check `.ok`.
 - `await` **does not** create a new thread; it suspends the async function but the JS thread is still single-threaded.
@@ -3462,7 +3462,7 @@ async function limitedMap(inputs, mapper, limit = 3) {
 
 ---
 
-# 10) Playground exercises (practice)
+### 10) Playground exercises (practice)
 
 Try these in order. I put solutions after the exercises.
 
@@ -3476,7 +3476,7 @@ Try these in order. I put solutions after the exercises.
 
 ---
 
-# 11) Solutions
+### 11) Solutions
 
 ### 1) `.then()` version
 
@@ -3634,12 +3634,12 @@ async def load_files_httpx():
         data = resp.json()
         display_files(data["files"])
 
-# Run: asyncio.run(load_files_httpx())
+### Run: asyncio.run(load_files_httpx())
 ```
 
 ---
 
-# 12) Final notes — mental model & how to teach others
+### 12) Final notes — mental model & how to teach others
 
 - **Mental model**: `async/await` lets you write asynchronous sequences in linear form. Under the hood it's still Promises and the event loop.
 - **Teaching progression**:
@@ -4265,7 +4265,7 @@ The foundation is complete. Now we build the real application.
 
 ---
 
-# Stage 3: App Core Features - Real File Operations & Locking
+### Stage 3: App Core Features - Real File Operations & Locking
 
 ## Introduction: The Goal of This Stage
 
@@ -4328,7 +4328,7 @@ Every running program has a **current working directory** (cwd).
 ```python
 import os
 print(os.getcwd())
-# Output: /Users/yourname/pdm-tutorial/backend
+### Output: /Users/yourname/pdm-tutorial/backend
 ```
 
 **Why this matters:**
@@ -4344,7 +4344,7 @@ print(os.getcwd())
 ### Create the Repo Directory
 
 ```bash
-# In backend/ directory
+### In backend/ directory
 mkdir -p repo
 ```
 
@@ -4353,10 +4353,10 @@ mkdir -p repo
 Create some dummy `.mcam` files:
 
 ```bash
-# In backend/ directory
+### In backend/ directory
 cd repo
 
-# Create sample files (these are just text files for testing)
+### Create sample files (these are just text files for testing)
 echo "G0 X0 Y0" > PN1001_OP1.mcam
 echo "G0 X10 Y10" > PN1002_OP1.mcam
 echo "G0 X20 Y20" > PN1003_OP1.mcam
@@ -4392,28 +4392,28 @@ Python's `os` module provides operating system functionality.
 ```python
 import os
 
-# Current directory
+### Current directory
 cwd = os.getcwd()
 
-# List files in a directory
+### List files in a directory
 files = os.listdir('repo')
-# Returns: ['PN1001_OP1.mcam', 'PN1002_OP1.mcam', ...]
+### Returns: ['PN1001_OP1.mcam', 'PN1002_OP1.mcam', ...]
 
-# Check if path exists
+### Check if path exists
 exists = os.path.exists('repo/PN1001_OP1.mcam')  # True
 
-# Check if it's a file (not directory)
+### Check if it's a file (not directory)
 is_file = os.path.isfile('repo/PN1001_OP1.mcam')  # True
 
-# Check if it's a directory
+### Check if it's a directory
 is_dir = os.path.isdir('repo')  # True
 
-# Get file size (in bytes)
+### Get file size (in bytes)
 size = os.path.getsize('repo/PN1001_OP1.mcam')
 
-# Join paths (handles OS differences)
+### Join paths (handles OS differences)
 path = os.path.join('repo', 'PN1001_OP1.mcam')
-# Returns: 'repo/PN1001_OP1.mcam'
+### Returns: 'repo/PN1001_OP1.mcam'
 ```
 
 ### Path Operations with `os.path`
@@ -4423,24 +4423,24 @@ import os
 
 path = '/home/user/pdm-tutorial/backend/repo/PN1001_OP1.mcam'
 
-# Get just the directory
+### Get just the directory
 dirname = os.path.dirname(path)
-# Returns: '/home/user/pdm-tutorial/backend/repo'
+### Returns: '/home/user/pdm-tutorial/backend/repo'
 
-# Get just the filename
+### Get just the filename
 basename = os.path.basename(path)
-# Returns: 'PN1001_OP1.mcam'
+### Returns: 'PN1001_OP1.mcam'
 
-# Split into directory and filename
+### Split into directory and filename
 dir_part, file_part = os.path.split(path)
 
-# Split filename and extension
+### Split filename and extension
 name, ext = os.path.splitext('PN1001_OP1.mcam')
-# name: 'PN1001_OP1', ext: '.mcam'
+### name: 'PN1001_OP1', ext: '.mcam'
 
-# Get absolute path
+### Get absolute path
 abs_path = os.path.abspath('repo/file.mcam')
-# Converts relative → absolute based on cwd
+### Converts relative → absolute based on cwd
 ```
 
 ### Creating Absolute Paths
@@ -4448,10 +4448,10 @@ abs_path = os.path.abspath('repo/file.mcam')
 **The Problem with Relative Paths:**
 
 ```python
-# If you're in /backend
+### If you're in /backend
 os.listdir('repo')  # Works
 
-# If you're in /
+### If you're in /
 os.listdir('repo')  # Error: repo doesn't exist here!
 ```
 
@@ -4460,17 +4460,17 @@ os.listdir('repo')  # Error: repo doesn't exist here!
 ```python
 import os
 
-# Get the directory where THIS Python file lives
+### Get the directory where THIS Python file lives
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# __file__ is a special variable = path to current .py file
-# os.path.abspath(__file__) makes it absolute
-# os.path.dirname(...) gets just the directory part
+### __file__ is a special variable = path to current .py file
+### os.path.abspath(__file__) makes it absolute
+### os.path.dirname(...) gets just the directory part
 
-# Now build absolute path to repo
+### Now build absolute path to repo
 REPO_PATH = os.path.join(BASE_DIR, 'repo')
 
-# This ALWAYS works, regardless of where you run the script
+### This ALWAYS works, regardless of where you run the script
 files = os.listdir(REPO_PATH)
 ```
 
@@ -4480,13 +4480,13 @@ files = os.listdir(REPO_PATH)
 import os
 from pathlib import Path
 
-# Get absolute path to the directory containing this file
+### Get absolute path to the directory containing this file
 BASE_DIR = Path(__file__).resolve().parent
 
-# Path to repository folder
+### Path to repository folder
 REPO_PATH = BASE_DIR / 'repo'
 
-# Path to locks file (we'll create this soon)
+### Path to locks file (we'll create this soon)
 LOCKS_FILE = BASE_DIR / 'locks.json'
 ```
 
@@ -4505,7 +4505,7 @@ from pathlib import Path
 from typing import List
 import os
 
-# At the top, after imports
+### At the top, after imports
 BASE_DIR = Path(__file__).resolve().parent
 REPO_PATH = BASE_DIR / 'repo'
 
@@ -4645,11 +4645,11 @@ uvicorn main:app --reload
 ```python
 import json
 
-# Read from file
+### Read from file
 with open('data.json', 'r') as f:
     data = json.load(f)  # Returns Python dict/list
 
-# Parse from string
+### Parse from string
 json_string = '{"name": "John", "age": 30}'
 data = json.loads(json_string)  # Note the 's' in loads
 ```
@@ -4665,12 +4665,12 @@ data = {
     "skills": ["Python", "JavaScript"]
 }
 
-# Write to file
+### Write to file
 with open('data.json', 'w') as f:
     json.dump(data, f, indent=4)
     # indent=4 makes it pretty-printed (readable)
 
-# Convert to string
+### Convert to string
 json_string = json.dumps(data, indent=4)
 ```
 
@@ -4679,7 +4679,7 @@ json_string = json.dumps(data, indent=4)
 **What is `with`?**
 
 ```python
-# Without 'with' - Manual cleanup
+### Without 'with' - Manual cleanup
 f = open('file.txt', 'r')
 content = f.read()
 f.close()  # You MUST remember to close!
@@ -4696,7 +4696,7 @@ f.close()  # You MUST remember to close!
 ```python
 with open('file.txt', 'r') as f:
     content = f.read()
-# File is AUTOMATICALLY closed here, even if error occurred
+### File is AUTOMATICALLY closed here, even if error occurred
 ```
 
 **How it works:**
@@ -4740,12 +4740,12 @@ Add to `main.py`:
 import json
 from datetime import datetime, timezone
 
-# Path to locks file
+### Path to locks file
 LOCKS_FILE = BASE_DIR / 'locks.json'
 
-# ============================================
-# LOCK MANAGEMENT FUNCTIONS
-# ============================================
+### ============================================
+### LOCK MANAGEMENT FUNCTIONS
+### ============================================
 
 def load_locks() -> dict:
     """
@@ -4813,13 +4813,13 @@ The `-> dict` tells Python (and developers) what the function returns. This enab
 **`locks.get(filename)`**
 
 ```python
-# With .get()
+### With .get()
 value = locks.get('PN1001_OP1.mcam')
-# Returns None if key doesn't exist
+### Returns None if key doesn't exist
 
-# With [] brackets
+### With [] brackets
 value = locks['PN1001_OP1.mcam']
-# Raises KeyError if key doesn't exist
+### Raises KeyError if key doesn't exist
 ```
 
 `.get()` is safer for optional values.
@@ -5001,15 +5001,15 @@ Result: Last save wins. One user's lock is silently overwritten.
 ### Visualizing the Race
 
 ```python
-# User A's request thread
+### User A's request thread
 locks = load_locks()          # locks = {}
 locks['file.mcam'] = {        # locks = {'file.mcam': {user: 'A'}}
     'user': 'A'
 }
-# ← Context switch happens here!
+### ← Context switch happens here!
 save_locks(locks)             # Writes: {'file.mcam': {user: 'A'}}
 
-# User B's request thread
+### User B's request thread
 locks = load_locks()          # locks = {} (before A saved!)
 locks['file.mcam'] = {        # locks = {'file.mcam': {user: 'B'}}
     'user': 'B'
@@ -5026,7 +5026,7 @@ Python's `fcntl` module (Unix) or `msvcrt` (Windows) provides OS-level file lock
 
 ```python
 import fcntl  # Unix/Linux/Mac
-# For Windows, you'd use: import msvcrt
+### For Windows, you'd use: import msvcrt
 
 class LockedFile:
     """
@@ -5369,7 +5369,7 @@ In **Stage 4**, we'll modernize the frontend by introducing a **React component*
 
 But first, we have a solid foundation: a working PDM system that prevents file conflicts!
 
-# Stage 4: Frontend Enhancements - Interactive UI Patterns
+### Stage 4: Frontend Enhancements - Interactive UI Patterns
 
 ## Introduction: The Goal of This Stage
 
@@ -6710,7 +6710,7 @@ Your app now looks and feels professional. Next, we make it secure.
 
 ---
 
-# Stage 4B: CSS Architecture & Theming - Professional Design Systems
+### Stage 4B: CSS Architecture & Theming - Professional Design Systems
 
 ## Introduction: The Goal of This Stage
 
@@ -7618,7 +7618,7 @@ _This is getting very long. Should I continue with:_
 I'll create a complete, in-depth artifact with all sections including developer shortcuts and tools to make the refactoring easier.
 
 <artifact identifier="stage-4b-complete" type="text/markdown" title="Stage 4B: Complete CSS Architecture & Theming Guide">
-# Stage 4B: CSS Architecture & Theming - Professional Design Systems (Complete)
+### Stage 4B: CSS Architecture & Theming - Professional Design Systems (Complete)
 
 ## Table of Contents
 
@@ -9710,29 +9710,29 @@ Add to playground:
 **CRITICAL:** Don't refactor everything in one commit!
 
 ```bash
-# Create feature branch
+### Create feature branch
 git checkout -b css-refactor
 
-# Commit 1: Add token system
+### Commit 1: Add token system
 git add backend/static/css/tokens.css
 git commit -m "Add CSS design token system"
 
-# Commit 2: Add dark mode
+### Commit 2: Add dark mode
 git add backend/static/css/tokens.css
 git commit -m "Add dark theme tokens"
 
-# Commit 3: Refactor buttons
+### Commit 3: Refactor buttons
 git add backend/static/css/components/buttons.css
 git commit -m "Refactor buttons to use design tokens"
 
-# Commit 4: Refactor forms
+### Commit 4: Refactor forms
 git add backend/static/css/components/forms.css
 git commit -m "Refactor forms to use design tokens"
 
-# Test at each stage!
-# If something breaks, you can git revert the specific commit
+### Test at each stage!
+### If something breaks, you can git revert the specific commit
 
-# When done:
+### When done:
 git checkout main
 git merge css-refactor
 ```
@@ -9938,28 +9938,28 @@ console.log(`Render took: ${measure.duration}ms`);
 **CSS file size:**
 
 ```bash
-# Before
+### Before
 ls -lh backend/static/css/style.css
-# 45KB
+### 45KB
 
-# After (multiple files)
+### After (multiple files)
 ls -lh backend/static/css/*.css
-# tokens.css: 12KB
-# style.css: 18KB
-# Total: 30KB (smaller + cacheable)
+### tokens.css: 12KB
+### style.css: 18KB
+### Total: 30KB (smaller + cacheable)
 ```
 
 **Minification (production):**
 
 ```bash
-# Install cssnano
+### Install cssnano
 npm install -g cssnano-cli
 
-# Minify
+### Minify
 cssnano backend/static/css/main.css backend/static/css/main.min.css
 
-# Before: 45KB
-# After: 12KB (73% smaller!)
+### Before: 45KB
+### After: 12KB (73% smaller!)
 ```
 
 ---
@@ -10072,7 +10072,7 @@ When you're ready, we can continue with **Stage 14: Background Tasks with Celery
 
 ---
 
-# Stage 5: Authentication & Authorization - Securing Your Application
+### Stage 5: Authentication & Authorization - Securing Your Application
 
 ## Introduction: The Goal of This Stage
 
@@ -10150,7 +10150,7 @@ By the end of this stage, you will:
 ### The WRONG Way (Never Do This!)
 
 ```python
-# DANGEROUS - NEVER DO THIS!
+### DANGEROUS - NEVER DO THIS!
 users = {
     "john": {
         "password": "MyPassword123"  # Plain text - TERRIBLE!
@@ -10176,12 +10176,12 @@ def login(username, password):
 ```python
 password = "MyPassword123"
 hash = bcrypt.hash(password)
-# Result: "$2b$12$N9qo8uLOickgx2ZMRZoMye..."
+### Result: "$2b$12$N9qo8uLOickgx2ZMRZoMye..."
 
-# Cannot reverse:
-# hash -> ??? (impossible to get original password)
+### Cannot reverse:
+### hash -> ??? (impossible to get original password)
 
-# But can verify:
+### But can verify:
 bcrypt.verify("MyPassword123", hash)  # True
 bcrypt.verify("WrongPassword", hash)  # False
 ```
@@ -10319,15 +10319,15 @@ from passlib.context import CryptContext
 from pathlib import Path
 import json
 
-# Configure password hashing
+### Configure password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Path to users file
+### Path to users file
 USERS_FILE = BASE_DIR / 'users.json'
 
-# ============================================
-# USER MANAGEMENT FUNCTIONS
-# ============================================
+### ============================================
+### USER MANAGEMENT FUNCTIONS
+### ============================================
 
 def load_users() -> dict:
     """Load users from users.json."""
@@ -10427,7 +10427,7 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
 **Bad implementation:**
 
 ```python
-# VULNERABLE to timing attack
+### VULNERABLE to timing attack
 if password == stored_password:
     # Early exit when first character doesn't match
     # Attacker can measure time to guess password character-by-character
@@ -10588,23 +10588,23 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-# ============================================
-# JWT CONFIGURATION
-# ============================================
+### ============================================
+### JWT CONFIGURATION
+### ============================================
 
-# SECRET_KEY: Used to sign JWTs
-# CRITICAL: Keep this secret! Never commit to git!
-# In production: Use environment variable
+### SECRET_KEY: Used to sign JWTs
+### CRITICAL: Keep this secret! Never commit to git!
+### In production: Use environment variable
 SECRET_KEY = "your-secret-key-change-this-in-production-use-env-var"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# OAuth2 scheme (tells FastAPI where to find the token)
+### OAuth2 scheme (tells FastAPI where to find the token)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
-# ============================================
-# PYDANTIC MODELS
-# ============================================
+### ============================================
+### PYDANTIC MODELS
+### ============================================
 
 class Token(BaseModel):
     access_token: str
@@ -10619,9 +10619,9 @@ class User(BaseModel):
     full_name: str
     role: str
 
-# ============================================
-# JWT FUNCTIONS
-# ============================================
+### ============================================
+### JWT FUNCTIONS
+### ============================================
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     """
@@ -10928,13 +10928,13 @@ curl http://127.0.0.1:8000/api/files
 **With token (should succeed):**
 
 ```bash
-# First, get token
+### First, get token
 TOKEN=$(curl -X POST http://127.0.0.1:8000/api/auth/login \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=john&password=password123" \
   | jq -r '.access_token')
 
-# Use token
+### Use token
 curl http://127.0.0.1:8000/api/files \
   -H "Authorization: Bearer $TOKEN"
 ```
@@ -11376,7 +11376,7 @@ Your app is now authenticated. Next, we add authorization.
 
 ---
 
-# Stage 6: Role-Based Access Control (RBAC) - Authorization Deep Dive
+### Stage 6: Role-Based Access Control (RBAC) - Authorization Deep Dive
 
 ## Introduction: The Goal of This Stage
 
@@ -11484,9 +11484,9 @@ Add to `main.py`:
 from typing import List
 from fastapi import Depends, HTTPException, status
 
-# ============================================
-# ROLE-BASED DEPENDENCIES
-# ============================================
+### ============================================
+### ROLE-BASED DEPENDENCIES
+### ============================================
 
 def require_role(allowed_roles: List[str]):
     """
@@ -11520,7 +11520,7 @@ def require_role(allowed_roles: List[str]):
 
     return role_checker
 
-# Convenience dependencies for common cases
+### Convenience dependencies for common cases
 require_admin = require_role(["admin"])
 require_user = require_role(["admin", "user"])  # Any authenticated user
 ```
@@ -11551,7 +11551,7 @@ This is a **factory function** - a function that creates and returns another fun
 Without the factory, you'd need separate functions for every role combination:
 
 ```python
-# BAD - lots of duplication
+### BAD - lots of duplication
 def require_admin(current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(403)
@@ -11562,13 +11562,13 @@ def require_moderator(current_user: User = Depends(get_current_user)):
         raise HTTPException(403)
     return current_user
 
-# ... etc for every role
+### ... etc for every role
 ```
 
 With the factory:
 
 ```python
-# GOOD - one function, infinite combinations
+### GOOD - one function, infinite combinations
 require_admin = require_role(["admin"])
 require_moderator = require_role(["moderator"])
 require_admin_or_mod = require_role(["admin", "moderator"])
@@ -11577,10 +11577,10 @@ require_admin_or_mod = require_role(["admin", "moderator"])
 ### HTTP Status Codes - 401 vs 403
 
 ```python
-# 401 Unauthorized
+### 401 Unauthorized
 raise HTTPException(status_code=401, detail="Not authenticated")
 
-# 403 Forbidden
+### 403 Forbidden
 raise HTTPException(status_code=403, detail="Access denied")
 ```
 
@@ -11853,9 +11853,9 @@ from datetime import datetime, timezone
 
 AUDIT_LOG_FILE = BASE_DIR / 'audit_log.json'
 
-# ============================================
-# AUDIT LOGGING
-# ============================================
+### ============================================
+### AUDIT LOGGING
+### ============================================
 
 def log_audit_event(
     user: str,
@@ -11980,7 +11980,7 @@ def get_audit_log_endpoint(
 
 ```python
 "id": str(uuid.uuid4())
-# Example: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+### Example: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
 ```
 
 - **Globally unique** (no collisions, even across systems)
@@ -11991,7 +11991,7 @@ def get_audit_log_endpoint(
 
 ```python
 "timestamp": datetime.now(timezone.utc).isoformat()
-# Example: "2025-10-03T20:30:45.123456+00:00"
+### Example: "2025-10-03T20:30:45.123456+00:00"
 ```
 
 - **Sortable** (string comparison works correctly)
@@ -12598,7 +12598,7 @@ Your app is now fully authenticated and authorized. Next, we add proper version 
 
 ---
 
-# Stage 7: Git Integration - Real Version Control
+### Stage 7: Git Integration - Real Version Control
 
 ## Introduction: The Goal of This Stage
 
@@ -12744,12 +12744,12 @@ from git import Repo, Actor
 from git.exc import GitCommandError
 import shutil
 
-# Path to git repository
+### Path to git repository
 GIT_REPO_PATH = BASE_DIR / 'git_repo'
 
-# ============================================
-# GIT INITIALIZATION
-# ============================================
+### ============================================
+### GIT INITIALIZATION
+### ============================================
 
 def initialize_git_repo():
     """
@@ -12799,7 +12799,7 @@ def initialize_git_repo():
     logger.info("Git repository initialized with initial commit")
     return repo
 
-# Initialize on startup
+### Initialize on startup
 try:
     git_repo = initialize_git_repo()
     logger.info(f"Git repository ready: {git_repo.git_dir}")
@@ -12813,13 +12813,13 @@ except Exception as e:
 Replace your existing path constants:
 
 ```python
-# OLD
+### OLD
 REPO_PATH = BASE_DIR / 'repo'
 LOCKS_FILE = BASE_DIR / 'locks.json'
 USERS_FILE = BASE_DIR / 'users.json'
 AUDIT_LOG_FILE = BASE_DIR / 'audit_log.json'
 
-# NEW
+### NEW
 REPO_PATH = GIT_REPO_PATH / 'repo'
 LOCKS_FILE = GIT_REPO_PATH / 'locks.json'
 USERS_FILE = GIT_REPO_PATH / 'users.json'
@@ -13383,15 +13383,15 @@ def save_locks_with_commit(locks: dict, user: str, message: str):
 ```bash
 cd backend/git_repo/.git
 
-# Object database
+### Object database
 ls objects/
-# You'll see subdirectories like: 00/ 01/ 02/ ... ff/
+### You'll see subdirectories like: 00/ 01/ 02/ ... ff/
 
-# Each subdirectory contains objects
+### Each subdirectory contains objects
 ls objects/ab/
-# Example: cdef1234567890... (38 characters)
+### Example: cdef1234567890... (38 characters)
 
-# Combined: ab + cdef... = full 40-char SHA-1
+### Combined: ab + cdef... = full 40-char SHA-1
 ```
 
 ### Inspecting Git Objects
@@ -13554,7 +13554,7 @@ Your app now has enterprise-grade version control. Every change is tracked, attr
 
 ---
 
-# Stage 8: Advanced Git Features - Upload, Download, Diff & Blame
+### Stage 8: Advanced Git Features - Upload, Download, Diff & Blame
 
 ## Introduction: The Goal of This Stage
 
@@ -13745,17 +13745,17 @@ safe_filename = os.path.basename(file.filename)
 
 ```python
 file_path = REPO_PATH / file.filename
-# Result: /path/to/repo/../../etc/passwd
-# = /path/to/etc/passwd (OUTSIDE your repo!)
+### Result: /path/to/repo/../../etc/passwd
+### = /path/to/etc/passwd (OUTSIDE your repo!)
 ```
 
 **With `os.path.basename()`:**
 
 ```python
 safe_filename = os.path.basename("../../etc/passwd")
-# Result: "passwd"
+### Result: "passwd"
 file_path = REPO_PATH / safe_filename
-# Result: /path/to/repo/passwd (SAFE)
+### Result: /path/to/repo/passwd (SAFE)
 ```
 
 **`os.path.basename()` removes directory parts:**
@@ -14645,8 +14645,8 @@ def get_file_blame(
 
 ```python
 blame_output = git_repo.blame(commit, file_path)
-# Returns: List of tuples
-# Each tuple: (Commit object, line content as bytes)
+### Returns: List of tuples
+### Each tuple: (Commit object, line content as bytes)
 ```
 
 **Example:**
@@ -14916,7 +14916,7 @@ Your app is now a professional version control system. Next, we make it collabor
 
 ---
 
-# Stage 9: Real-Time Collaboration - WebSockets & Live Updates
+### Stage 9: Real-Time Collaboration - WebSockets & Live Updates
 
 ## Introduction: The Goal of This Stage
 
@@ -15078,9 +15078,9 @@ from typing import Dict, Set
 import json
 from datetime import datetime, timezone
 
-# ============================================
-# WEBSOCKET CONNECTION MANAGER
-# ============================================
+### ============================================
+### WEBSOCKET CONNECTION MANAGER
+### ============================================
 
 class ConnectionManager:
     """
@@ -15167,7 +15167,7 @@ class ConnectionManager:
         """Get list of currently connected usernames."""
         return list(self.active_connections.keys())
 
-# Create global connection manager
+### Create global connection manager
 manager = ConnectionManager()
 ```
 
@@ -15213,11 +15213,11 @@ for username, websocket in self.active_connections.items():
 **Why not remove during iteration?**
 
 ```python
-# BAD - modifies dict during iteration
+### BAD - modifies dict during iteration
 for username, websocket in self.active_connections.items():
     del self.active_connections[username]  # RuntimeError!
 
-# GOOD - collect, then remove
+### GOOD - collect, then remove
 disconnected = []
 for username, websocket in self.active_connections.items():
     disconnected.append(username)
@@ -16292,7 +16292,7 @@ Your app is now collaborative in real-time. Next, we make sure it's bulletproof 
 
 ---
 
-# Stage 10: Testing & Quality Assurance - Building Bulletproof Software
+### Stage 10: Testing & Quality Assurance - Building Bulletproof Software
 
 ## Introduction: The Goal of This Stage
 
@@ -16335,7 +16335,7 @@ By the end of this stage, you will:
 **Without tests:**
 
 ```python
-# Bug: Anyone can delete any file (forgot to check admin role)
+### Bug: Anyone can delete any file (forgot to check admin role)
 @app.delete("/api/files/{filename}")
 def delete_file(filename: str, current_user: User = Depends(get_current_user)):
     os.remove(REPO_PATH / filename)  # OOPS! No role check!
@@ -16458,9 +16458,9 @@ Tests for authentication and authorization.
 import pytest
 from main import verify_password, pwd_context
 
-# ============================================
-# UNIT TESTS - Password Hashing
-# ============================================
+### ============================================
+### UNIT TESTS - Password Hashing
+### ============================================
 
 def test_password_hashing():
     """Test that password hashing and verification work."""
@@ -16498,16 +16498,16 @@ def test_empty_password():
 ### Running Tests
 
 ```bash
-# Run all tests
+### Run all tests
 pytest
 
-# Run with verbose output
+### Run with verbose output
 pytest -v
 
-# Run specific test file
+### Run specific test file
 pytest tests/test_auth.py
 
-# Run specific test function
+### Run specific test function
 pytest tests/test_auth.py::test_password_hashing
 ```
 
@@ -16528,8 +16528,8 @@ def test_example():
     result = 1 + 1
     assert result == 3  # FAIL
 
-# Output:
-# AssertionError: assert 2 == 3
+### Output:
+### AssertionError: assert 2 == 3
 ```
 
 pytest automatically shows you what went wrong!
@@ -16537,19 +16537,19 @@ pytest automatically shows you what went wrong!
 **Advanced assertions:**
 
 ```python
-# Check if exception is raised
+### Check if exception is raised
 with pytest.raises(ValueError):
     int("not a number")
 
-# Check if exception message contains text
+### Check if exception message contains text
 with pytest.raises(ValueError, match="invalid literal"):
     int("not a number")
 
-# Check dictionary contents
+### Check dictionary contents
 result = {"name": "John", "age": 30}
 assert result["name"] == "John"
 
-# Check if item in list
+### Check if item in list
 assert "apple" in ["apple", "banana", "orange"]
 ```
 
@@ -16635,9 +16635,9 @@ import os
 
 from main import app, GIT_REPO_PATH, REPO_PATH, LOCKS_FILE, USERS_FILE
 
-# ============================================
-# FIXTURES - Test Setup/Teardown
-# ============================================
+### ============================================
+### FIXTURES - Test Setup/Teardown
+### ============================================
 
 @pytest.fixture(scope="function")
 def temp_git_repo(monkeypatch):
@@ -17113,7 +17113,7 @@ mock_push.assert_called()              # Called at least once
 mock_push.assert_called_once()         # Called exactly once
 mock_push.assert_not_called()          # Never called
 
-# Check arguments
+### Check arguments
 mock_push.assert_called_with(arg1, arg2)
 ```
 
@@ -17223,7 +17223,7 @@ def test_git_push_failure_handling(client, user_headers, sample_file):
 ### The Problem with Async Tests
 
 ```python
-# This DOESN'T WORK
+### This DOESN'T WORK
 def test_async_function():
     result = await my_async_function()  # SyntaxError!
     assert result == "expected"
@@ -17316,7 +17316,7 @@ def divide(a, b):
         return None      # Line 2 (never tested!)
     return a / b         # Line 3
 
-# Test
+### Test
 def test_divide():
     assert divide(10, 2) == 5
     # Coverage: 66% (lines 1 and 3, but not 2)
@@ -17325,10 +17325,10 @@ def test_divide():
 ### Measuring Coverage
 
 ```bash
-# Run tests with coverage
+### Run tests with coverage
 pytest --cov=main --cov-report=html
 
-# Open coverage report
+### Open coverage report
 open htmlcov/index.html
 ```
 
@@ -17368,7 +17368,7 @@ Lines 123-145 and 200-210 are not tested!
 ### Add Tests for Uncovered Code
 
 ```python
-# Uncovered error handling
+### Uncovered error handling
 def test_upload_file_too_large(client, user_headers):
     """Test file size limit."""
     # Create 20MB file (over 10MB limit)
@@ -17435,7 +17435,7 @@ def test_register_new_user(client):
     assert data["username"] == "newuser"
     assert "password" not in data  # Don't leak password!
 
-# Run test: FAILS (endpoint doesn't exist)
+### Run test: FAILS (endpoint doesn't exist)
 ```
 
 **Step 2: GREEN - Implement minimal code**
@@ -17468,13 +17468,13 @@ def register_user(
         "role": "user"
     }
 
-# Run test: PASSES
+### Run test: PASSES
 ```
 
 **Step 3: REFACTOR - Improve code**
 
 ```python
-# Add validation
+### Add validation
 from pydantic import BaseModel, Field, validator
 
 class RegisterRequest(BaseModel):
@@ -17491,7 +17491,7 @@ class RegisterRequest(BaseModel):
 def register_user(request: RegisterRequest):
     # ... implementation ...
 
-# Run test: STILL PASSES (refactoring didn't break it)
+### Run test: STILL PASSES (refactoring didn't break it)
 ```
 
 **Step 4: Add more tests**
@@ -17566,7 +17566,7 @@ Create `.github/workflows/tests.yml`:
 ```yaml
 name: Tests
 
-# Run on push and pull request
+### Run on push and pull request
 on:
   push:
     branches: [main, develop]
@@ -17629,7 +17629,7 @@ on:
 Add test status badge to `README.md`:
 
 ```markdown
-# PDM Tutorial
+### PDM Tutorial
 
 ![Tests](https://github.com/YOUR_USERNAME/pdm-tutorial/workflows/Tests/badge.svg)
 
@@ -17732,12 +17732,12 @@ def test_checkout_creates_commit():
 **Slow tests = tests that don't get run**
 
 ```python
-# BAD - slow
+### BAD - slow
 def test_checkout():
     time.sleep(5)  # Simulating slow operation
     ...
 
-# GOOD - mock slow operations
+### GOOD - mock slow operations
 def test_checkout():
     with patch('main.slow_operation'):
         ...
@@ -17894,7 +17894,7 @@ Your app is now bulletproof through testing. Next, we make it production-ready!
 
 ---
 
-# Stage 11: Production Deployment - From Development to Production
+### Stage 11: Production Deployment - From Development to Production
 
 ## Introduction: The Goal of This Stage
 
@@ -17943,34 +17943,34 @@ By the end of this stage, you will:
 **1. Hardcoded Secrets**
 
 ```python
-# DEV: Fine
+### DEV: Fine
 SECRET_KEY = "my-secret-key"
 
-# PROD: DISASTER! Key visible in code, git history, logs
+### PROD: DISASTER! Key visible in code, git history, logs
 ```
 
 **2. JSON Files Under Load**
 
 ```python
-# 1000 users simultaneously read/write locks.json
-# Result: File corruption, race conditions, data loss
+### 1000 users simultaneously read/write locks.json
+### Result: File corruption, race conditions, data loss
 ```
 
 **3. No Monitoring**
 
 ```python
-# App crashes at 3am
-# You wake up at 9am
-# 6 hours of downtime
-# Customers: 😡
+### App crashes at 3am
+### You wake up at 9am
+### 6 hours of downtime
+### Customers: 😡
 ```
 
 **4. Development Server in Production**
 
 ```bash
-# DEV: uvicorn main:app --reload
-# PROD: --reload restarts on every change (disaster!)
-#       Single process (can't use multiple CPU cores)
+### DEV: uvicorn main:app --reload
+### PROD: --reload restarts on every change (disaster!)
+###       Single process (can't use multiple CPU cores)
 ```
 
 ### The 12-Factor App
@@ -18001,14 +18001,14 @@ We'll implement many of these principles.
 **The Problem:**
 
 ```python
-# config.py
+### config.py
 DATABASE_URL = "postgresql://user:password@localhost/db"
 SECRET_KEY = "super-secret-key-123"
 GITLAB_TOKEN = "glpat-xxxxxxxxxxxx"
 
-# This file is in Git!
-# Secrets are exposed!
-# Can't use different values for dev/staging/prod!
+### This file is in Git!
+### Secrets are exposed!
+### Can't use different values for dev/staging/prod!
 ```
 
 **The Solution:**
@@ -18020,9 +18020,9 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 SECRET_KEY = os.getenv("SECRET_KEY")
 GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")
 
-# Values come from environment, not code
-# Can be different per environment
-# No secrets in Git
+### Values come from environment, not code
+### Can be different per environment
+### No secrets in Git
 ```
 
 ### Create Configuration Module
@@ -18113,7 +18113,7 @@ def get_settings() -> Settings:
     """
     return Settings()
 
-# Convenience: import settings directly
+### Convenience: import settings directly
 settings = get_settings()
 ```
 
@@ -18139,7 +18139,7 @@ debug: bool  # "true" (string) → True (bool)
 
 ```python
 workers: int = Field(default=4)
-# If WORKERS not set, uses 4
+### If WORKERS not set, uses 4
 ```
 
 4. **`.env` file support**
@@ -18147,7 +18147,7 @@ workers: int = Field(default=4)
 ```python
 class Config:
     env_file = ".env"
-# Loads from .env file if it exists
+### Loads from .env file if it exists
 ```
 
 ### Create `.env` File
@@ -18155,25 +18155,25 @@ class Config:
 Create `backend/.env`:
 
 ```bash
-# Application
+### Application
 DEBUG=true
 SECRET_KEY=dev-secret-key-change-in-production
 
-# Database
+### Database
 DATABASE_URL=postgresql://pdm_user:pdm_password@localhost/pdm_db
 
-# GitLab
+### GitLab
 GITLAB_URL=https://gitlab.com/yourusername/pdm-repo.git
 GITLAB_TOKEN=
 AUTO_PUSH=false
 AUTO_PULL=false
 
-# Server
+### Server
 HOST=127.0.0.1
 PORT=8000
 WORKERS=1
 
-# CORS (comma-separated)
+### CORS (comma-separated)
 CORS_ORIGINS=http://localhost:3000,http://localhost:8000
 ```
 
@@ -18184,7 +18184,7 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:8000
 Create/update `backend/.gitignore`:
 
 ```
-# Python
+### Python
 __pycache__/
 *.pyc
 *.pyo
@@ -18193,21 +18193,21 @@ __pycache__/
 venv/
 *.egg-info/
 
-# Environment
+### Environment
 .env
 .env.local
 .env.*.local
 
-# IDE
+### IDE
 .vscode/
 .idea/
 *.swp
 
-# OS
+### OS
 .DS_Store
 Thumbs.db
 
-# Application
+### Application
 git_repo/
 *.db
 *.sqlite
@@ -18220,28 +18220,28 @@ Create a template (this CAN be committed):
 `backend/.env.example`:
 
 ```bash
-# Copy this to .env and fill in your values
-# DO NOT commit .env to Git!
+### Copy this to .env and fill in your values
+### DO NOT commit .env to Git!
 
-# Application
+### Application
 DEBUG=false
 SECRET_KEY=your-secret-key-here-use-strong-random-string
 
-# Database
+### Database
 DATABASE_URL=postgresql://user:password@localhost/dbname
 
-# GitLab
+### GitLab
 GITLAB_URL=https://gitlab.com/username/repo.git
 GITLAB_TOKEN=your-gitlab-token
 AUTO_PUSH=true
 AUTO_PULL=true
 
-# Server
+### Server
 HOST=0.0.0.0
 PORT=8000
 WORKERS=4
 
-# CORS
+### CORS
 CORS_ORIGINS=https://yourdomain.com
 ```
 
@@ -18252,20 +18252,20 @@ Replace hardcoded values:
 ```python
 from config import settings
 
-# OLD
-# SECRET_KEY = "your-secret-key-change-this"
-# ALGORITHM = "HS256"
-# ACCESS_TOKEN_EXPIRE_MINUTES = 30
+### OLD
+### SECRET_KEY = "your-secret-key-change-this"
+### ALGORITHM = "HS256"
+### ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# NEW
+### NEW
 SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
-# OLD
-# BASE_DIR = Path(__file__).resolve().parent
+### OLD
+### BASE_DIR = Path(__file__).resolve().parent
 
-# NEW
+### NEW
 BASE_DIR = settings.base_dir
 REPO_PATH = settings.repo_path
 ```
@@ -18275,11 +18275,11 @@ REPO_PATH = settings.repo_path
 **NEVER use a weak secret key in production!**
 
 ```python
-# Generate a secure secret key
+### Generate a secure secret key
 import secrets
 
 print(secrets.token_urlsafe(32))
-# Output: "xvXlz8pQ2J6NnK9mYp7wR3uT5vX8zC1dF4gH6jK9m"
+### Output: "xvXlz8pQ2J6NnK9mYp7wR3uT5vX8zC1dF4gH6jK9m"
 ```
 
 Use this value for `SECRET_KEY` in production `.env`.
@@ -18346,10 +18346,10 @@ sudo usermod -aG docker $USER
 
 ```bash
 docker --version
-# Docker version 24.0.0
+### Docker version 24.0.0
 
 docker run hello-world
-# Should download and run test container
+### Should download and run test container
 ```
 
 ### Create Dockerfile
@@ -18357,36 +18357,36 @@ docker run hello-world
 Create `backend/Dockerfile`:
 
 ```dockerfile
-# Use official Python runtime as base image
+### Use official Python runtime as base image
 FROM python:3.11-slim
 
-# Set working directory in container
+### Set working directory in container
 WORKDIR /app
 
-# Install system dependencies
+### Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first (for layer caching)
+### Copy requirements first (for layer caching)
 COPY requirements.txt .
 
-# Install Python dependencies
+### Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+### Copy application code
 COPY . .
 
-# Create directory for Git repository
+### Create directory for Git repository
 RUN mkdir -p git_repo
 
-# Expose port
+### Expose port
 EXPOSE 8000
 
-# Set environment variables
+### Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Run the application
+### Run the application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
@@ -18488,9 +18488,9 @@ docker run -d \
 ```bash
 docker ps
 
-# Output:
-# CONTAINER ID   IMAGE              STATUS         PORTS
-# abc123def456   pdm-app:latest     Up 2 minutes   0.0.0.0:8000->8000/tcp
+### Output:
+### CONTAINER ID   IMAGE              STATUS         PORTS
+### abc123def456   pdm-app:latest     Up 2 minutes   0.0.0.0:8000->8000/tcp
 ```
 
 **View logs:**
@@ -18498,7 +18498,7 @@ docker ps
 ```bash
 docker logs pdm-app
 
-# Follow logs (like tail -f)
+### Follow logs (like tail -f)
 docker logs -f pdm-app
 ```
 
@@ -18676,7 +18676,7 @@ class FileLock(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="locks")
 
-# Now you can do:
+### Now you can do:
 user = session.query(User).first()
 print(user.locks)  # All locks for this user
 ```
@@ -18697,14 +18697,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Create engine
+### Create engine
 engine = create_engine(
     settings.database_url,
     echo=settings.debug,  # Log SQL queries in debug mode
     pool_pre_ping=True    # Check connection health before using
 )
 
-# Create session factory
+### Create session factory
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
@@ -18775,10 +18775,10 @@ Edit `alembic/env.py`:
 from models import Base
 from config import settings
 
-# Add this near the top
+### Add this near the top
 target_metadata = Base.metadata
 
-# Update sqlalchemy.url
+### Update sqlalchemy.url
 config.set_main_option('sqlalchemy.url', settings.database_url)
 ```
 
@@ -18797,11 +18797,11 @@ alembic upgrade head
 **Future changes:**
 
 ```bash
-# 1. Modify models.py
-# 2. Generate migration
+### 1. Modify models.py
+### 2. Generate migration
 alembic revision --autogenerate -m "Add email to users"
 
-# 3. Apply migration
+### 3. Apply migration
 alembic upgrade head
 ```
 
@@ -18812,13 +18812,13 @@ from sqlalchemy.orm import Session
 from database import get_db, init_db
 import models
 
-# Initialize database on startup
+### Initialize database on startup
 @app.on_event("startup")
 def startup_event():
     init_db()
     logger.info("Application startup complete")
 
-# Example: Get users endpoint
+### Example: Get users endpoint
 @app.get("/api/users")
 def get_users(
     db: Session = Depends(get_db),
@@ -18858,14 +18858,14 @@ docker run postgres ...
 docker run pdm-app ...
 docker network create ...
 docker volume create ...
-# (many commands)
+### (many commands)
 ```
 
 **Do this:**
 
 ```bash
 docker-compose up
-# (one command, everything starts)
+### (one command, everything starts)
 ```
 
 ### Create `docker-compose.yml`
@@ -18955,7 +18955,7 @@ volumes:
   #   ↑ named volume      ↑ path in container
 
   - ./static:/app/static
-#   ↑ bind mount (host path) ↑ container path
+###   ↑ bind mount (host path) ↑ container path
 ```
 
 **Named volume** - Managed by Docker, persists data  
@@ -18977,7 +18977,7 @@ healthcheck:
 depends_on:
   db:
     condition: service_healthy
-# Wait for db to be healthy before starting app
+### Wait for db to be healthy before starting app
 ```
 
 ### Create Nginx Configuration
@@ -19028,19 +19028,19 @@ http {
 ### Start the Stack
 
 ```bash
-# Start all services
+### Start all services
 docker-compose up -d
 
-# View logs
+### View logs
 docker-compose logs -f
 
-# Check status
+### Check status
 docker-compose ps
 
-# Stop all services
+### Stop all services
 docker-compose down
 
-# Stop and remove volumes (WARNING: deletes data!)
+### Stop and remove volumes (WARNING: deletes data!)
 docker-compose down -v
 ```
 
@@ -19054,8 +19054,8 @@ docker-compose down -v
 
 ```python
 print(f"User {username} logged in")
-# Output: "User john logged in"
-# Hard to parse, search, analyze
+### Output: "User john logged in"
+### Hard to parse, search, analyze
 ```
 
 **Good logging (structured):**
@@ -19066,7 +19066,7 @@ logger.info("User logged in", extra={
     "ip": request.client.host,
     "timestamp": datetime.now().isoformat()
 })
-# Output: JSON - easy to parse, search, analyze
+### Output: JSON - easy to parse, search, analyze
 ```
 
 ### Install Logging Libraries
@@ -19116,7 +19116,7 @@ def setup_logging():
 ```python
 from logging_config import setup_logging
 
-# Setup logging on startup
+### Setup logging on startup
 logger = setup_logging()
 
 @app.on_event("startup")
@@ -19360,9 +19360,9 @@ You've built a complete, production-grade application from scratch. Congratulati
 
 ---
 
-# Phase 2: Advanced Features - Enterprise Capabilities
+### Phase 2: Advanced Features - Enterprise Capabilities
 
-# Stage 12: HTTPS & SSL/TLS - Securing Production Traffic
+### Stage 12: HTTPS & SSL/TLS - Securing Production Traffic
 
 ## Introduction: The Goal of This Stage
 
@@ -19522,17 +19522,17 @@ All further communication encrypted with the shared secret key.
 **The magic that makes TLS work:**
 
 ```python
-# Server has two keys:
+### Server has two keys:
 private_key  # Keep secret! Never share!
 public_key   # Share with everyone
 
-# Encryption:
+### Encryption:
 encrypted = encrypt(data, public_key)
-# Only private_key can decrypt it!
+### Only private_key can decrypt it!
 
 decrypted = decrypt(encrypted, private_key)
 
-# Anyone can encrypt, only server can decrypt
+### Anyone can encrypt, only server can decrypt
 ```
 
 **Real-world analogy:**
@@ -19670,7 +19670,7 @@ www.example.com  →  YOUR_SERVER_IP
 
 ```bash
 dig example.com
-# Should show your server IP
+### Should show your server IP
 ```
 
 ### Install Certbot
@@ -19691,7 +19691,7 @@ brew install certbot
 **Docker (we'll use this):**
 
 ```yaml
-# Add to docker-compose.yml
+### Add to docker-compose.yml
 services:
   certbot:
     image: certbot/certbot
@@ -20238,13 +20238,13 @@ openssl s_client -connect example.com:443 -servername example.com
 **Test specific TLS version:**
 
 ```bash
-# Should work (TLS 1.2)
+### Should work (TLS 1.2)
 openssl s_client -connect example.com:443 -tls1_2
 
-# Should work (TLS 1.3)
+### Should work (TLS 1.3)
 openssl s_client -connect example.com:443 -tls1_3
 
-# Should FAIL (TLS 1.0 disabled)
+### Should FAIL (TLS 1.0 disabled)
 openssl s_client -connect example.com:443 -tls1
 ```
 

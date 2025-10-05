@@ -22,9 +22,9 @@ The most immediate difference you'll notice is the path separator:
 **The Problem:**
 
 ```python
-# This will likely fail on Windows
+## This will likely fail on Windows
 path = "C:\Users\new_folder"
-# Python might interpret \n as a newline character!
+## Python might interpret \n as a newline character!
 ```
 
 **The Professional Solution (and the one we'll use):** Use libraries that handle this for you. Python's `pathlib` is the modern standard.
@@ -32,13 +32,13 @@ path = "C:\Users\new_folder"
 ```python
 from pathlib import Path
 
-# This works on ALL operating systems
-# Path() automatically uses the correct separator
+## This works on ALL operating systems
+## Path() automatically uses the correct separator
 docs_path = Path.home() / "Documents"
 print(docs_path)
 
-# On Windows, prints: C:\Users\YourName\Documents
-# On macOS, prints: /Users/YourName/Documents
+## On Windows, prints: C:\Users\YourName\Documents
+## On macOS, prints: /Users/YourName/Documents
 ```
 
 By using `pathlib`, we write code once and it runs everywhere, abstracting away the OS differences.
@@ -168,13 +168,13 @@ When you run a command, the OS provides three standard data streams:
 **Why the separation?** It allows you to **redirect** streams.
 
 ```bash
-# Redirect stdout to a file
+## Redirect stdout to a file
 python hello.py > output.txt
 
-# Redirect stderr to a file
+## Redirect stderr to a file
 python script_with_error.py 2> errors.txt
 
-# Redirect both to different files
+## Redirect both to different files
 python script.py > output.txt 2> errors.txt
 ```
 
@@ -222,7 +222,7 @@ After you've installed packages into your `venv`, you need a way to share that l
 **How to create it:**
 
 ```bash
-# Make sure your venv is active
+## Make sure your venv is active
 pip freeze > requirements.txt
 ```
 
@@ -343,7 +343,7 @@ Of course. Let's continue with the same in-depth, side-by-side expansion for **S
 
 ---
 
-# Stage 1: First Backend - FastAPI Hello World (Expanded)
+## Stage 1: First Backend - FastAPI Hello World (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -436,17 +436,17 @@ The tutorial correctly identifies `@app.get("/")` as a decorator. Let's see what
 **The `@` syntax is "syntactic sugar" for this:**
 
 ```python
-# This...
+## This...
 @app.get("/")
 def read_root():
     return {"message": "Hello World"}
 
-# ...is just a prettier way of writing this:
+## ...is just a prettier way of writing this:
 def read_root():
     return {"message": "Hello World"}
 
-# The app.get("/") call returns a function (the decorator)
-# which is then immediately called with read_root as its argument.
+## The app.get("/") call returns a function (the decorator)
+## which is then immediately called with read_root as its argument.
 decorator_function = app.get("/")
 read_root = decorator_function(read_root)
 ```
@@ -561,7 +561,7 @@ We said this defines the "shape" of the data, but it's doing so much more. Think
 Imagine you didn't have Pydantic. Your `checkout_file` function would look like this nightmare of manual checks:
 
 ```python
-# The ugly, error-prone way we DON'T have to write
+## The ugly, error-prone way we DON'T have to write
 @app.post("/api/checkout")
 async def checkout_file_manual(request: Request):
     try:
@@ -721,7 +721,7 @@ Thank you for bringing these up. This kind of hands-on discovery is exactly how 
 
 ---
 
-# Stage 2: First Frontend - HTML, CSS, and JavaScript Basics (Expanded)
+## Stage 2: First Frontend - HTML, CSS, and JavaScript Basics (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -959,7 +959,7 @@ Excellent. Let's move on to Stage 3. I'll continue with the same in-depth format
 
 ---
 
-# Stage 3: App Core Features - Real File Operations & Locking (Expanded)
+## Stage 3: App Core Features - Real File Operations & Locking (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -1036,7 +1036,7 @@ This pattern makes your script's location independent. No matter where you run y
 The tutorial uses a `for` loop to build the list of files. This is perfectly clear and correct.
 
 ```python
-# The tutorial's way (clear and readable)
+## The tutorial's way (clear and readable)
 files = []
 for filename in all_items:
     if full_path.is_file() and filename.lower().endswith('.mcam'):
@@ -1046,7 +1046,7 @@ for filename in all_items:
 A more concise and often faster way to write this in Python is with a **list comprehension**.
 
 ```python
-# The list comprehension way (more concise)
+## The list comprehension way (more concise)
 files = [
     {
         "name": filename,
@@ -1069,13 +1069,13 @@ This does the exact same thing in a single expression. It's a hallmark of idioma
 The `with` statement is so useful because it uses Python's **Context Manager protocol**. Any object that has two special methods, `__enter__` and `__exit__`, can be used with `with`.
 
 ```python
-# Simplified view of what happens with: `with open(...) as f:`
+## Simplified view of what happens with: `with open(...) as f:`
 
-# 1. Python calls open(...), which returns a file object.
+## 1. Python calls open(...), which returns a file object.
 file_object = open(...)
 
-# 2. The `with` statement calls the object's __enter__ method.
-#    For files, __enter__ just returns the file object itself.
+## 2. The `with` statement calls the object's __enter__ method.
+##    For files, __enter__ just returns the file object itself.
 f = file_object.__enter__()
 
 try:
@@ -1098,7 +1098,7 @@ Absolutely — let’s do a **full, in-depth, step-by-step tutorial on file lock
 
 ---
 
-# Step 1: Why File Locking Matters
+## Step 1: Why File Locking Matters
 
 When building a multi-user system or any app where **multiple processes might read/write the same file**, you need to ensure that:
 
@@ -1110,7 +1110,7 @@ For example, in your project, you are storing **checkout information for files**
 
 ---
 
-# Step 2: Python Options for File Locking
+## Step 2: Python Options for File Locking
 
 Python’s standard library does not have a fully **cross-platform file lock**. The two main options:
 
@@ -1128,7 +1128,7 @@ Python’s standard library does not have a fully **cross-platform file lock**. 
 
 ---
 
-# Step 3: Building Our Own Context Manager
+## Step 3: Building Our Own Context Manager
 
 Instead of sprinkling lock/unlock code everywhere, we use a **Python context manager**, which is perfect for resources that must be **acquired and released reliably**, like locks.
 
@@ -1149,7 +1149,7 @@ We can use the same idea for **locking files**.
 
 ---
 
-# Step 4: Writing `LockedFile`
+## Step 4: Writing `LockedFile`
 
 We’ll write a **cross-platform file lock context manager**.
 
@@ -1196,7 +1196,7 @@ class LockedFile:
 
 ---
 
-# Step 5: Locking Logic
+## Step 5: Locking Logic
 
 ### 5.1 Unix
 
@@ -1229,7 +1229,7 @@ if IS_WINDOWS:
 
 ---
 
-# Step 6: Unlocking
+## Step 6: Unlocking
 
 ### 6.1 Unix
 
@@ -1251,7 +1251,7 @@ msvcrt.locking(self.fd, msvcrt.LK_UNLCK, 1)
 
 ---
 
-# Step 7: Understanding `__exit__` Parameters
+## Step 7: Understanding `__exit__` Parameters
 
 ```python
 def __exit__(self, exc_type, exc_val, exc_tb):
@@ -1267,7 +1267,163 @@ This is why context managers are safe: even if reading/writing fails, the lock i
 
 ---
 
-# Step 8: Using `LockedFile` in Your Project
+## Step 7 (Expanded): Understanding `__exit__` Parameters and Exception Handling
+
+When we define a context manager like `LockedFile`, the `__enter__` and `__exit__` methods allow Python’s `with` statement to manage setup and cleanup automatically.
+
+The `__exit__` method has the signature:
+
+```python
+def __exit__(self, exc_type, exc_val, exc_tb):
+    ...
+```
+
+Each parameter gives detailed information about exceptions that occurred **inside the `with` block**.
+
+---
+
+### 7.1 `exc_type`
+
+- **Definition:** The class of the exception (not the instance).
+- **Examples:** `FileNotFoundError`, `PermissionError`, `ValueError`.
+- **None if no exception occurred.**
+
+```python
+with LockedFile("locks.json") as f:
+    # No errors here
+    pass
+## exc_type will be None
+```
+
+**Use case:** You can check `exc_type` to decide how to handle specific exception types differently.
+
+---
+
+### 7.2 `exc_val`
+
+- **Definition:** The actual exception instance — the object that contains the error message and other details.
+- **Example:** `PermissionError("Permission denied")`.
+- **None if no exception occurred.**
+
+```python
+try:
+    1 / 0
+except ZeroDivisionError as e:
+    print(type(e))  # <class 'ZeroDivisionError'>
+    print(e)        # division by zero
+```
+
+**In context managers:** `exc_val` allows you to log or process the **exact error message** before propagating or suppressing it.
+
+---
+
+### 7.3 `exc_tb`
+
+- **Definition:** The traceback object, representing the call stack at the point where the exception occurred.
+- **Useful for debugging:** You can see the full path the program took to reach the error.
+
+```python
+import traceback
+
+try:
+    1 / 0
+except ZeroDivisionError as e:
+    tb = e.__traceback__
+    traceback.print_tb(tb)
+```
+
+**In context managers:** You rarely manipulate `exc_tb` directly, but passing it to logging or `traceback.print_exception()` gives detailed debugging info.
+
+---
+
+### 7.4 Returning True vs False
+
+- **`False` (default)** → The exception is **propagated** to the outer scope.
+- **`True`** → The exception is **suppressed**, as if it never happened.
+
+```python
+class SilentFile:
+    def __enter__(self):
+        return open("example.txt", "r")
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print("Cleaning up!")
+        return True  # suppress exceptions
+
+with SilentFile() as f:
+    f.read()  # Will raise FileNotFoundError, but it is suppressed
+print("Program continues")
+```
+
+**Gotcha:** Suppressing exceptions can hide real problems. Only use `True` if you intentionally want to ignore certain errors.
+
+---
+
+### 7.5 Context Managers Are for Resource Management
+
+The `with` statement + `__enter__/__exit__` pattern is **Python’s way of safely acquiring and releasing resources**. Examples:
+
+- File I/O
+- Network connections
+- Locks (our `LockedFile`)
+- Database transactions
+
+**Key takeaway:** The cleanup code in `__exit__` always runs, **even if an exception occurs**, making your program robust against unexpected errors.
+
+---
+
+### 7.6 Common Pitfalls and Gotchas
+
+1. **Double exceptions:** If an exception occurs in both the `with` block and `__exit__`, the second one replaces the first.
+
+   - Use careful logging and handling to avoid masking errors.
+
+2. **Windows locking quirks:**
+
+   - Byte-level locks can fail if the file mode or file position is not correct.
+   - Always open the file in a mode compatible with locking (`'r+'` for reading and writing).
+
+3. **Suppressed errors:** Returning `True` from `__exit__` suppresses all exceptions. Be careful not to hide critical errors.
+
+4. **Tracebacks in logs:** Use `exc_type`, `exc_val`, and `exc_tb` to **log detailed errors** instead of printing generic messages.
+
+---
+
+### 7.7 Example: Logging Exceptions in `LockedFile`
+
+```python
+class LockedFile:
+    ...
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Release lock safely
+        try:
+            if IS_WINDOWS:
+                msvcrt.locking(self.fd, msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(self.fd, fcntl.LOCK_UN)
+        finally:
+            self.file.close()
+
+        if exc_type:
+            # Log the exception with traceback
+            import traceback
+            print(f"Exception occurred: {exc_val}")
+            traceback.print_tb(exc_tb)
+            return False  # propagate
+        return False
+```
+
+- Always release resources **even if an exception happens**
+- Log the exception using the traceback for debugging
+- Decide whether to propagate or suppress
+
+---
+
+This subsection can become a **mini-tutorial on Python exception handling, context managers, and robust file operations**, which is exactly what someone building a locking system needs.
+
+---
+
+## Step 8: Using `LockedFile` in Your Project
 
 Now, instead of:
 
@@ -1289,7 +1445,7 @@ with LockedFile("locks.json", "r") as f:
 
 ---
 
-# Step 9: Common Gotchas and Pitfalls
+## Step 9: Common Gotchas and Pitfalls
 
 1. **PermissionError on Windows**
 
@@ -1318,7 +1474,7 @@ with LockedFile("locks.json", "r") as f:
 
 ---
 
-# Step 10: Optional Improvements
+## Step 10: Optional Improvements
 
 - Use **`filelock` library** for simpler cross-platform solution
 - Add **timeout parameter** to context manager
@@ -1327,7 +1483,7 @@ with LockedFile("locks.json", "r") as f:
 
 ---
 
-# ✅ Step 11: Summary
+## ✅ Step 11: Summary
 
 1. File locks prevent **simultaneous writes**.
 2. Python uses `fcntl` on Unix, `msvcrt` on Windows.
@@ -1575,7 +1731,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Check the operating system name
+## Check the operating system name
 IS_WINDOWS = os.name == 'nt'
 
 if IS_WINDOWS:
@@ -1633,8 +1789,8 @@ This code now works on both Windows and Mac/Linux by checking `os.name` and impo
 Another powerful technique for atomic writes is `os.rename`. Many databases use this internally.
 
 ```python
-# This is an atomic operation on most filesystems
-# It's an instant pointer swap at the filesystem level.
+## This is an atomic operation on most filesystems
+## It's an instant pointer swap at the filesystem level.
 os.rename("new_data.tmp", "data.json")
 ```
 
@@ -1727,7 +1883,7 @@ As requested, every line of CSS will be commented to remove any abstraction and 
 
 ---
 
-# Stage 4: Frontend Enhancements - Interactive UI Patterns (Expanded)
+## Stage 4: Frontend Enhancements - Interactive UI Patterns (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -2082,7 +2238,7 @@ As requested, every line of CSS will be commented to remove any abstraction and 
 
 ---
 
-# Stage 4: Frontend Enhancements - Interactive UI Patterns (Expanded)
+## Stage 4: Frontend Enhancements - Interactive UI Patterns (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -2437,7 +2593,7 @@ This stage is dense with critical security concepts. We'll go slowly and explain
 
 ---
 
-# Stage 5: Authentication & Authorization - Securing Your Application (Expanded)
+## Stage 5: Authentication & Authorization - Securing Your Application (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -2523,7 +2679,7 @@ Hardcoding default users in a function is fine for getting started, but in a rea
 ```python
 import sys
 import os
-# Add the project root to the Python path to allow imports from `backend`
+## Add the project root to the Python path to allow imports from `backend`
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
 
 from main import save_users, load_users, pwd_context
@@ -2711,7 +2867,7 @@ As before, I will provide line-by-line comments for all new CSS.
 
 ---
 
-# Stage 6: Role-Based Access Control (RBAC) - Authorization Deep Dive (Expanded)
+## Stage 6: Role-Based Access Control (RBAC) - Authorization Deep Dive (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -2762,13 +2918,13 @@ This mixes your business logic with the boilerplate of authentication and author
 **The Solution With DI:**
 
 ```python
-# The dependency handles all the boilerplate
+## The dependency handles all the boilerplate
 def require_admin(current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(...)
     return current_user
 
-# The endpoint is clean and focuses only on its job
+## The endpoint is clean and focuses only on its job
 @app.get("/some/path", dependencies=[Depends(require_admin)])
 def my_endpoint():
     # If the code reaches here, you are GUARANTEED to be an admin.
@@ -2935,7 +3091,7 @@ Here is the in-depth expansion for Stage 7. This is a huge architectural shift f
 
 ---
 
-# Stage 7: Git Integration - Real Version Control (Expanded)
+## Stage 7: Git Integration - Real Version Control (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -3063,10 +3219,10 @@ This correctly attributes the work to Jane, while recording that the Admin was t
 This is the most important architectural concept of this stage. When you modify multiple files and commit them together, you are performing a **transaction**.
 
 ```python
-# The transaction starts here
+## The transaction starts here
 git_repo.index.add(['locks.json', 'audit_log.json'])
 commit = git_repo.index.commit("Checkout file.mcam")
-# The transaction ends here
+## The transaction ends here
 ```
 
 This commit is **atomic**. It either succeeds completely, with both files updated, or it fails, and neither file is changed in the repository's history.
@@ -3087,7 +3243,7 @@ This is how we get database-like transactional integrity without a traditional d
 The tutorial's code for getting a specific file's history is a good start, but it's inefficient:
 
 ```python
-# Tutorial's approach (simplified)
+## Tutorial's approach (simplified)
 commits = list(git_repo.iter_commits(paths='locks.json'))
 for commit in commits:
     if filename in commit.message: # Filtering by message
@@ -3238,7 +3394,7 @@ Of course. Let's proceed with the deep dive into Stage 8. This is where the appl
 
 ---
 
-# Stage 8: Advanced Git Features - Upload, Download, Diff & Blame (Expanded)
+## Stage 8: Advanced Git Features - Upload, Download, Diff & Blame (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -3541,7 +3697,7 @@ I will continue to provide the deep dives, professional context, and line-by-lin
 
 ---
 
-# Stage 9: Real-Time Collaboration - WebSockets & Live Updates (Expanded)
+## Stage 9: Real-Time Collaboration - WebSockets & Live Updates (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -3761,7 +3917,7 @@ Here is the in-depth expansion for Stage 10. This is a critical stage that intro
 
 ---
 
-# Stage 10: Testing & Quality Assurance - Building Bulletproof Software (Expanded)
+## Stage 10: Testing & Quality Assurance - Building Bulletproof Software (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -3869,7 +4025,7 @@ def test_password_hashing_with_correct_password():
 Fixtures are pytest's implementation of **Dependency Injection**. When you add a fixture's name as an argument to your test function, `pytest` automatically finds and runs that fixture, "injecting" its return value into your test.
 
 ```python
-# The `client` fixture is defined in conftest.py
+## The `client` fixture is defined in conftest.py
 def test_login_success(client):
     # Pytest sees the 'client' argument, runs the client() fixture,
     # and passes its return value here.
@@ -4039,7 +4195,7 @@ This stage is dense, covering concepts from database engineering, containerizati
 
 ---
 
-# Stage 11: Production Deployment - From Development to Production (Expanded)
+## Stage 11: Production Deployment - From Development to Production (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
@@ -4121,50 +4277,50 @@ The `Dockerfile` in the tutorial is good, but in production, we want the final i
 **Refactored `backend/Dockerfile` (Production Ready):**
 
 ```dockerfile
-# --- Stage 1: The Builder ---
-# Use a full Python image to build dependencies, which might need a compiler.
+## --- Stage 1: The Builder ---
+## Use a full Python image to build dependencies, which might need a compiler.
 FROM python:3.11 as builder
 
-# Set environment variables for the build stage
+## Set environment variables for the build stage
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-# Install build-time system dependencies
+## Install build-time system dependencies
 RUN apt-get update && apt-get install -y build-essential
 
-# Copy only the requirements file to leverage layer caching
+## Copy only the requirements file to leverage layer caching
 COPY requirements.txt .
 
-# Install dependencies into a virtual environment
+## Install dependencies into a virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install -r requirements.txt
 
-# --- Stage 2: The Final Image ---
-# Use a minimal "slim" image for the final product
+## --- Stage 2: The Final Image ---
+## Use a minimal "slim" image for the final product
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Only copy the virtual environment from the builder stage
+## Only copy the virtual environment from the builder stage
 COPY --from=builder /opt/venv /opt/venv
 
-# Copy the application code
+## Copy the application code
 COPY . .
 
-# Set the path to use the virtual environment
+## Set the path to use the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Create a non-root user for security
+## Create a non-root user for security
 RUN useradd --create-home appuser
 USER appuser
 
 EXPOSE 8000
 
-# Use gunicorn for production, not uvicorn's dev server
+## Use gunicorn for production, not uvicorn's dev server
 CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-w", "4", "-b", "0.0.0.0:8000", "main:app"]
 ```
 
@@ -4255,7 +4411,7 @@ We will dive deep into the cryptography that powers the secure web, configure ou
 
 ---
 
-# Stage 12: HTTPS & SSL/TLS - Securing Production Traffic (Expanded)
+## Stage 12: HTTPS & SSL/TLS - Securing Production Traffic (Expanded)
 
 ## Introduction: The Goal of This Stage (Expanded)
 
