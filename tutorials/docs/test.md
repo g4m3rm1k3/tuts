@@ -1,155 +1,260 @@
-## Step 7 (Expanded): Understanding `__exit__` Parameters and Exception Handling
+## Tutorial: File Locking in Python with `filelock`
 
-When we define a context manager like `LockedFile`, the `__enter__` and `__exit__` methods allow Python’s `with` statement to manage setup and cleanup automatically.
+File locking is an essential technique when multiple processes or threads need **safe, exclusive access** to a resource — in our case, a `locks.json` file tracking checked-out files. Python provides low-level options (`fcntl`, `msvcrt`) but they are platform-specific. The [`filelock`](https://pypi.org/project/filelock/) library abstracts those details and provides a simple, cross-platform interface.
 
-The `__exit__` method has the signature:
+We’ll cover:
 
-```python
-def __exit__(self, exc_type, exc_val, exc_tb):
-    ...
-```
-
-Each parameter gives detailed information about exceptions that occurred **inside the `with` block**.
-
----
-
-### 7.1 `exc_type`
-
-- **Definition:** The class of the exception (not the instance).
-- **Examples:** `FileNotFoundError`, `PermissionError`, `ValueError`.
-- **None if no exception occurred.**
-
-```python
-with LockedFile("locks.json") as f:
-    # No errors here
-    pass
-# exc_type will be None
-```
-
-**Use case:** You can check `exc_type` to decide how to handle specific exception types differently.
+1. **Why file locks are necessary**
+2. **Installation and basic usage**
+3. **Context managers in Python**
+4. **Refactoring your custom `LockedFile`**
+5. **Integrating `filelock` into FastAPI file checkout/checkin**
+6. **Advanced usage: timeouts, exceptions, and best practices**
+7. **Common pitfalls and gotchas**
 
 ---
 
-### 7.2 `exc_val`
+### 1. Why File Locks are Necessary
 
-- **Definition:** The actual exception instance — the object that contains the error message and other details.
-- **Example:** `PermissionError("Permission denied")`.
-- **None if no exception occurred.**
+Imagine two users trying to checkout the same CAM file at the same time:
 
-```python
-try:
-    1 / 0
-except ZeroDivisionError as e:
-    print(type(e))  # <class 'ZeroDivisionError'>
-    print(e)        # division by zero
+```text
+User A reads locks.json -> sees file is available
+User B reads locks.json -> also sees file is available
+User A writes lock -> file now locked
+User B writes lock -> overwrites User A's lock!
 ```
 
-**In context managers:** `exc_val` allows you to log or process the **exact error message** before propagating or suppressing it.
+This is called a **race condition** — multiple processes accessing a shared resource simultaneously without proper synchronization. **Locks prevent this.**
+
+Concepts introduced:
+
+- **Critical section:** Code that must not be run by multiple processes at the same time.
+- **Mutex:** Mutual exclusion, a mechanism to protect critical sections.
+- **Deadlock:** When two processes wait on each other’s locks forever. Can happen if we are careless with lock acquisition order or timeouts.
 
 ---
 
-### 7.3 `exc_tb`
+### 2. Installing `filelock`
 
-- **Definition:** The traceback object, representing the call stack at the point where the exception occurred.
-- **Useful for debugging:** You can see the full path the program took to reach the error.
+Install via `pip`:
 
-```python
-import traceback
-
-try:
-    1 / 0
-except ZeroDivisionError as e:
-    tb = e.__traceback__
-    traceback.print_tb(tb)
+```bash
+pip install filelock
 ```
 
-**In context managers:** You rarely manipulate `exc_tb` directly, but passing it to logging or `traceback.print_exception()` gives detailed debugging info.
+You now have the `FileLock` class for cross-platform file locking.
 
 ---
 
-### 7.4 Returning True vs False
-
-- **`False` (default)** → The exception is **propagated** to the outer scope.
-- **`True`** → The exception is **suppressed**, as if it never happened.
+### 3. Basic Usage
 
 ```python
-class SilentFile:
+from filelock import FileLock
+import json
+
+LOCK_FILE = "locks.json.lock"
+
+with FileLock(LOCK_FILE):
+    with open("locks.json", "r+") as f:
+        locks = json.load(f)
+        # Modify locks safely
+        locks["file1.mcam"] = {"user": "Alice"}
+        f.seek(0)
+        json.dump(locks, f, indent=4)
+        f.truncate()
+```
+
+**Key points:**
+
+- The `.lock` file acts as a **mutex**.
+- The `with` statement ensures that the lock is **acquired** and automatically **released**.
+- `f.seek(0)` and `f.truncate()` ensure the file is **overwritten safely**.
+
+---
+
+### 4. Context Managers in Python
+
+`FileLock` works as a **context manager** using the `__enter__` and `__exit__` methods:
+
+```python
+class MyContext:
     def __enter__(self):
-        return open("example.txt", "r")
+        print("Entering")
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        print("Cleaning up!")
-        return True  # suppress exceptions
-
-with SilentFile() as f:
-    f.read()  # Will raise FileNotFoundError, but it is suppressed
-print("Program continues")
+        print("Exiting")
+        if exc_type:
+            print(f"Exception: {exc_type}, {exc_val}")
+        return False  # False means propagate exception
 ```
 
-**Gotcha:** Suppressing exceptions can hide real problems. Only use `True` if you intentionally want to ignore certain errors.
+- `__enter__` → code executed when entering `with` block.
+- `__exit__` → code executed on exit, receives:
+
+  - `exc_type` → exception class (e.g., `FileNotFoundError`)
+  - `exc_val` → exception instance
+  - `exc_tb` → traceback object
+
+- Return `False` → **propagate exception**
+- Return `True` → **suppress exception**
+
+This is why `FileLock` is safer than rolling your own: it handles **exceptions** and ensures **release of the lock**.
 
 ---
 
-### 7.5 Context Managers Are for Resource Management
+### 5. Refactoring Your Custom `LockedFile`
 
-The `with` statement + `__enter__/__exit__` pattern is **Python’s way of safely acquiring and releasing resources**. Examples:
+Current issues with your `LockedFile`:
 
-- File I/O
-- Network connections
-- Locks (our `LockedFile`)
-- Database transactions
+- Platform-specific (`msvcrt` vs `fcntl`)
+- Locks only a single byte on Windows — fragile
+- Permission errors (like `PermissionError: [Errno 13]`) can occur
+- Manual exception handling
 
-**Key takeaway:** The cleanup code in `__exit__` always runs, **even if an exception occurs**, making your program robust against unexpected errors.
-
----
-
-### 7.6 Common Pitfalls and Gotchas
-
-1. **Double exceptions:** If an exception occurs in both the `with` block and `__exit__`, the second one replaces the first.
-
-   - Use careful logging and handling to avoid masking errors.
-
-2. **Windows locking quirks:**
-
-   - Byte-level locks can fail if the file mode or file position is not correct.
-   - Always open the file in a mode compatible with locking (`'r+'` for reading and writing).
-
-3. **Suppressed errors:** Returning `True` from `__exit__` suppresses all exceptions. Be careful not to hide critical errors.
-
-4. **Tracebacks in logs:** Use `exc_type`, `exc_val`, and `exc_tb` to **log detailed errors** instead of printing generic messages.
-
----
-
-### 7.7 Example: Logging Exceptions in `LockedFile`
+We can refactor using `filelock`:
 
 ```python
-class LockedFile:
-    ...
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # Release lock safely
-        try:
-            if IS_WINDOWS:
-                msvcrt.locking(self.fd, msvcrt.LK_UNLCK, 1)
-            else:
-                fcntl.flock(self.fd, fcntl.LOCK_UN)
-        finally:
-            self.file.close()
+from filelock import FileLock, Timeout
+from pathlib import Path
+import json
+import logging
 
-        if exc_type:
-            # Log the exception with traceback
-            import traceback
-            print(f"Exception occurred: {exc_val}")
-            traceback.print_tb(exc_tb)
-            return False  # propagate
-        return False
+LOCK_FILE = Path("locks.json.lock")
+LOCKS_JSON = Path("locks.json")
+
+logger = logging.getLogger(__name__)
+
+def load_locks(timeout=5):
+    """Load locks.json safely using FileLock"""
+    lock = FileLock(LOCK_FILE, timeout=timeout)
+    try:
+        with lock:
+            if not LOCKS_JSON.exists():
+                logger.info("Locks file doesn't exist, returning empty dict")
+                return {}
+            with open(LOCKS_JSON, "r") as f:
+                locks = json.load(f)
+            logger.info(f"Loaded {len(locks)} locks")
+            return locks
+    except Timeout:
+        logger.error("Could not acquire lock on locks.json")
+        raise
 ```
 
-- Always release resources **even if an exception happens**
-- Log the exception using the traceback for debugging
-- Decide whether to propagate or suppress
+```python
+def save_locks(locks, timeout=5):
+    lock = FileLock(LOCK_FILE, timeout=timeout)
+    try:
+        with lock:
+            with open(LOCKS_JSON, "w") as f:
+                json.dump(locks, f, indent=4)
+            logger.info(f"Saved {len(locks)} locks")
+    except Timeout:
+        logger.error("Could not acquire lock on locks.json for saving")
+        raise
+```
+
+**Notes:**
+
+- `timeout` prevents deadlocks — waits up to N seconds for lock.
+- Logging shows who successfully acquired the lock.
+- `FileLock` automatically handles **exceptions** and releases lock.
 
 ---
 
-This subsection can become a **mini-tutorial on Python exception handling, context managers, and robust file operations**, which is exactly what someone building a locking system needs.
+### 6. Integrating into FastAPI File Checkout/Checkin
+
+Example **checkout**:
+
+```python
+from fastapi import HTTPException
+
+def checkout_file(filename: str, user: str, message: str):
+    locks = load_locks()
+
+    if filename in locks:
+        existing = locks[filename]
+        raise HTTPException(
+            status_code=409,
+            detail=f"File is already checked out by {existing['user']}"
+        )
+
+    locks[filename] = {
+        "user": user,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "message": message
+    }
+
+    save_locks(locks)
+    return {"success": True, "message": f"File '{filename}' checked out by {user}"}
+```
+
+Checkin is similar — just delete the key in `locks` and call `save_locks`.
+
+---
+
+### 7. Advanced Usage: Timeouts & Exceptions
+
+```python
+from filelock import Timeout
+
+lock = FileLock(LOCK_FILE, timeout=10)
+
+try:
+    with lock:
+        # Critical section
+        pass
+except Timeout:
+    print("Could not acquire lock in 10 seconds")
+```
+
+- Prevents **long-running or hanging locks**.
+- Combine with `asyncio.to_thread()` if using in FastAPI async endpoints.
+
+---
+
+### 8. Common Pitfalls / Gotchas
+
+1. **Windows vs Unix differences**
+
+   - Solved by `filelock` — no need to manually use `msvcrt` or `fcntl`.
+
+2. **Partial locks**
+
+   - Windows: locking single bytes is fragile.
+
+3. **Permission errors**
+
+   - Lock files in OneDrive, network drives, or restricted directories may fail.
+
+4. **Not releasing lock on exception**
+
+   - Always use `with FileLock(...)`.
+
+5. **Overwriting files incorrectly**
+
+   - Remember `seek(0)` and `truncate()` if modifying in-place.
+
+---
+
+### 9. Additional Python Concepts Sprinkled In
+
+- **Pathlib** → `Path("locks.json")` is better than raw strings.
+- **Logging** → `logging.getLogger(__name__)` gives flexible debug info.
+- **JSON serialization** → `json.load()` and `json.dump()`.
+- **Exception handling** → `try/except Timeout:` for robust error reporting.
+- **Context managers** → `with FileLock()` ensures resource cleanup.
+
+---
+
+#### ✅ Summary
+
+- `filelock` provides **cross-platform, safe, and simple file locks**.
+- Replace manual `msvcrt` / `fcntl` code with `FileLock`.
+- Always use **context managers** for automatic cleanup.
+- Handle **timeouts** to prevent deadlocks.
+- Integrate into your FastAPI endpoints (`checkout`/`checkin`) seamlessly.
 
 ---
