@@ -15,6 +15,8 @@ nav:
   - GrokF: grokf.md
   - newEx: newExp.md
   - OneFile: oneFile.md
+  - CLose: anohteron.md
+  - List: structure.md
 
 theme:
   name: material
