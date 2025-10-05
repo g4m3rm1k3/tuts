@@ -10,6 +10,12 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import logging
 import asyncio
+IS_WINDOWS = os.name == 'nt'
+
+if IS_WINDOWS:
+    import msvcrt
+else:
+    import fcntl
 
 VALID_EXTENSIONS = {".mcam", ".vnc"}
 
@@ -89,13 +95,25 @@ class LockedFile:
     def __enter__(self):
         self.file = open(self.filepath, self.mode)
         # Acquire exlusive lock (blocks until available)
-        msvcrt.flock(self.file, msvcrt.LOCK_EX)
+        self.fd = self.file.fileno()
+
+        if IS_WINDOWS:
+            # On windows, lock a portion of the file. Locking the whole file is complex
+            # We lock the first byte to act as a mutex
+            msvcrt.locking(self.fd, msvcrt.LK_LOCK, 1)
+        else:
+            # On Unix, acquire an exlusive lock on teh entire file.
+            # This call will block until the lock is available.
+            fcntl.flock(self.fd, fcntl.LOCK_EX)
         logger.debug(f"Acquired lock on {self.filepath}")
         return self.file
 
     def __exit__(self, exe_type, exc_val, exc_tb):
         # Release lock
-        msvcrt.flock(self.file, msvcrt.LOCK_UN)
+        if IS_WINDOWS:
+            msvcrt.locking(self.fd, msvcrt.LK_UNLCK, 1)
+        else:
+            msvcrt.flock(self.fd, msvcrt.LOCK_UN)
         self.file.close()
         logger.debug(f"Released lock on {self.filepath}")
         return False
@@ -120,7 +138,7 @@ def load_locks() -> dict:
             locks = json.load(f)
         logger.info(f"Loaded {len(locks)} locks from file")
         return locks
-    except josn.JSONDecoderError as e:
+    except json.JSONDecodeError as e:
         logger.error(f"Error parsing locks.json: {e}")
         return {}
 

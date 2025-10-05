@@ -1094,6 +1094,474 @@ This is a powerful pattern for any resource that needs guaranteed cleanup, like 
 
 ## 3.8: Race Conditions - The Biggest Hidden Danger (Expanded)
 
+Absolutely — let’s do a **full, in-depth, step-by-step tutorial on file locking in Python**, written as if we’re adding it to your tutorial **from scratch**, with all explanations, context, gotchas, and examples. I’ll keep it very detailed so it can be appended directly.
+
+---
+
+# Step 1: Why File Locking Matters
+
+When building a multi-user system or any app where **multiple processes might read/write the same file**, you need to ensure that:
+
+- Only **one process writes at a time**.
+- Other processes either **wait** or **fail gracefully**.
+- Your data doesn’t become **corrupted** due to simultaneous writes.
+
+For example, in your project, you are storing **checkout information for files** in a `locks.json` file. If two users check out the same file at the same time, without locking, you might **overwrite the file** and lose lock data.
+
+---
+
+# Step 2: Python Options for File Locking
+
+Python’s standard library does not have a fully **cross-platform file lock**. The two main options:
+
+| OS          | Library  | Functionality                                       |
+| ----------- | -------- | --------------------------------------------------- |
+| Linux/macOS | `fcntl`  | Locks the file descriptor at the OS level (`flock`) |
+| Windows     | `msvcrt` | Locks a byte range in the file (`locking`)          |
+
+### Key Differences
+
+- `fcntl.flock()` works on the **entire file** and **blocks** until available.
+- `msvcrt.locking()` works on a **byte range**, often 1 byte as a mutex. Windows requires **read/write mode**, otherwise you get `PermissionError` (like the one you ran into).
+
+**Gotcha:** Windows locks are **mandatory** and per-file handle, whereas Unix locks can be **advisory**, so other processes must also check the lock.
+
+---
+
+# Step 3: Building Our Own Context Manager
+
+Instead of sprinkling lock/unlock code everywhere, we use a **Python context manager**, which is perfect for resources that must be **acquired and released reliably**, like locks.
+
+## 3.1 Basic Python Context Managers
+
+```python
+with open("myfile.txt", "r") as f:
+    data = f.read()
+```
+
+Here:
+
+- `__enter__` is called at the start of the `with` block (opens file)
+- `__exit__` is called at the end of the `with` block (closes file)
+- Guarantees **release even if an exception occurs**
+
+We can use the same idea for **locking files**.
+
+---
+
+# Step 4: Writing `LockedFile`
+
+We’ll write a **cross-platform file lock context manager**.
+
+### 4.1 Step 1: Imports
+
+```python
+import os
+IS_WINDOWS = os.name == "nt"
+
+if IS_WINDOWS:
+    import msvcrt
+else:
+    import fcntl
+```
+
+### 4.2 Step 2: Skeleton
+
+```python
+class LockedFile:
+    """
+    Context manager for file locking.
+
+    Ensures only one process can read/write a file at a time.
+    """
+
+    def __init__(self, filepath, mode='r'):
+        self.filepath = filepath
+        self.mode = mode
+        self.file = None
+        self.fd = None
+
+    def __enter__(self):
+        self.file = open(self.filepath, self.mode)
+        self.fd = self.file.fileno()  # file descriptor
+        # Lock the file here
+        return self.file
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Unlock the file here
+        self.file.close()
+        # Returning False will propagate exceptions
+        return False
+```
+
+---
+
+# Step 5: Locking Logic
+
+### 5.1 Unix
+
+```python
+if not IS_WINDOWS:
+    fcntl.flock(self.fd, fcntl.LOCK_EX)  # Exclusive lock, blocks until free
+```
+
+- **`LOCK_EX`** = exclusive lock (no other process can acquire)
+- **Blocks until available** (default behavior)
+- Can use `LOCK_NB` to **not block** (raises exception if locked)
+
+### 5.2 Windows
+
+```python
+if IS_WINDOWS:
+    # Windows requires a writable file for exclusive lock
+    if 'r' in self.mode and '+' not in self.mode:
+        self.file.close()
+        self.file = open(self.filepath, 'r+')
+        self.fd = self.file.fileno()
+    # Lock first byte
+    msvcrt.locking(self.fd, msvcrt.LK_LOCK, 1)
+```
+
+- Locks **first byte as a mutex**
+- **`LK_LOCK`** = block until available
+- **Gotcha:** Opening read-only will fail → `PermissionError` (this is the problem you saw)
+- **Gotcha:** You can only lock bytes, so we pick 1 byte to act as a global lock
+
+---
+
+# Step 6: Unlocking
+
+### 6.1 Unix
+
+```python
+fcntl.flock(self.fd, fcntl.LOCK_UN)
+```
+
+- Releases the exclusive lock
+
+### 6.2 Windows
+
+```python
+msvcrt.locking(self.fd, msvcrt.LK_UNLCK, 1)
+```
+
+- Releases the locked byte
+
+**Important:** Always unlock in `__exit__` to avoid deadlocks.
+
+---
+
+# Step 7: Understanding `__exit__` Parameters
+
+```python
+def __exit__(self, exc_type, exc_val, exc_tb):
+```
+
+- `exc_type`: the **exception class** (e.g., `FileNotFoundError`) if one occurred, else `None`
+- `exc_val`: the **exception instance** (e.g., the actual error object)
+- `exc_tb`: the **traceback object** (stack trace at exception point)
+- Returning **`False`** → propagate the exception
+- Returning **`True`** → suppress the exception
+
+This is why context managers are safe: even if reading/writing fails, the lock is released.
+
+---
+
+# Step 8: Using `LockedFile` in Your Project
+
+Now, instead of:
+
+```python
+with open("locks.json", "r") as f:
+    locks = json.load(f)
+```
+
+We do:
+
+```python
+with LockedFile("locks.json", "r") as f:
+    locks = json.load(f)
+```
+
+- Ensures **only one process reads/writes** at a time
+- Prevents **race conditions** when checking out files
+- Automatically unlocks even if **JSON parsing fails** (prevents deadlocks)
+
+---
+
+# Step 9: Common Gotchas and Pitfalls
+
+1. **PermissionError on Windows**
+
+   - Happens if the file is opened `'r'` and you try `msvcrt.LK_LOCK` → fix: use `'r+'`
+
+2. **Deadlocks**
+
+   - Forgetting to release the lock or raising an exception inside `with` without a context manager → lock never released
+
+3. **Multiple locks**
+
+   - Locking the same file multiple times in nested contexts may fail on Windows (you cannot lock the same byte twice)
+
+4. **File existence**
+
+   - Locking a non-existent file raises `FileNotFoundError` → create file if it doesn't exist
+
+5. **Non-blocking mode**
+
+   ```python
+   fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+   ```
+
+   - Raises `BlockingIOError` if already locked
+   - Useful for **timeouts or fail-fast behavior**
+
+---
+
+# Step 10: Optional Improvements
+
+- Use **`filelock` library** for simpler cross-platform solution
+- Add **timeout parameter** to context manager
+- Use **retry loops** if multiple processes frequently conflict
+- Log lock acquisition and release for **debugging**
+
+---
+
+# ✅ Step 11: Summary
+
+1. File locks prevent **simultaneous writes**.
+2. Python uses `fcntl` on Unix, `msvcrt` on Windows.
+3. A **context manager** ensures locks are **always released**, even on exceptions.
+4. On Windows, remember **read/write mode** to avoid `PermissionError`.
+5. `__exit__(exc_type, exc_val, exc_tb)` parameters let you safely manage exceptions.
+
+---
+
+This tutorial now could **replace your short note about using `fcntl`/`msvcrt`**, and can be **appended to your existing tutorial** before you introduce the `LockedFile` class in your code. It also explains **why your code failed**, which is a common gotcha for beginners.
+
+### Step 12: Fetching Files from the Repository with Locking
+
+We previously learned how to scan a repository and return a list of files. Now, we’ll **safely manage locks** when reading/writing the `locks.json` file.
+
+---
+
+## 12.1 Step 1: Define Paths
+
+```python
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+REPO_PATH = BASE_DIR / 'repo'
+LOCKS_FILE = BASE_DIR / 'locks.json'
+VALID_EXTENSIONS = {".mcam", ".vnc"}
+```
+
+- `BASE_DIR` → directory containing our script
+- `REPO_PATH` → folder where the CAM files are stored
+- `LOCKS_FILE` → stores lock info in JSON format
+- `VALID_EXTENSIONS` → only return files we care about
+
+---
+
+## 12.2 Step 2: Load Locks Safely
+
+```python
+import json
+
+def load_locks() -> dict:
+    """Load locks.json safely using LockedFile"""
+    if not LOCKS_FILE.exists():
+        # If locks file does not exist, return empty dict
+        return {}
+
+    try:
+        with LockedFile(LOCKS_FILE, 'r') as f:
+            locks = json.load(f)
+        return locks
+    except json.JSONDecodeError:
+        # If the file is corrupt, return empty dict
+        return {}
+```
+
+**Explanation:**
+
+- By using `with LockedFile(...)`, we **ensure no other process is reading or writing** at the same time.
+- Even if `json.load` fails, the file is properly closed and unlocked.
+- This prevents **race conditions**, where multiple users might overwrite each other’s changes.
+
+---
+
+## 12.3 Step 3: Save Locks Safely
+
+```python
+def save_locks(locks: dict):
+    """Save locks.json safely using LockedFile"""
+    with LockedFile(LOCKS_FILE, 'w') as f:
+        json.dump(locks, f, indent=4)
+```
+
+- Always **use LockedFile** when writing
+- Indent 4 for readability
+- Guarantees that **other processes cannot read partial data** while writing
+
+---
+
+## 12.4 Step 4: Fetch Files with Lock Status
+
+```python
+import os
+
+def get_files():
+    """Return all CAM files in the repository with lock info"""
+    # Load current locks
+    locks = load_locks()
+
+    # Check that repository exists
+    if not REPO_PATH.exists():
+        raise FileNotFoundError(f"Repository path not found: {REPO_PATH}")
+
+    all_items = os.listdir(REPO_PATH)
+
+    files = []
+    for filename in all_items:
+        full_path = REPO_PATH / filename
+
+        # Only consider files with valid extensions
+        if full_path.is_file() and Path(filename).suffix in VALID_EXTENSIONS:
+            if filename in locks:
+                status = "checked_out"
+                locked_by = locks[filename]["user"]
+            else:
+                status = "available"
+                locked_by = None
+
+            files.append({
+                "name": filename,
+                "status": status,
+                "locked_by": locked_by,
+                "size": full_path.stat().st_size
+            })
+
+    return files
+```
+
+**Explanation:**
+
+- Each file is checked against `locks.json`
+- Lock status is included in the result
+- If a file is **checked out**, the UI can display **who has it locked**
+
+---
+
+## 12.5 Step 5: Checking Out a File
+
+```python
+from datetime import datetime, timezone
+
+def checkout_file(filename: str, user: str, message: str):
+    """Acquire a lock for a specific file"""
+    locks = load_locks()
+
+    if filename in locks:
+        # Someone else has already checked it out
+        raise Exception(f"{filename} is already checked out by {locks[filename]['user']}")
+
+    # Add lock
+    locks[filename] = {
+        "user": user,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "message": message
+    }
+
+    save_locks(locks)
+    return f"{filename} successfully checked out by {user}"
+```
+
+**Explanation / Gotchas:**
+
+- Without locking `locks.json`, two processes could **check out the same file simultaneously**, leading to a **race condition**.
+- Always load and save inside **`LockedFile`** to ensure atomicity.
+
+---
+
+## 12.6 Step 6: Checking In a File
+
+```python
+def checkin_file(filename: str, user: str):
+    """Release a lock on a file"""
+    locks = load_locks()
+
+    if filename not in locks:
+        raise Exception(f"{filename} is not checked out")
+
+    if locks[filename]["user"] != user:
+        raise Exception(f"{filename} is locked by {locks[filename]['user']}, not {user}")
+
+    del locks[filename]
+    save_locks(locks)
+    return f"{filename} successfully checked in by {user}"
+```
+
+**Explanation:**
+
+- Only the **user who locked** the file can check it back in.
+- Prevents accidental overwrites
+- LockedFile ensures **atomic read/write** of `locks.json`
+
+---
+
+## 12.7 Step 7: Real-World Gotchas
+
+1. **Windows PermissionError**
+
+   - Opening `locks.json` with `'r'` will fail if using `msvcrt.LK_LOCK`. Use `'r+'` or `'w+'` when acquiring exclusive locks.
+
+2. **Corrupted JSON**
+
+   - If a process crashes during write, `locks.json` could be incomplete. Consider **writing to a temp file first**, then renaming.
+
+3. **Deadlocks**
+
+   - Multiple processes waiting on each other indefinitely. Avoid by **locking only when necessary**, **locking minimally**, and optionally using **timeouts**.
+
+4. **Advisory vs Mandatory Locking**
+
+   - Unix locks are advisory: all processes must cooperate. Windows locks are mandatory.
+
+5. **Nested Locks**
+
+   - Locking the same file twice in a single process can fail on Windows. Avoid nested `LockedFile` on same file.
+
+---
+
+## 12.8 Step 8: Full Flow Example
+
+```python
+### Fetch files and print status
+for f in get_files():
+    print(f"{f['name']} - {f['status']} - {f['locked_by']}")
+
+### User "Alice" checks out a file
+checkout_file("4801247.mcam", "Alice", "Working on revisions")
+
+### User "Alice" checks it back in
+checkin_file("4801247.mcam", "Alice")
+```
+
+- Demonstrates the **full lifecycle**: fetch → lock → unlock
+- Safe for **multi-user environments**
+
+---
+
+✅ **Outcome**
+
+- Atomic, safe locking with **cross-platform support**
+- Proper exception handling
+- Avoids race conditions, file corruption, and permission errors
+- Explains **why your previous PermissionError happened** (Windows byte-level locking + read-only mode)
+
+---
+
 ### 3.8.1 Windows-Specific Gotcha: `fcntl` vs `msvcrt`
 
 The tutorial's `LockedFile` class uses `fcntl`, which is a **Unix-only module**. It will crash on Windows. To write cross-platform code, we need to detect the OS and use the correct library.
