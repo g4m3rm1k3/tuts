@@ -318,6 +318,375 @@ This non-blocking approach allows a single worker to handle many connections con
 
 ### Your Turn: Explore the Concepts
 
+**Assumptions / quick notes**
+
+- Python 3.8+ recommended (3.11+ is better).
+- If you use an interactive REPL: IPython or `python -m asyncio` / IPython supports top-level `await`. Regular `python` script requires `asyncio.run(...)`.
+- File name suggestions: `async_demo_step1.py`, `async_demo_step2.py`, etc. Type each short snippet, run it, then continue.
+
+# Step 0 — quick setup
+
+Type this first in a new file or REPL.
+
+```py
+# Step0_setup.py
+import asyncio
+import time          # used in sync examples
+```
+
+**Why**: `asyncio` is the event loop library. `time` shows blocking behavior.
+
+---
+
+# Step 1 — synchronous blocking demo (WSGI style)
+
+Type and run this block as a script.
+
+```py
+# Step1_sync.py (type this)
+import time
+
+def synchronous_task(name, wait_time):
+    print(f"Task {name}: start ({wait_time}s)")
+    time.sleep(wait_time)          # BLOCKS the whole thread
+    print(f"Task {name}: done")
+
+def run_synchronous_demo():
+    print("Synchronous demo start")
+    t0 = time.time()
+    synchronous_task("A", 2)
+    synchronous_task("B", 1)
+    print("Total:", time.time() - t0)
+
+if __name__ == "__main__":
+    run_synchronous_demo()
+```
+
+**What you’ll see**
+
+```
+Synchronous demo start
+Task A: start (2s)
+Task A: done
+Task B: start (1s)
+Task B: done
+Total: ~3.00
+```
+
+**Why / concept**
+
+- `time.sleep()` blocks the OS thread. Nothing else runs while sleeping.
+- This models **WSGI** server behavior where each request handler blocks a worker thread/process; concurrent requests require multiple workers.
+
+**Side note**: Blocking I/O in web servers forces you to add processes/threads to get concurrency — wasteful for many concurrent network-bound tasks.
+
+---
+
+# Step 2 — asynchronous coroutines (ASGI style)
+
+Now type the async version (use a new file or REPL cell). Run with `python step2_async.py` **or** in REPL use `await run_asynchronous_demo()` (IPython).
+
+```py
+# Step2_async.py
+import asyncio
+import time
+
+async def asynchronous_task(name, wait_time):
+    print(f"Task {name}: start ({wait_time}s)")
+    await asyncio.sleep(wait_time)   # NON-blocking: yields control to event loop
+    print(f"Task {name}: done")
+
+async def run_asynchronous_demo():
+    print("Asynchronous demo start")
+    t0 = time.time()
+    await asyncio.gather(
+        asynchronous_task("C", 2),
+        asynchronous_task("D", 1)
+    )
+    print("Total:", time.time() - t0)
+
+if __name__ == "__main__":
+    asyncio.run(run_asynchronous_demo())
+```
+
+**What you’ll see**
+
+```
+Asynchronous demo start
+Task C: start (2s)
+Task D: start (1s)
+Task D: done
+Task C: done
+Total: ~2.00
+```
+
+**Why / concept**
+
+- `async def` declares a coroutine function. Calling it returns a coroutine object; `await` suspends the coroutine and lets other coroutines run.
+- `asyncio.sleep` is non-blocking — it schedules a wake-up with the loop, letting other tasks run in the meantime.
+- `asyncio.gather` runs coroutines concurrently (not parallel). The total time ≈ longest task, not sum.
+
+**Gotcha**: `await` does _not_ spawn a new OS thread. It yields to the loop; concurrency is cooperative.
+
+---
+
+# Step 3 — `create_task` vs `gather`
+
+Type this to see different behaviors and why you'd use one or the other.
+
+```py
+# Step3_create_vs_gather.py
+import asyncio, time
+
+async def t(name, delay):
+    print(f"{name} start")
+    await asyncio.sleep(delay)
+    print(f"{name} end")
+    return name
+
+async def demo():
+    # create_task launches tasks that run concurrently and are not automatically awaited
+    task1 = asyncio.create_task(t("T1", 2))
+    task2 = asyncio.create_task(t("T2", 1))
+
+    # do other work while tasks run
+    print("Doing other work between scheduling and awaiting")
+    await asyncio.sleep(0.2)
+
+    # await both results — here we wait for both; gather could also be used
+    results = await asyncio.gather(task1, task2)
+    print("Results:", results)
+
+asyncio.run(demo())
+```
+
+**Why / concept**
+
+- `create_task` schedules execution immediately; it returns an `asyncio.Task` object you can hold on to.
+- `gather` is best when you want to start and wait for multiple coroutines in one step.
+- If you `create_task` and forget to await (or monitor) it, the program might exit with unfinished tasks or they may run in background (depending on loop/host). Always manage tasks (await, cancel, or add callbacks).
+
+**Side note**: `asyncio.create_task` is the “spawn” primitive; `gather` is a convenience to await many things.
+
+---
+
+# Step 4 — I/O-bound vs CPU-bound & `run_in_executor`
+
+**Important rule**: use `async/await` for _I/O-bound_ concurrency. For CPU heavy tasks, use threads/processes.
+
+Type this snippet to offload CPU-bound work without blocking the loop.
+
+```py
+# Step4_executor.py
+import asyncio, time
+from concurrent.futures import ThreadPoolExecutor
+
+def cpu_heavy(n):
+    # blocking CPU-bound task (fake work)
+    s = 0
+    for i in range(10_000_000):
+        s += (i % n)
+    return s
+
+async def main():
+    loop = asyncio.get_running_loop()
+    t0 = time.time()
+    # run cpu_heavy in threadpool to avoid blocking the event loop
+    result = await loop.run_in_executor(None, cpu_heavy, 7)  # None = default ThreadPoolExecutor
+    print("CPU result:", result, "took", time.time() - t0)
+
+asyncio.run(main())
+```
+
+**Why / concept**
+
+- `run_in_executor` schedules blocking work in a thread (or process) pool so the event loop remains responsive.
+- Use `concurrent.futures.ProcessPoolExecutor` for CPU-bound tasks if Python’s GIL is a bottleneck.
+
+**Gotcha**: spinning threads unconstrained can lead to context switching overhead. Tune your pool size.
+
+---
+
+# Step 5 — timeouts and cancellation
+
+Type and run this small example to see cancellation and `asyncio.wait_for`.
+
+```py
+# Step5_timeout.py
+import asyncio
+
+async def slow():
+    try:
+        await asyncio.sleep(5)
+        return "done"
+    except asyncio.CancelledError:
+        print("slow: cancelled")
+        raise
+
+async def main():
+    try:
+        # cancel if not done in 1 second
+        result = await asyncio.wait_for(slow(), timeout=1.0)
+        print("Result:", result)
+    except asyncio.TimeoutError:
+        print("Timed out!")
+
+asyncio.run(main())
+```
+
+**What you’ll see**
+
+```
+Timed out!
+slow: cancelled
+```
+
+**Why / concept**
+
+- `asyncio.wait_for` raises `asyncio.TimeoutError` and cancels the wrapped task.
+- Proper coroutine code should handle `CancelledError` for cleanup if needed.
+
+---
+
+# Step 6 — quick mapping to FastAPI / ASGI
+
+A minimal FastAPI app illustrating async vs sync endpoints. Type this into `app.py` and run with `uvicorn app:app --reload`.
+
+```py
+# app.py
+from fastapi import FastAPI
+import time
+
+app = FastAPI()
+
+@app.get("/sync")
+def sync_endpoint():
+    time.sleep(2)          # blocks the worker (thread/process)
+    return {"type": "sync", "msg": "finished"}
+
+@app.get("/async")
+async def async_endpoint():
+    await asyncio.sleep(2) # yields to event loop — other requests handled concurrently
+    return {"type": "async", "msg": "finished"}
+```
+
+**Why / concept**
+
+- ASGI (Uvicorn/Hypercorn) uses an event loop; `async def` endpoints allow high concurrency for network I/O.
+- `sync` endpoints are run in a threadpool by FastAPI/Starlette by default — they block that worker thread while running.
+- **Scaling note**: uvicorn `--workers N` spawns N OS processes; each has its own event loop and threadpool. Use processes for CPU-bound scale-out.
+
+---
+
+# Step 7 — debugging tips and tooling
+
+- `PYTHONASYNCIODEBUG=1` or `asyncio.get_event_loop().set_debug(True)` — more verbose loop diagnostics.
+- `asyncio.all_tasks()` inside loop (or `asyncio.Task.all_tasks()` in older versions) shows outstanding tasks.
+- Use logging rather than `print` for production tracing.
+- Use `trio` or `anyio` for alternative structured concurrency models (optional advanced).
+
+---
+
+# Common gotchas (short)
+
+- `time.sleep()` vs `asyncio.sleep()` — don’t mix them inside coroutines.
+- Forgetting to `await` a coroutine: calling `async def f(): ...; f()` returns coroutine object and does nothing until awaited/scheduled.
+- Unhandled `CancelledError` may swallow cleanup; handle it if necessary.
+- `await` inside a for-loop is sequential; use `gather` to run things concurrently.
+- `asyncio.run` cannot be called when an event loop is already running (e.g., inside some REPLs); use `await` in IPython or `nest_asyncio` only if you really know what you’re doing.
+
+---
+
+# Playground exercises (type them and run; solutions follow)
+
+1. **Convert** the synchronous demo (`Step1_sync`) to an async version step-by-step and show total time is max, not sum. (You did this earlier — retype to reinforce.)
+2. **Forget-to-await**: create an `async def f(): ...` then call it without `await` — inspect the returned object and explain.
+3. **Parallel fetch simulation**: simulate 5 network calls using `asyncio.sleep` and run them concurrently with a concurrency limit of 2.
+4. **CPU offload**: run a small CPU-bound function 4x concurrently using `run_in_executor` and measure elapsed time vs running them sequentially.
+5. **FastAPI concurrency test**: run the `app.py` from Step 6 and `curl` both endpoints simultaneously — compare behavior.
+
+---
+
+# Solutions (concise)
+
+### Ex 2 (forget-to-await)
+
+```py
+async def say():
+    print("hello")
+    await asyncio.sleep(0.1)
+    print("bye")
+
+coro = say()                 # returns coroutine object
+print(coro)                  # <coroutine object say at 0x...>
+# nothing runs until you await or schedule:
+asyncio.run(say())           # correct way
+# or schedule: t = asyncio.create_task(say())
+```
+
+### Ex 3 (concurrency limit: semaphore)
+
+```py
+import asyncio, time
+async def fake_network(i):
+    print("start", i)
+    await asyncio.sleep(1)   # simulate IO
+    print("end", i)
+    return i
+
+async def limited_run(tasks, limit=2):
+    sem = asyncio.Semaphore(limit)
+    async def worker(i):
+        async with sem:
+            return await fake_network(i)
+    return await asyncio.gather(*(worker(i) for i in tasks))
+
+async def main():
+    t0 = time.time()
+    res = await limited_run(range(5), limit=2)
+    print("done", res, "took", time.time()-t0)
+
+asyncio.run(main())
+```
+
+### Ex 4 (run_in_executor)
+
+```py
+from concurrent.futures import ThreadPoolExecutor
+import asyncio, time
+
+def cpu_task(n):
+    s=0
+    for i in range(5_000_000):
+        s += i % n
+    return s
+
+async def main():
+    loop = asyncio.get_running_loop()
+    t0 = time.time()
+    # run 4 CPU tasks concurrently in threadpool
+    futs = [loop.run_in_executor(None, cpu_task, x) for x in (2,3,4,5)]
+    results = await asyncio.gather(*futs)
+    print("took", time.time()-t0, results)
+
+asyncio.run(main())
+```
+
+- Running sequentially would take ~4× time; in threadpool they overlap on IO/blocked times but CPU still competes for cores — use process pool for true parallel CPU work.
+
+---
+
+# Final checklist — short cheatsheet
+
+- Use async for I/O-bound concurrency.
+- Use `asyncio.sleep` in tests (never `time.sleep`).
+- `asyncio.create_task` schedules; `await` waits.
+- Use `run_in_executor` (thread/process) for blocking or CPU tasks.
+- Handle `CancelledError` / use `wait_for` for timeouts.
+- For web apps: prefer `async def` endpoints for I/O work; sync endpoints run in threadpool and block that worker.
+
+---
+
 Create this educational file to see the concepts in code. This file is for learning only and won't be part of our final app.
 
 **File: `backend/app/learn_asgi.py`**

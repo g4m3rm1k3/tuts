@@ -1,5 +1,6 @@
 import os
 import json
+import msvcrt
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
@@ -64,6 +65,42 @@ class CheckinRequest(BaseModel):
 # LOCK MANAGEMENT FUNCTIONS
 
 
+class LockedFile:
+    """Context manager for file locking
+    Ensures only one process can access the file at a time
+
+    Raises:
+        HTTPException: _description_
+        HTTPException: _description_
+        HTTPException: _description_
+        HTTPException: _description_
+        HTTPException: _description_
+        HTTPException: _description_
+
+    Returns:
+        _type_: _description_
+    """
+
+    def __init__(self, filepath, mode='r'):
+        self.filepath = filepath
+        self.mode = mode
+        self.file = None
+
+    def __enter__(self):
+        self.file = open(self.filepath, self.mode)
+        # Acquire exlusive lock (blocks until available)
+        msvcrt.flock(self.file, msvcrt.LOCK_EX)
+        logger.debug(f"Acquired lock on {self.filepath}")
+        return self.file
+
+    def __exit__(self, exe_type, exc_val, exc_tb):
+        # Release lock
+        msvcrt.flock(self.file, msvcrt.LOCK_UN)
+        self.file.close()
+        logger.debug(f"Released lock on {self.filepath}")
+        return False
+
+
 def load_locks() -> dict:
     """Load lock data from locks.json
 
@@ -79,7 +116,7 @@ def load_locks() -> dict:
         return {}
 
     try:
-        with open(LOCKS_FILE, 'r') as f:
+        with LockedFile(LOCKS_FILE, 'r') as f:
             locks = json.load(f)
         logger.info(f"Loaded {len(locks)} locks from file")
         return locks
@@ -102,7 +139,7 @@ def save_locks(locks: dict):
         _type_: _description_
     """
     try:
-        with open(LOCKS_FILE, 'w') as f:
+        with LockedFile(LOCKS_FILE, 'w') as f:
             json.dump(locks, f, indent=4)
         logger.info(f"Saved {len(locks)} locks from file")
     except Exception as e:
