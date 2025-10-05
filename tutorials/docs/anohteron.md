@@ -157,6 +157,73 @@ Run `python path_viewer.py`. When you type a command, your shell looks for an ex
 
 ---
 
+Got it — let’s clear up the confusion step by step.
+
+The code you pasted (`path_viewer.py`) is **not using `Path` from `pathlib` at all**. It’s just using `os.environ` and string splitting to look at your system’s `PATH` variable. That’s why it feels disconnected from `pathlib`.
+
+---
+
+### What’s happening in this script:
+
+```python
+import os
+
+# Get the PATH environment variable (all the folders your system searches for executables)
+path_variable = os.environ.get("PATH", "")
+
+# Split that long string into a list of directories
+directories = path_variable.split(os.pathsep)
+
+# Print them out nicely
+print("Your system's PATH includes:")
+for i, directory in enumerate(directories):
+    print(f"{i+1}: {directory}")
+```
+
+- **`os.environ`**: dictionary-like object with all your environment variables.
+- **`PATH`**: an environment variable listing directories your system searches when you run a command (like `python`, `git`, `node`).
+- **`os.pathsep`**: the correct separator for your system (`:` on Linux/Mac, `;` on Windows).
+- **`split(...)`**: breaks the PATH string into a list of directories.
+
+So the script just dumps your `PATH` contents in a numbered list.
+
+---
+
+### Where `pathlib.Path` comes in
+
+If you _did_ want to use `pathlib.Path`, you could turn each string into a `Path` object. That makes it easier to check existence, join subpaths, etc. Example:
+
+```python
+from pathlib import Path
+import os
+
+path_variable = os.environ.get("PATH", "")
+directories = path_variable.split(os.pathsep)
+
+print("Your system's PATH includes:")
+for i, directory in enumerate(directories):
+    p = Path(directory)   # turn string into Path object
+    exists = " (exists)" if p.exists() else " (missing)"
+    print(f"{i+1}: {p}{exists}")
+```
+
+This way you can also run operations like:
+
+```python
+p = Path(directories[0])
+print(p.resolve())       # absolute path
+print(list(p.glob("*.exe")))  # find executables inside
+```
+
+---
+
+✅ So the difference is:
+
+- The code you got is **string-only**, just dumping text.
+- If you import `Path` from `pathlib`, you’re **working with actual path objects** that can be tested and manipulated more safely and cleanly.
+
+---
+
 ## 0.4: Virtual Environments (`venv`)
 
 ### The Problem: Dependency Conflicts
@@ -447,6 +514,184 @@ def get(path):
 ```
 
 This is a powerful concept from functional programming that allows you to add functionality (like routing, authentication, or logging) to functions without modifying their internal code.
+
+---
+
+## 1. Regular functions vs. decorators
+
+### Normal function call
+
+```python
+def double(x):
+    return x * 2
+
+print(double(5))  # calls double, prints 10
+```
+
+Here, you call `double(5)` → Python executes it immediately and gives you a result.
+
+---
+
+### Function as a first-class object
+
+In Python, functions are objects. That means you can:
+
+- Assign them to variables
+- Pass them into functions
+- Return them from functions
+
+```python
+def hello():
+    return "hi"
+
+greet = hello  # no () → we’re *assigning* the function itself
+print(greet())  # "hi"
+```
+
+---
+
+## 2. A simple decorator
+
+A **decorator** is just a function that takes another function as input, and returns a new function (or the same one).
+
+```python
+def my_decorator(func):
+    def wrapper():
+        print("Before the function runs")
+        result = func()
+        print("After the function runs")
+        return result
+    return wrapper
+
+@my_decorator
+def say_hi():
+    print("Hi!")
+
+say_hi()
+```
+
+Output:
+
+```
+Before the function runs
+Hi!
+After the function runs
+```
+
+> `@my_decorator` is just shorthand for:
+
+```python
+say_hi = my_decorator(say_hi)
+```
+
+So `say_hi` is replaced with whatever `my_decorator` returns.
+
+---
+
+## 3. Decorator _factories_ (like `@get("/")`)
+
+Sometimes you want the decorator itself to take arguments. That’s where “wrapping a function in a function” comes in.
+
+```python
+def repeat(n):     # outer function → makes a decorator
+    def decorator(func):  # the actual decorator
+        def wrapper(*args, **kwargs):
+            for _ in range(n):
+                func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+@repeat(3)   # calls repeat(3) → returns 'decorator'
+def greet():
+    print("Hello")
+
+greet()
+```
+
+Output:
+
+```
+Hello
+Hello
+Hello
+```
+
+Here’s the flow:
+
+1. Python sees `@repeat(3)`.
+2. It calls `repeat(3)`. That returns the `decorator` function.
+3. Then it applies `decorator(greet)`.
+
+Which is the same as:
+
+```python
+greet = repeat(3)(greet)
+```
+
+---
+
+## 4. FastAPI’s `@get("/")`
+
+FastAPI does exactly this.
+
+```python
+def get(path):                 # "factory" that takes the path
+    def decorator(func):       # actual decorator
+        print(f"Registering {func.__name__} at {path}")
+        return func            # FastAPI adds func to its routing table here
+    return decorator
+```
+
+So when you write:
+
+```python
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+```
+
+The flow is:
+
+1. `app.get("/")` is called → returns a `decorator` function.
+2. That `decorator` is immediately applied to `read_root`.
+3. FastAPI uses the decorator to register `read_root` under the path `/`.
+4. The function itself (`read_root`) doesn’t change — it’s just tracked by FastAPI now.
+
+Which is literally:
+
+```python
+read_root = app.get("/")(read_root)
+```
+
+---
+
+## 5. Key takeaway
+
+- A decorator is just **function replacement**:
+
+  ```python
+  @decorator
+  def f(): ...
+  ```
+
+  is the same as:
+
+  ```python
+  f = decorator(f)
+  ```
+
+- If the decorator needs arguments (`@get("/")`), then it’s actually two layers:
+
+  ```python
+  f = get("/")(f)
+  ```
+
+---
+
+👉 Think of it like this:
+
+- **Plain decorator (`@foo`)** = 1 wrapper function.
+- **Decorator factory (`@foo(...)`)** = 2 layers: one factory, one decorator.
 
 ---
 

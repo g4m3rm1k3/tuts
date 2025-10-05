@@ -100,6 +100,7 @@ When you "install Python," you're installing an **interpreter** - a program that
 3. Run the installer
 4. **CRITICAL:** Check "Add Python to PATH" before clicking Install
 5. Verify installation:
+
    ```powershell
    python --version
    ```
@@ -161,6 +162,7 @@ Node.js is **JavaScript running outside the browser**. Traditionally, JavaScript
 2. Download the **LTS (Long Term Support)** version (currently 20.x or 22.x)
 3. Run the installer (accept all defaults)
 4. Verify installation:
+
    ```bash
    node --version
    npm --version
@@ -999,8 +1001,6 @@ Before moving to Stage 1, verify you have:
 - Future installs will be cached
 
 ---
-
-## What's Next?
 
 Stage 0 was about preparation. You now have:
 
@@ -2320,7 +2320,7 @@ async def async_demo():
 - [ ] Understand async vs sync
 - [ ] Know the difference between path and query parameters
 
-### What's Next?
+#
 
 In **Stage 2**, we'll add a frontend. You'll learn:
 
@@ -3138,6 +3138,523 @@ const data = await response.json(); // Wait for body parsing
 
 The response headers arrive first; the body might still be streaming.
 
+Nice — you asked for a full, deep, practical tutorial. I’ll explain the _exact_ `async/await` example you gave, the history that led us here, the runtime mechanics (event loop / microtasks), comparisons to older styles (XHR / callbacks / `.then`), a Python `httpx` mapping, advanced patterns (timeouts, retries, concurrency limits, cancellation), and a set of playground exercises with solutions you can paste into your tutorial.
+
+I'll start with a corrected, annotated version of your function (fixed typos and added defensive behavior), then dive into details.
+
+# Corrected, annotated example
+
+```javascript
+// loadFiles.js
+async function loadFiles() {
+  console.log("Loading files from API...");
+
+  try {
+    // Make GET request to our API (relative URL; in production use full origin)
+    const response = await fetch("/api/files");
+
+    // fetch() only rejects for network/CORS failures — not for HTTP errors
+    if (!response.ok) {
+      // response.status is numeric (e.g., 404)
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // response.json() returns a Promise that resolves to the parsed JSON object
+    const data = await response.json();
+    console.log("Received data:", data);
+
+    // assume data.files is an array
+    displayFiles(data.files);
+  } catch (error) {
+    // catches thrown Errors or rejected promises from above
+    console.error("Error loading files:", error);
+    displayError("Failed to load files. Please refresh the page.");
+  }
+}
+```
+
+---
+
+# 1) Short summary — what this code does
+
+1. Logs "Loading files from API..."
+2. Calls `fetch("/api/files")`, which returns a **Promise** for a `Response` object (async network request).
+3. `await` pauses `loadFiles` (non-blocking) until that Promise resolves.
+4. Checks `response.ok` to detect HTTP error codes (4xx/5xx).
+5. Calls `response.json()` (also returns a Promise) and `await`s it to get parsed data.
+6. Calls `displayFiles(data.files)` if everything OK; otherwise handles errors in the `catch`.
+
+---
+
+# 2) Line-by-line execution _at runtime_ (step-by-step)
+
+When `loadFiles()` is invoked:
+
+1. **Call** `loadFiles()` — it immediately returns a Promise (because async functions always return a Promise).
+2. Synchronous: `console.log("Loading files from API...")` prints.
+3. `fetch("/api/files")` is called. `fetch` starts an HTTP request and **returns a Promise** (let's call it `Pfetch`). The JS engine continues; it does **not** block the main thread.
+4. `await Pfetch`:
+
+   - The async function yields control; the remainder of `loadFiles` is scheduled as a **microtask** to resume when `Pfetch` resolves.
+   - Meanwhile the event loop keeps running (UI remains responsive).
+
+5. When the HTTP response arrives, `Pfetch` resolves with a `Response` object. The microtask queue schedules the continuation of the async function; continuation runs _before_ the next macrotask (e.g., `setTimeout`).
+6. The code checks `response.ok`. If false, `throw new Error(...)` -> rejects the Promise returned by `loadFiles()` and jumps to `catch`.
+7. If ok, call `response.json()` -> returns a Promise (`Pjson`) because parsing is async. `await Pjson` again yields control until parsing finishes.
+8. When parsing completes, `data` is available. Then `displayFiles(data.files)` is called synchronously.
+9. If any awaited Promise rejects, control jumps to the `catch` block where the error is handled (logged and user-facing message displayed). The Promise returned by `loadFiles()` settles (resolved on success, rejected only if re-thrown outside the `catch`).
+
+---
+
+# 3) Under-the-hood: Promises, `await`, and the event loop
+
+- **Promises**: represent future values. `fetch()` returns a Promise. `response.json()` returns a Promise.
+
+- **`async` function**: syntactic sugar — an `async` function returns a Promise. `await` is sugar over `.then()`:
+
+  - `const res = await fetch()` ≈ `fetch().then(res => { ... })` (but `await` is sequential and easier to read).
+
+- **Event loop & microtasks**:
+
+  - When an `await` suspends, the continuation is scheduled as a microtask (i.e., it runs before the next macrotask like `setTimeout`).
+  - `.then()` callbacks are also microtasks.
+  - Example ordering:
+
+    ```js
+    console.log("start");
+    setTimeout(() => console.log("timeout"), 0);
+    Promise.resolve().then(() => console.log("promise"));
+    console.log("end");
+    // Prints: start, end, promise, timeout
+    ```
+
+- **Important fetch behavior**:
+
+  - `fetch` _does not_ reject on HTTP error codes (404/500). It resolves with a `Response` whose `.ok` property is false. You must check `response.ok` and inspect `response.status`.
+  - `fetch` rejects on network failure, CORS failures, or if the request was aborted.
+
+---
+
+# 4) Short history — how we got here
+
+- **1999 (late/early 2000s)**: `XMLHttpRequest` existed in early browsers (IE introduced a variant earlier); people used it directly with callbacks for asynchronous network requests.
+- **2005**: The term **AJAX** ("Asynchronous JavaScript and XML") popularized the pattern of async requests from the browser (Jesse James Garrett).
+- **ES6 / ES2015** (~2015):
+
+  - **Promises** became standard. `.then()` chains replaced deeply nested callbacks.
+
+- **Fetch API** (~2015): modern Promise-based replacement for `XMLHttpRequest`. Cleaner API and streams support.
+- **ES2017 / ES8** (~2017): **async/await** added — syntactic sugar over Promises to write asynchronous code that looks synchronous.
+
+(This is a compressed timeline; the key point: callbacks → promises → async/await with `fetch` replacing XHR.)
+
+---
+
+# 5) Equivalent forms (showing the relation)
+
+### Callback + XHR (old style)
+
+```javascript
+function loadFilesXHR() {
+  console.log("Loading files from API (XHR)...");
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", "/api/files");
+  xhr.onload = function () {
+    if (xhr.status >= 200 && xhr.status < 300) {
+      const data = JSON.parse(xhr.responseText);
+      displayFiles(data.files);
+    } else {
+      console.error("HTTP error", xhr.status);
+      displayError("Failed to load files. Please refresh.");
+    }
+  };
+  xhr.onerror = function () {
+    console.error("Network error");
+    displayError("Failed to load files. Please refresh.");
+  };
+  xhr.send();
+}
+```
+
+### Promise chain (`fetch` + `.then`)
+
+```javascript
+function loadFilesThen() {
+  console.log("Loading files from API (then)...");
+  fetch("/api/files")
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json(); // returns a Promise
+    })
+    .then((data) => displayFiles(data.files))
+    .catch((err) => {
+      console.error("Error loading files:", err);
+      displayError("Failed to load files. Please refresh.");
+    });
+}
+```
+
+### `async/await` (your version) — clearer linear flow
+
+```javascript
+async function loadFiles() {
+  try {
+    const response = await fetch("/api/files");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    displayFiles(data.files);
+  } catch (err) {
+    // ...
+  }
+}
+```
+
+---
+
+# 6) Mapping conceptually to Python `httpx` / `requests`
+
+**Sync (requests):**
+
+```python
+import requests
+
+def load_files():
+    resp = requests.get("http://localhost:8000/api/files")  # blocking
+    if resp.status_code != 200:
+        raise RuntimeError(f"HTTP {resp.status_code}")
+    data = resp.json()
+    display_files(data["files"])
+```
+
+**Async (`httpx`):**
+
+```python
+import asyncio
+import httpx
+
+async def load_files_async():
+    async with httpx.AsyncClient() as client:
+        resp = await client.get("http://localhost:8000/api/files")
+        resp.raise_for_status()  # raises for 4xx/5xx
+        data = resp.json()
+        display_files(data["files"])
+
+# run with: asyncio.run(load_files_async())
+```
+
+- `await` in JS ≈ `await` in Python `asyncio`.
+- `fetch` ≈ `httpx.AsyncClient().get()`.
+- In Python sync `requests`, calls block the thread; in browsers, `fetch` is non-blocking (but single-threaded event loop). In Python, use `async` to get concurrency.
+
+---
+
+# 7) Advanced practical patterns
+
+### a) Timeouts with `AbortController`
+
+```javascript
+async function loadFilesWithTimeout(timeoutMs = 5000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch("/api/files", { signal: controller.signal });
+    clearTimeout(id);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    displayFiles(data.files);
+  } catch (err) {
+    if (err.name === "AbortError") {
+      displayError("Request timed out");
+    } else {
+      displayError("Network error");
+    }
+  }
+}
+```
+
+### b) Retries with exponential backoff + jitter
+
+```javascript
+async function fetchWithRetries(url, retries = 3) {
+  let delay = 200; // ms
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      if (i === retries) throw err;
+      // exponential backoff with jitter
+      const jitter = Math.random() * delay;
+      await new Promise((r) => setTimeout(r, delay + jitter));
+      delay *= 2;
+    }
+  }
+}
+```
+
+### c) Parallel requests: `Promise.all` vs `Promise.allSettled`
+
+```javascript
+// Parallel -> fails fast if any reject:
+const urls = ["/api/a", "/api/b"];
+const results = await Promise.all(
+  urls.map((u) => fetch(u).then((r) => r.json()))
+);
+
+// Wait for all, but capture successes and failures:
+const settled = await Promise.allSettled(
+  urls.map((u) => fetch(u).then((r) => r.json()))
+);
+```
+
+### d) Concurrency limit (N at a time)
+
+Simple queue/worker pattern:
+
+```javascript
+async function limitedMap(inputs, mapper, limit = 3) {
+  const results = [];
+  const executing = new Set();
+  for (const item of inputs) {
+    const p = Promise.resolve().then(() => mapper(item));
+    results.push(p);
+    executing.add(p);
+    p.finally(() => executing.delete(p));
+    if (executing.size >= limit) {
+      await Promise.race(executing);
+    }
+  }
+  return Promise.all(results);
+}
+```
+
+### e) Cancellation & cleanup
+
+- Use `AbortController` to cancel fetch.
+- Clean up UI on abort.
+- For long-running CPU tasks, use Web Workers.
+
+---
+
+# 8) Best practices checklist (quick)
+
+- Always check `response.ok` for HTTP status errors.
+- Use `AbortController` for timeouts and cancellation.
+- Use `try/catch` inside `async` functions to handle promise rejections.
+- Don’t block the main thread; use workers for CPU-heavy work.
+- Use `Promise.allSettled` if you need per-request results even on failures.
+- Limit concurrency when fetching many resources.
+- For retries, add exponential backoff + jitter.
+- For cross-origin, ensure CORS and credentials are configured (`fetch(..., { credentials: 'include' })` when needed).
+- Prefer streaming (`response.body.getReader()`) for very large responses.
+
+---
+
+# 9) Common gotchas
+
+- `fetch` won’t reject on 404 — check `.ok`.
+- `await` **does not** create a new thread; it suspends the async function but the JS thread is still single-threaded.
+- `async function` always returns a Promise — if you `return 42`, the function resolves to `42`.
+- Promise rejections that are not caught will surface as unhandled rejections.
+- When using `await` in loops, be careful: `for (item of items) await fetch(item)` is sequential (slow). Use `Promise.all` for parallel runs when safe.
+
+---
+
+# 10) Playground exercises (practice)
+
+Try these in order. I put solutions after the exercises.
+
+1. **Rewrite** `loadFiles` using `.then()` chains (no `async/await`) and ensure errors are handled.
+2. **XHR**: Implement `loadFilesXHR()` using `XMLHttpRequest` and callbacks.
+3. **Timeout**: Add a 3s timeout to `loadFiles` using `AbortController`. If timeout, show "timed out".
+4. **Retry**: Implement `fetchWithRetries(url, attempts)` with exponential backoff and jitter.
+5. **Parallel fetch**: Given `const fileUrls = ["/api/f1", "/api/f2", "/api/f3"]`, fetch all in parallel, but handle if any single fetch returns a 404 by ignoring that file (keep the rest).
+6. **Concurrency limit**: Fetch 20 URLs but only 4 at a time. Return an array of results (or errors).
+7. **Python async**: Write the `httpx` async equivalent of your original `loadFiles` and include a 5s timeout.
+
+---
+
+# 11) Solutions
+
+### 1) `.then()` version
+
+```javascript
+function loadFilesThen() {
+  console.log("Loading files from API...");
+  fetch("/api/files")
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    })
+    .then((data) => {
+      console.log("Received data:", data);
+      displayFiles(data.files);
+    })
+    .catch((error) => {
+      console.error("Error loading files:", error);
+      displayError("Failed to load files. Please refresh the page.");
+    });
+}
+```
+
+### 2) XHR version
+
+(see earlier XHR snippet — included again)
+
+```javascript
+function loadFilesXHR() {
+  console.log("Loading files from API (XHR)...");
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", "/api/files");
+  xhr.onload = function () {
+    if (xhr.status >= 200 && xhr.status < 300) {
+      const data = JSON.parse(xhr.responseText);
+      displayFiles(data.files);
+    } else {
+      console.error("HTTP error", xhr.status);
+      displayError("Failed to load files. Please refresh.");
+    }
+  };
+  xhr.onerror = function () {
+    console.error("Network error");
+    displayError("Failed to load files. Please refresh.");
+  };
+  xhr.send();
+}
+```
+
+### 3) Timeout with `AbortController`
+
+(see earlier snippet — same as solution)
+
+```javascript
+async function loadFilesWithTimeout(timeoutMs = 3000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch("/api/files", { signal: controller.signal });
+    clearTimeout(id);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    displayFiles(data.files);
+  } catch (err) {
+    if (err.name === "AbortError") {
+      displayError("Request timed out");
+    } else {
+      displayError("Failed to load files. Please refresh.");
+    }
+  }
+}
+```
+
+### 4) Retry with backoff & jitter
+
+(see earlier snippet `fetchWithRetries` — same)
+
+```javascript
+async function fetchWithRetries(url, retries = 3) {
+  let delay = 200;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      if (i === retries) throw err;
+      const jitter = Math.random() * delay;
+      await new Promise((r) => setTimeout(r, delay + jitter));
+      delay *= 2;
+    }
+  }
+}
+```
+
+### 5) Parallel fetch ignoring 404s
+
+```javascript
+async function fetchFilesIgnore404(urls) {
+  const promises = urls.map(async (url) => {
+    const r = await fetch(url);
+    if (!r.ok) {
+      if (r.status === 404) return null; // ignore missing file
+      throw new Error(`HTTP ${r.status} for ${url}`);
+    }
+    return await r.json();
+  });
+
+  // if you want to fail on other HTTP errors, use Promise.all(promises)
+  // to collect rejections. Here we'll use allSettled to see outcomes:
+  const settled = await Promise.allSettled(promises);
+  return settled
+    .filter((s) => s.status === "fulfilled")
+    .map((s) => s.value)
+    .filter(Boolean); // remove nulls from 404s
+}
+```
+
+### 6) Concurrency limit (worker queue)
+
+```javascript
+async function limitedFetch(urls, concurrent = 4) {
+  const results = new Array(urls.length);
+  let idx = 0;
+
+  async function worker() {
+    while (idx < urls.length) {
+      const i = idx++;
+      try {
+        const res = await fetch(urls[i]);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        results[i] = await res.json();
+      } catch (err) {
+        results[i] = { __error: err.message };
+      }
+    }
+  }
+
+  // start workers
+  await Promise.all(Array.from({ length: concurrent }, () => worker()));
+  return results;
+}
+```
+
+### 7) Python `httpx` async with timeout
+
+```python
+import asyncio
+import httpx
+
+async def load_files_httpx():
+    async with httpx.AsyncClient(timeout=5.0) as client:  # 5s timeout
+        resp = await client.get("http://localhost:8000/api/files")
+        resp.raise_for_status()
+        data = resp.json()
+        display_files(data["files"])
+
+# Run: asyncio.run(load_files_httpx())
+```
+
+---
+
+# 12) Final notes — mental model & how to teach others
+
+- **Mental model**: `async/await` lets you write asynchronous sequences in linear form. Under the hood it's still Promises and the event loop.
+- **Teaching progression**:
+
+  1. Show blocking vs non-blocking with trivial `setTimeout` examples.
+  2. Introduce callbacks (XHR) and show callback hell.
+  3. Introduce Promises and `.then()` as a cleaner abstraction.
+  4. Introduce `fetch()` which returns Promises.
+  5. Finally introduce `async/await` as syntactic sugar over Promises.
+  6. Demonstrate concurrency patterns (`Promise.all`, limits) and cancellation (`AbortController`).
+
+- **Practice**: hands-on exercises (above) plus instrumentation: log timestamps and durations around network calls to see concurrency in action.
+
+---
+
 ### DOM Manipulation
 
 **Finding elements:**
@@ -3694,7 +4211,7 @@ element.style.transform = "translateX(200px)";
 
 ---
 
-## Stage 2 Complete - You Built a Frontend!
+## Stage 2 Complete - You Built a Frontend
 
 ### What You Built
 
@@ -3734,7 +4251,7 @@ backend/
 - [ ] Understand async/await in JavaScript
 - [ ] Can use browser dev tools
 
-### What's Next?
+#
 
 In **Stage 3**, we'll make this app actually DO something by:
 
@@ -4789,7 +5306,7 @@ You should see:
 
 ---
 
-## Stage 3 Complete - Real File Operations!
+## Stage 3 Complete - Real File Operations
 
 ### What You Built
 
@@ -4841,7 +5358,7 @@ You now have:
 - [ ] Understand race conditions
 - [ ] Understand JSON serialization
 
-### What's Next?
+#
 
 In **Stage 4**, we'll modernize the frontend by introducing a **React component** (optional pivot) or enhancing our vanilla JS with better state management, and we'll add features like:
 
@@ -6110,7 +6627,7 @@ try {
 
 ---
 
-## Stage 4 Complete - Professional Frontend UX!
+## Stage 4 Complete - Professional Frontend UX
 
 ### What You Built
 
@@ -6179,7 +6696,7 @@ backend/
 - [ ] Understand JavaScript classes
 - [ ] Understand event delegation
 
-### What's Next?
+#
 
 In **Stage 5**, we'll add:
 
@@ -6554,8 +7071,8 @@ background: #ffffff;
 
 **Tools to check contrast:**
 
-- https://contrast-ratio.com/
-- https://webaim.org/resources/contrastchecker/
+- <https://contrast-ratio.com/>
+- <https://webaim.org/resources/contrastchecker/>
 - Browser DevTools (Chrome: "Show accessibility information")
 
 **Our palette must ensure:**
@@ -10797,7 +11314,7 @@ def serve_login():
 
 ---
 
-## Stage 5 Complete - Your App is Secure!
+## Stage 5 Complete - Your App is Secure
 
 ### What You Built
 
@@ -10846,7 +11363,7 @@ You now have:
 - [ ] Understand JWT structure
 - [ ] Understand authentication flow
 
-### What's Next?
+#
 
 In **Stage 6**, we'll implement **Role-Based Access Control (RBAC)**:
 
@@ -12004,7 +12521,7 @@ def serve_admin():
 
 ---
 
-## Stage 6 Complete - Full Access Control!
+## Stage 6 Complete - Full Access Control
 
 ### What You Built
 
@@ -12066,7 +12583,7 @@ You now have:
 ✓ **Accountability** - Know who did what  
 ✓ **Admin Override** - Emergency access with logging
 
-### What's Next?
+#
 
 In **Stage 7**, we'll connect to **Git and GitLab**:
 
@@ -12958,7 +13475,7 @@ This is why Git is called "content-addressable" - the address (SHA-1) IS the con
 
 ---
 
-## Stage 7 Complete - Full Version Control!
+## Stage 7 Complete - Full Version Control
 
 ### What You Built
 
@@ -13022,7 +13539,7 @@ You now have:
 - Undo mistake? → `git revert`
 - Collaborate? → pull, commit, push, merge
 
-### What's Next?
+#
 
 In **Stage 8**, we'll add advanced features:
 
@@ -14306,7 +14823,7 @@ actionsDiv.appendChild(blameBtn);
 
 ---
 
-## Stage 8 Complete - Advanced Git Mastery!
+## Stage 8 Complete - Advanced Git Mastery
 
 ### What You Built
 
@@ -14385,7 +14902,7 @@ Push to GitLab (backup)
 Done! (file is versioned and safe)
 ```
 
-### What's Next?
+#
 
 In **Stage 9**, we'll add **real-time collaboration features**:
 
@@ -15687,7 +16204,7 @@ This actively detects dead connections and forces reconnection.
 
 ---
 
-## Stage 9 Complete - Real-Time Collaboration!
+## Stage 9 Complete - Real-Time Collaboration
 
 ### What You Built
 
@@ -15760,7 +16277,7 @@ User B gets notification: "User A locked file.mcam"
 User B sees User A in online users list
 ```
 
-### What's Next?
+#
 
 In **Stage 10**, we'll add **Testing & Quality Assurance**:
 
@@ -17272,7 +17789,7 @@ def test_b():
 
 ---
 
-## Stage 10 Complete - Testing Mastery!
+## Stage 10 Complete - Testing Mastery
 
 ### What You Built
 
@@ -17360,7 +17877,7 @@ CI: ✅ Passing
 - Bugs discovered in development
 - Confidence to ship
 
-### What's Next?
+#
 
 In **Stage 11**, we'll add **Deployment & Production** features:
 
@@ -18594,7 +19111,7 @@ def setup_logging():
     return logger
 ```
 
-### Update `main.py`:
+### Update `main.py`
 
 ```python
 from logging_config import setup_logging
@@ -18714,7 +19231,7 @@ signal.signal(signal.SIGTERM, signal_handler)  # Docker stop
 
 ---
 
-## Stage 11 Complete - Production Ready!
+## Stage 11 Complete - Production Ready
 
 ### What You Built
 
@@ -18810,7 +19327,7 @@ uvicorn main:app --reload
 docker-compose up -d
 ```
 
-### What's Next?
+#
 
 Your app is production-ready! Potential next steps:
 
@@ -19553,7 +20070,7 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; prelo
 
 **HSTS Preload:**
 
-- Submit your domain to: https://hstspreload.org/
+- Submit your domain to: <https://hstspreload.org/>
 - Chrome, Firefox, Safari will always use HTTPS
 - Even on first visit (no initial HTTP request)
 
@@ -19959,7 +20476,7 @@ app.add_middleware(
 
 ---
 
-## Stage 12 Complete - Secure HTTPS Deployment!
+## Stage 12 Complete - Secure HTTPS Deployment
 
 ### What You Built
 
@@ -20006,7 +20523,7 @@ You now have:
 
 ### Verification Checklist
 
-- [ ] HTTPS works at https://example.com
+- [ ] HTTPS works at <https://example.com>
 - [ ] Browser shows 🔒 secure icon
 - [ ] HTTP redirects to HTTPS
 - [ ] No mixed content warnings
@@ -20048,7 +20565,7 @@ You now have:
 - **Cause:** Certificate for wrong domain
 - **Fix:** Ensure `-d example.com` matches your domain
 
-### What's Next?
+#
 
 In **Stage 13**, we'll add **Redis Caching**:
 
