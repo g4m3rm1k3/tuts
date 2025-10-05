@@ -3,6 +3,7 @@ docs_dir: "docs"
 nav:
   - CLAUD: claud.md
   - ADDitional: addintionalClaud.md
+    AdditionalGem: AdditionalGEM.md
   - GROK: grok2.md
   - GEMINI: index.md
   - GPT: tricks.md
