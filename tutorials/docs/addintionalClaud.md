@@ -8,22 +8,22 @@
 
 ---
 
-## 0.1: Initial Project Structure
+### 0.1: Initial Project Structure
 
 Create this exact structure:
 
 ```bash
-# Create root directory
+## Create root directory
 mkdir pdm-tutorial
 cd pdm-tutorial
 
-# Create backend structure
+## Create backend structure
 mkdir -p backend/app
 mkdir -p backend/static/css
 mkdir -p backend/static/js/modules
 mkdir -p backend/tests
 
-# Create placeholder files
+## Create placeholder files
 touch backend/app/__init__.py
 touch backend/app/main.py
 touch backend/static/index.html
@@ -42,15 +42,15 @@ touch README.md
 
 ---
 
-## 0.2: Python Installation & Virtual Environments
+### 0.2: Python Installation & Virtual Environments
 
-### Install Python 3.11+
+#### Install Python 3.11+
 
 - **Windows**: Download from python.org, **CHECK "Add Python to PATH"**
 - **macOS**: `brew install python@3.11`
 - **Linux**: `sudo apt install python3.11 python3.11-venv`
 
-### Create Virtual Environment
+#### Create Virtual Environment
 
 ```bash
 cd backend
@@ -67,13 +67,13 @@ python -m venv venv
 
 **Activation modifies your shell's `PATH` environment variable** to prepend the venv's binary directory, so `python` resolves to the venv's interpreter.
 
-### Activate Virtual Environment
+#### Activate Virtual Environment
 
 ```bash
-# Windows PowerShell
+## Windows PowerShell
 .\venv\Scripts\Activate.ps1
 
-# macOS/Linux
+## macOS/Linux
 source venv/bin/activate
 ```
 
@@ -81,16 +81,16 @@ You'll see `(venv)` in your prompt.
 
 ---
 
-## 0.3: Deep Dive - Python's Import System
+### 0.3: Deep Dive - Python's Import System
 
 **Before writing code, understand how Python finds modules.**
 
-### The `sys.path` List
+#### The `sys.path` List
 
 When you `import something`, Python searches these locations in order:
 
 ```python
-# backend/app/understanding_imports.py
+## backend/app/understanding_imports.py
 import sys
 print("Python searches these directories for modules:")
 for i, path in enumerate(sys.path, 1):
@@ -112,21 +112,21 @@ You'll see:
 
 **Why `app/__init__.py` matters**: It tells Python "this directory is a package." Without it, you can't do `from app.services import something`.
 
-### Absolute vs Relative Imports
+#### Absolute vs Relative Imports
 
 ```python
-# Absolute import (preferred)
+## Absolute import (preferred)
 from app.services.auth_service import verify_password
 
-# Relative import (use sparingly)
-from ..services.auth_service import verify_password  # Go up one level, then into services
+## Relative import (use sparingly)
+from ..services.auth_service import verify_password  ## Go up one level, then into services
 
-# Why absolute is better: Clear, works from anywhere, refactor-friendly
+## Why absolute is better: Clear, works from anywhere, refactor-friendly
 ```
 
 ---
 
-## 0.4: Type Hints - Python's Type System
+### 0.4: Type Hints - Python's Type System
 
 **Python is dynamically typed but supports optional static type hints (PEP 484).**
 
@@ -145,19 +145,19 @@ Type hints don't enforce types at runtime - they're for:
 """
 
 from typing import (
-    List, Dict, Tuple, Set,  # Generic types
-    Optional, Union,          # Type combinations
-    Any, TypeVar,            # Special types
-    Callable,                # Function types
-    Literal,                 # Exact values
-    Protocol                 # Structural subtyping
+    List, Dict, Tuple, Set,  ## Generic types
+    Optional, Union,          ## Type combinations
+    Any, TypeVar,            ## Special types
+    Callable,                ## Function types
+    Literal,                 ## Exact values
+    Protocol                 ## Structural subtyping
 )
 from pathlib import Path
 from datetime import datetime
 
-# ============================================================================
-# SECTION 1: Basic Type Hints
-# ============================================================================
+## ============================================================================
+## SECTION 1: Basic Type Hints
+## ============================================================================
 
 def greet(name: str) -> str:
     """
@@ -165,9 +165,9 @@ def greet(name: str) -> str:
     """
     return f"Hello, {name}!"
 
-# ============================================================================
-# SECTION 2: Collection Types
-# ============================================================================
+## ============================================================================
+## SECTION 2: Collection Types
+## ============================================================================
 
 def process_files(filenames: List[str]) -> Dict[str, int]:
     """
@@ -180,11 +180,11 @@ def get_coordinates() -> Tuple[float, float]:
     """
     Tuple[float, float]: Exactly 2 floats
     """
-    return (40.7128, -74.0060)  # NYC coordinates
+    return (40.7128, -74.0060)  ## NYC coordinates
 
-# ============================================================================
-# SECTION 3: Optional and Union
-# ============================================================================
+## ============================================================================
+## SECTION 3: Optional and Union
+## ============================================================================
 
 def find_user(user_id: int) -> Optional[Dict[str, str]]:
     """
@@ -193,7 +193,7 @@ def find_user(user_id: int) -> Optional[Dict[str, str]]:
     """
     if user_id == 1:
         return {"name": "Alice", "role": "admin"}
-    return None  # Not found
+    return None  ## Not found
 
 def process_data(value: Union[int, str, List[int]]) -> str:
     """
@@ -207,9 +207,9 @@ def process_data(value: Union[int, str, List[int]]) -> str:
     else:
         return f"Got list of {len(value)} integers"
 
-# ============================================================================
-# SECTION 4: Callable (Function Types)
-# ============================================================================
+## ============================================================================
+## SECTION 4: Callable (Function Types)
+## ============================================================================
 
 def execute_twice(func: Callable[[int], int], value: int) -> int:
     """
@@ -222,13 +222,13 @@ def execute_twice(func: Callable[[int], int], value: int) -> int:
 def double(x: int) -> int:
     return x * 2
 
-# Usage: execute_twice(double, 5)  # Returns 20
+## Usage: execute_twice(double, 5)  ## Returns 20
 
-# ============================================================================
-# SECTION 5: TypeVar (Generic Functions)
-# ============================================================================
+## ============================================================================
+## SECTION 5: TypeVar (Generic Functions)
+## ============================================================================
 
-T = TypeVar('T')  # Define a type variable
+T = TypeVar('T')  ## Define a type variable
 
 def get_first(items: List[T]) -> Optional[T]:
     """
@@ -238,9 +238,9 @@ def get_first(items: List[T]) -> Optional[T]:
     """
     return items[0] if items else None
 
-# ============================================================================
-# SECTION 6: Literal (Exact Values)
-# ============================================================================
+## ============================================================================
+## SECTION 6: Literal (Exact Values)
+## ============================================================================
 
 from typing import Literal
 
@@ -253,9 +253,9 @@ def check_permission(role: UserRole) -> bool:
     """
     return role == "admin"
 
-# ============================================================================
-# SECTION 7: Protocol (Structural Typing)
-# ============================================================================
+## ============================================================================
+## SECTION 7: Protocol (Structural Typing)
+## ============================================================================
 
 class Readable(Protocol):
     """
@@ -271,11 +271,11 @@ def read_data(source: Readable) -> str:
     """
     return source.read()
 
-# Works with files, StringIO, custom classes, etc.
+## Works with files, StringIO, custom classes, etc.
 
-# ============================================================================
-# SECTION 8: Real-World Example - Our PDM App
-# ============================================================================
+## ============================================================================
+## SECTION 8: Real-World Example - Our PDM App
+## ============================================================================
 
 from datetime import datetime
 
@@ -302,32 +302,32 @@ def create_lock(
         "message": message
     }
 
-# ============================================================================
-# TESTING YOUR UNDERSTANDING
-# ============================================================================
+## ============================================================================
+## TESTING YOUR UNDERSTANDING
+## ============================================================================
 
 if __name__ == "__main__":
-    # Test basic types
+    ## Test basic types
     print(greet("World"))
 
-    # Test collections
+    ## Test collections
     files = ["file1.txt", "file2.txt"]
     print(process_files(files))
 
-    # Test Optional
+    ## Test Optional
     user = find_user(1)
     print(f"Found user: {user}")
 
-    # Test Union
+    ## Test Union
     print(process_data(42))
     print(process_data("hello"))
     print(process_data([1, 2, 3]))
 
-    # Test Callable
+    ## Test Callable
     result = execute_twice(double, 5)
     print(f"Double twice: {result}")
 
-    # Test generic
+    ## Test generic
     first_str = get_first(["a", "b", "c"])
     first_int = get_first([1, 2, 3])
     print(f"First string: {first_str}, First int: {first_int}")
@@ -348,7 +348,7 @@ mypy app/learn_typing.py
 
 ---
 
-## 0.5: Path Management - The `pathlib` Module
+### 0.5: Path Management - The `pathlib` Module
 
 **Never use string concatenation for paths. Use `pathlib.Path`.**
 
@@ -363,49 +363,49 @@ Replaces os.path with an object-oriented API.
 from pathlib import Path
 import os
 
-# ============================================================================
-# SECTION 1: Creating Paths
-# ============================================================================
+## ============================================================================
+## SECTION 1: Creating Paths
+## ============================================================================
 
-# Three ways to create a Path object
-cwd = Path.cwd()  # Current working directory
-home = Path.home()  # User's home directory
-manual = Path("/usr/local/bin")  # Explicit path
+## Three ways to create a Path object
+cwd = Path.cwd()  ## Current working directory
+home = Path.home()  ## User's home directory
+manual = Path("/usr/local/bin")  ## Explicit path
 
 print(f"Current directory: {cwd}")
 print(f"Home directory: {home}")
 
-# ============================================================================
-# SECTION 2: Path Operations (Cross-Platform)
-# ============================================================================
+## ============================================================================
+## SECTION 2: Path Operations (Cross-Platform)
+## ============================================================================
 
-# The `/` operator joins paths - works on all OS
+## The `/` operator joins paths - works on all OS
 project_root = Path.cwd()
 backend = project_root / "backend"
 app = backend / "app"
 main = app / "main.py"
 
 print(f"Main file: {main}")
-# Windows: C:\Users\You\pdm-tutorial\backend\app\main.py
-# macOS:   /Users/You/pdm-tutorial/backend/app/main.py
+## Windows: C:\Users\You\pdm-tutorial\backend\app\main.py
+## macOS:   /Users/You/pdm-tutorial/backend/app/main.py
 
-# ============================================================================
-# SECTION 3: Path Properties
-# ============================================================================
+## ============================================================================
+## SECTION 3: Path Properties
+## ============================================================================
 
 example = Path("/home/user/project/backend/app/main.py")
 
-print(f"Name: {example.name}")           # main.py
-print(f"Stem: {example.stem}")           # main (without extension)
-print(f"Suffix: {example.suffix}")       # .py
-print(f"Parent: {example.parent}")       # /home/user/project/backend/app
-print(f"Parents[0]: {example.parents[0]}")  # Immediate parent
-print(f"Parents[1]: {example.parents[1]}")  # Grandparent
-print(f"Is absolute: {example.is_absolute()}")  # True
+print(f"Name: {example.name}")           ## main.py
+print(f"Stem: {example.stem}")           ## main (without extension)
+print(f"Suffix: {example.suffix}")       ## .py
+print(f"Parent: {example.parent}")       ## /home/user/project/backend/app
+print(f"Parents[0]: {example.parents[0]}")  ## Immediate parent
+print(f"Parents[1]: {example.parents[1]}")  ## Grandparent
+print(f"Is absolute: {example.is_absolute()}")  ## True
 
-# ============================================================================
-# SECTION 4: Checking Existence and Type
-# ============================================================================
+## ============================================================================
+## SECTION 4: Checking Existence and Type
+## ============================================================================
 
 path = Path(".")
 
@@ -417,81 +417,81 @@ if path.is_file():
 elif path.is_dir():
     print("It's a directory")
 
-# ============================================================================
-# SECTION 5: Reading and Writing Files
-# ============================================================================
+## ============================================================================
+## SECTION 5: Reading and Writing Files
+## ============================================================================
 
-# Create a test file
+## Create a test file
 test_file = Path("test.txt")
 
-# Write (creates or overwrites)
+## Write (creates or overwrites)
 test_file.write_text("Hello from pathlib!")
 
-# Read
+## Read
 content = test_file.read_text()
 print(f"Content: {content}")
 
-# Binary mode
+## Binary mode
 test_file.write_bytes(b"Binary data")
 binary = test_file.read_bytes()
 
-# Clean up
-test_file.unlink()  # Delete file
+## Clean up
+test_file.unlink()  ## Delete file
 
-# ============================================================================
-# SECTION 6: Iterating Directory Contents
-# ============================================================================
+## ============================================================================
+## SECTION 6: Iterating Directory Contents
+## ============================================================================
 
-# List all files in current directory
+## List all files in current directory
 for item in Path(".").iterdir():
     print(f"Found: {item}")
 
-# Recursively find all .py files
+## Recursively find all .py files
 for py_file in Path(".").rglob("*.py"):
     print(f"Python file: {py_file}")
 
-# ============================================================================
-# SECTION 7: Creating Directories
-# ============================================================================
+## ============================================================================
+## SECTION 7: Creating Directories
+## ============================================================================
 
 new_dir = Path("temp/nested/deep")
 
-# parents=True: create parent directories if needed
-# exist_ok=True: don't raise error if already exists
+## parents=True: create parent directories if needed
+## exist_ok=True: don't raise error if already exists
 new_dir.mkdir(parents=True, exist_ok=True)
 
-# Clean up
-new_dir.rmdir()  # Only works if empty
+## Clean up
+new_dir.rmdir()  ## Only works if empty
 new_dir.parent.rmdir()
 new_dir.parent.parent.rmdir()
 
-# ============================================================================
-# SECTION 8: Resolving Paths
-# ============================================================================
+## ============================================================================
+## SECTION 8: Resolving Paths
+## ============================================================================
 
 relative = Path("../backend/app")
-absolute = relative.resolve()  # Converts to absolute, resolves .. and .
+absolute = relative.resolve()  ## Converts to absolute, resolves .. and .
 
 print(f"Relative: {relative}")
 print(f"Absolute: {absolute}")
 
-# ============================================================================
-# SECTION 9: Real-World Example - Our PDM App Paths
-# ============================================================================
+## ============================================================================
+## SECTION 9: Real-World Example - Our PDM App Paths
+## ============================================================================
 
 def setup_project_paths():
     """
     How we'll actually set up paths in our PDM application.
     __file__ is the path to the current script.
     """
-    # Get the absolute path to this script
+    ## Get the absolute path to this script
     this_file = Path(__file__).resolve()
 
-    # Navigate to project root
-    # main.py -> app/ -> backend/ -> pdm-tutorial/
+    ## Navigate to project root
+    ## main.py -> app/ -> backend/ -> pdm-tutorial/
     backend_dir = this_file.parent.parent
 
-    # Define all our important paths
+    ## Define all our important paths
     app_dir = backend_dir / "app"
     static_dir = backend_dir / "static"
     repo_dir = backend_dir / "repo"
@@ -503,25 +503,25 @@ def setup_project_paths():
         "repo": repo_dir
     }
 
-# ============================================================================
-# SECTION 10: Path vs String - When to Convert
-# ============================================================================
+## ============================================================================
+## SECTION 10: Path vs String - When to Convert
+## ============================================================================
 
 path = Path("config.txt")
 
-# Many functions accept Path objects directly
-with open(path, 'r') as f:  # Works!
+## Many functions accept Path objects directly
+with open(path, 'r') as f:  ## Works!
     data = f.read()
 
-# Some old libraries need strings
+## Some old libraries need strings
 import json
-# json.load() needs a string path in older versions
-with open(str(path), 'r') as f:  # Convert with str()
+## json.load() needs a string path in older versions
+with open(str(path), 'r') as f:  ## Convert with str()
     data = json.load(f)
 
-# Modern libraries accept Path objects
+## Modern libraries accept Path objects
 import shutil
-shutil.copy(path, Path("backup.txt"))  # Both are Paths
+shutil.copy(path, Path("backup.txt"))  ## Both are Paths
 
 if __name__ == "__main__":
     paths = setup_project_paths()
@@ -537,17 +537,17 @@ python app/learn_pathlib.py
 
 ---
 
-## 0.6: Git Configuration
+### 0.6: Git Configuration
 
 ```bash
-# Set your identity
+## Set your identity
 git config --global user.name "Your Name"
 git config --global user.email "your.email@example.com"
 
-# Set default branch name
+## Set default branch name
 git config --global init.defaultBranch main
 
-# Verify
+## Verify
 git config --list
 ```
 
@@ -561,7 +561,7 @@ git init
 **File: `.gitignore`**
 
 ```
-# Python
+## Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -570,21 +570,21 @@ __pycache__/
 venv/
 ENV/
 
-# Environment
+## Environment
 .env
 .env.local
 
-# IDEs
+## IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS
+## OS
 .DS_Store
 Thumbs.db
 
-# Project specific
+## Project specific
 backend/repo/
 backend/git_repo/
 backend/*.json
@@ -600,21 +600,21 @@ git commit -m "Initial commit: Project structure"
 
 ---
 
-## 0.7: Package Management & Requirements
+### 0.7: Package Management & Requirements
 
 **File: `backend/requirements.txt`**
 
 ```
-# Core framework
+## Core framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 
-# We'll add more as we progress:
-# passlib[bcrypt]  # Stage 5
-# python-jose[cryptography]  # Stage 5
-# sqlalchemy  # Stage 11
-# alembic  # Stage 11
-# redis  # Stage 13
+## We'll add more as we progress:
+## passlib[bcrypt]  ## Stage 5
+## python-jose[cryptography]  ## Stage 5
+## sqlalchemy  ## Stage 11
+## alembic  ## Stage 11
+## redis  ## Stage 13
 ```
 
 Install:
@@ -625,7 +625,7 @@ pip install -r requirements.txt
 
 ---
 
-## Stage 0 Complete ✓
+### Stage 0 Complete ✓
 
 **Verification Checklist:**
 
@@ -653,7 +653,7 @@ pip install -r requirements.txt
 
 Ready for Stage 1? Reply "Stage 1" and I'll give you the next section.
 
-# Stage 1: First Backend - FastAPI Fundamentals
+## Stage 1: First Backend - FastAPI Fundamentals
 
 **Prerequisites**: Completed Stage 0
 
@@ -663,22 +663,22 @@ Ready for Stage 1? Reply "Stage 1" and I'll give you the next section.
 
 ---
 
-## 1.1: Deep Dive - ASGI vs WSGI
+### 1.1: Deep Dive - ASGI vs WSGI
 
 **Before writing code, understand what FastAPI actually is.**
 
-### The Evolution of Python Web Servers
+#### The Evolution of Python Web Servers
 
 ```python
-# backend/app/learn_asgi.py
+## backend/app/learn_asgi.py
 """
 Understanding ASGI (Asynchronous Server Gateway Interface)
 and why FastAPI is fast.
 """
 
-# ============================================================================
-# SECTION 1: The Problem with WSGI (Synchronous)
-# ============================================================================
+## ============================================================================
+## SECTION 1: The Problem with WSGI (Synchronous)
+## ============================================================================
 
 def wsgi_application(environ, start_response):
     """
@@ -693,15 +693,15 @@ def wsgi_application(environ, start_response):
     headers = [('Content-Type', 'text/plain')]
     start_response(status, headers)
 
-    # Blocking operation - worker can't handle other requests
+    ## Blocking operation - worker can't handle other requests
     import time
-    time.sleep(1)  # Simulating slow database query
+    time.sleep(1)  ## Simulating slow database query
 
     return [b'Hello World']
 
-# ============================================================================
-# SECTION 2: ASGI (Asynchronous) - The Modern Standard
-# ============================================================================
+## ============================================================================
+## SECTION 2: ASGI (Asynchronous) - The Modern Standard
+## ============================================================================
 
 async def asgi_application(scope, receive, send):
     """
@@ -712,9 +712,9 @@ async def asgi_application(scope, receive, send):
 
     Used by: FastAPI, Starlette, Django 3.0+, Quart
     """
-    # This doesn't block the worker
+    ## This doesn't block the worker
     import asyncio
-    await asyncio.sleep(1)  # Waiting for I/O
+    await asyncio.sleep(1)  ## Waiting for I/O
 
     await send({
         'type': 'http.response.start',
@@ -726,9 +726,9 @@ async def asgi_application(scope, receive, send):
         'body': b'Hello World',
     })
 
-# ============================================================================
-# SECTION 3: Real Performance Difference
-# ============================================================================
+## ============================================================================
+## SECTION 3: Real Performance Difference
+## ============================================================================
 
 """
 Scenario: 1000 requests, each needs to wait 1 second for database
@@ -748,29 +748,29 @@ ASGI (4 workers):
 This is why FastAPI is fast for I/O-bound operations.
 """
 
-# ============================================================================
-# SECTION 4: When to Use async/await
-# ============================================================================
+## ============================================================================
+## SECTION 4: When to Use async/await
+## ============================================================================
 
-# Good use cases (I/O bound):
+## Good use cases (I/O bound):
 async def good_async():
     """Use async for I/O operations"""
-    # Database queries
+    ## Database queries
     result = await db.fetch_one("SELECT * FROM users")
 
-    # HTTP requests to external APIs
+    ## HTTP requests to external APIs
     response = await http_client.get("https://api.example.com")
 
-    # File I/O
+    ## File I/O
     data = await file.read()
 
     return result
 
-# Bad use cases (CPU bound):
+## Bad use cases (CPU bound):
 def bad_async():
     """Don't use async for CPU-intensive tasks"""
-    # Heavy computation - this blocks regardless
-    result = sum(range(10_000_000))  # No await needed
+    ## Heavy computation - this blocks regardless
+    result = sum(range(10_000_000))  ## No await needed
     return result
 
 """
@@ -783,7 +783,7 @@ Rule of thumb:
 
 ---
 
-## 1.2: HTTP Protocol Deep Dive
+### 1.2: HTTP Protocol Deep Dive
 
 **File: `backend/app/learn_http.py`**
 
@@ -792,9 +792,9 @@ Rule of thumb:
 Understanding HTTP - The protocol that powers the web.
 """
 
-# ============================================================================
-# SECTION 1: HTTP Request Structure
-# ============================================================================
+## ============================================================================
+## SECTION 1: HTTP Request Structure
+## ============================================================================
 
 """
 An HTTP request has 4 parts:
@@ -820,9 +820,9 @@ An HTTP request has 4 parts:
    {"filename": "PN1001.mcam", "user": "john"}
 """
 
-# ============================================================================
-# SECTION 2: HTTP Methods (Verbs)
-# ============================================================================
+## ============================================================================
+## SECTION 2: HTTP Methods (Verbs)
+## ============================================================================
 
 """
 RESTful API conventions:
@@ -862,9 +862,9 @@ DELETE /api/files/123
 - Usually no request body
 """
 
-# ============================================================================
-# SECTION 3: HTTP Status Codes
-# ============================================================================
+## ============================================================================
+## SECTION 3: HTTP Status Codes
+## ============================================================================
 
 """
 FastAPI automatically sets these, but you should understand them:
@@ -896,9 +896,9 @@ FastAPI automatically sets these, but you should understand them:
   503 Service Unavailable - Server overloaded/down
 """
 
-# ============================================================================
-# SECTION 4: Content Negotiation
-# ============================================================================
+## ============================================================================
+## SECTION 4: Content Negotiation
+## ============================================================================
 
 """
 Client tells server what format it wants:
@@ -916,9 +916,9 @@ FastAPI handles this automatically:
 - Sets Content-Type: application/json
 """
 
-# ============================================================================
-# SECTION 5: Headers We'll Use
-# ============================================================================
+## ============================================================================
+## SECTION 5: Headers We'll Use
+## ============================================================================
 
 """
 Important headers in our PDM app:
@@ -947,7 +947,7 @@ if __name__ == "__main__":
 
 ---
 
-## 1.3: Create Your First FastAPI Application
+### 1.3: Create Your First FastAPI Application
 
 **File: `backend/app/config.py`**
 
@@ -966,24 +966,24 @@ class Settings(BaseSettings):
     Override via environment variables or .env file.
     """
 
-    # ========================================================================
-    # Application Settings
-    # ========================================================================
+    ## ========================================================================
+    ## Application Settings
+    ## ========================================================================
     APP_NAME: str = "PDM Backend API"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = True
 
-    # ========================================================================
-    # Path Configuration
-    # ========================================================================
-    # Computed at runtime - where is this config.py file?
+    ## ========================================================================
+    ## Path Configuration
+    ## ========================================================================
+    ## Computed at runtime - where is this config.py file?
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
 
-# Create singleton instance
+## Create singleton instance
 settings = Settings()
 ```
 
@@ -1010,9 +1010,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 
-# ============================================================================
-# SECTION 1: Application Factory
-# ============================================================================
+## ============================================================================
+## SECTION 1: Application Factory
+## ============================================================================
 
 def create_application() -> FastAPI:
     """
@@ -1030,12 +1030,12 @@ def create_application() -> FastAPI:
         debug=settings.DEBUG,
     )
 
-    # ====================================================================
-    # SECTION 2: Middleware Configuration
-    # ====================================================================
+    ## ====================================================================
+    ## SECTION 2: Middleware Configuration
+    ## ====================================================================
 
-    # CORS: Allow frontend to call our API
-    # In production, restrict origins to your actual frontend domain
+    ## CORS: Allow frontend to call our API
+    ## In production, restrict origins to your actual frontend domain
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000", "http://127.0.0.1:8000"],
@@ -1044,9 +1044,9 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # ====================================================================
-    # SECTION 3: Startup/Shutdown Events
-    # ====================================================================
+    ## ====================================================================
+    ## SECTION 3: Startup/Shutdown Events
+    ## ====================================================================
 
     @app.on_event("startup")
     async def startup_event():
@@ -1066,9 +1066,9 @@ def create_application() -> FastAPI:
         """
         print("Shutting down gracefully...")
 
-    # ====================================================================
-    # SECTION 4: Root Route
-    # ====================================================================
+    ## ====================================================================
+    ## SECTION 4: Root Route
+    ## ====================================================================
 
     @app.get("/")
     def read_root():
@@ -1084,15 +1084,15 @@ def create_application() -> FastAPI:
 
     return app
 
-# ============================================================================
-# SECTION 5: Create App Instance
-# ============================================================================
+## ============================================================================
+## SECTION 5: Create App Instance
+## ============================================================================
 
 app = create_application()
 
-# ============================================================================
-# SECTION 6: Development Server Entry Point
-# ============================================================================
+## ============================================================================
+## SECTION 6: Development Server Entry Point
+## ============================================================================
 
 if __name__ == "__main__":
     """
@@ -1122,7 +1122,7 @@ You should see JSON response with API info.
 
 ---
 
-## 1.4: Deep Dive - Pydantic Models
+### 1.4: Deep Dive - Pydantic Models
 
 **File: `backend/app/learn_pydantic.py`**
 
@@ -1142,9 +1142,9 @@ from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
-# ============================================================================
-# SECTION 1: Basic Model
-# ============================================================================
+## ============================================================================
+## SECTION 1: Basic Model
+## ============================================================================
 
 class UserBasic(BaseModel):
     """
@@ -1155,50 +1155,50 @@ class UserBasic(BaseModel):
     age: int
     email: str
 
-# Usage:
+## Usage:
 user = UserBasic(username="john", age=30, email="john@example.com")
-print(user.username)  # Access like a regular object
+print(user.username)  ## Access like a regular object
 
-# Type validation happens automatically:
+## Type validation happens automatically:
 try:
     bad_user = UserBasic(username="john", age="thirty", email="john@example.com")
 except Exception as e:
     print(f"Validation error: {e}")
-    # ValidationError: age must be an integer
+    ## ValidationError: age must be an integer
 
-# ============================================================================
-# SECTION 2: Optional Fields and Defaults
-# ============================================================================
+## ============================================================================
+## SECTION 2: Optional Fields and Defaults
+## ============================================================================
 
 class UserWithDefaults(BaseModel):
     username: str
-    age: int = 18  # Default value if not provided
-    email: Optional[str] = None  # Can be None
+    age: int = 18  ## Default value if not provided
+    email: Optional[str] = None  ## Can be None
     is_active: bool = True
 
-# Valid:
-user1 = UserWithDefaults(username="alice")  # Uses defaults
+## Valid:
+user1 = UserWithDefaults(username="alice")  ## Uses defaults
 user2 = UserWithDefaults(username="bob", age=25, email="bob@example.com")
 
-# ============================================================================
-# SECTION 3: Field Constraints
-# ============================================================================
+## ============================================================================
+## SECTION 3: Field Constraints
+## ============================================================================
 
 class UserConstrained(BaseModel):
     """
     Field() adds validation rules and documentation.
     """
     username: str = Field(
-        ...,  # Required (ellipsis means no default)
+        ...,  ## Required (ellipsis means no default)
         min_length=3,
         max_length=50,
-        pattern="^[a-zA-Z0-9_]+$",  # Regex: alphanumeric and underscore only
+        pattern="^[a-zA-Z0-9_]+$",  ## Regex: alphanumeric and underscore only
         description="Unique username for the user"
     )
     age: int = Field(
         ...,
-        ge=0,  # Greater than or equal to 0
-        le=150,  # Less than or equal to 150
+        ge=0,  ## Greater than or equal to 0
+        le=150,  ## Less than or equal to 150
         description="User's age in years"
     )
     email: str = Field(
@@ -1206,15 +1206,15 @@ class UserConstrained(BaseModel):
         regex=r"^[\w\.-]+@[\w\.-]+\.\w+$"
     )
 
-# Try invalid data:
+## Try invalid data:
 try:
     bad = UserConstrained(username="ab", age=200, email="invalid")
 except Exception as e:
     print(f"Validation error: {e}")
 
-# ============================================================================
-# SECTION 4: Enums for Fixed Choices
-# ============================================================================
+## ============================================================================
+## SECTION 4: Enums for Fixed Choices
+## ============================================================================
 
 class UserRole(str, Enum):
     """
@@ -1227,15 +1227,15 @@ class UserRole(str, Enum):
 
 class UserWithRole(BaseModel):
     username: str
-    role: UserRole = UserRole.USER  # Must be one of the enum values
+    role: UserRole = UserRole.USER  ## Must be one of the enum values
 
-user = UserWithRole(username="alice", role="admin")  # Automatically converts string to enum
-print(user.role)  # UserRole.ADMIN
-print(user.role.value)  # "admin"
+user = UserWithRole(username="alice", role="admin")  ## Automatically converts string to enum
+print(user.role)  ## UserRole.ADMIN
+print(user.role.value)  ## "admin"
 
-# ============================================================================
-# SECTION 5: Custom Validators
-# ============================================================================
+## ============================================================================
+## SECTION 5: Custom Validators
+## ============================================================================
 
 class UserWithValidation(BaseModel):
     username: str
@@ -1250,7 +1250,7 @@ class UserWithValidation(BaseModel):
         """
         if not v.isalnum():
             raise ValueError('Username must be alphanumeric')
-        return v.lower()  # Can transform the value
+        return v.lower()  ## Can transform the value
 
     @root_validator
     def passwords_match(cls, values):
@@ -1263,9 +1263,9 @@ class UserWithValidation(BaseModel):
             raise ValueError('Passwords do not match')
         return values
 
-# ============================================================================
-# SECTION 6: Nested Models
-# ============================================================================
+## ============================================================================
+## SECTION 6: Nested Models
+## ============================================================================
 
 class Address(BaseModel):
     street: str
@@ -1274,7 +1274,7 @@ class Address(BaseModel):
 
 class UserWithAddress(BaseModel):
     username: str
-    address: Address  # Nested model
+    address: Address  ## Nested model
 
 user = UserWithAddress(
     username="alice",
@@ -1285,11 +1285,11 @@ user = UserWithAddress(
     }
 )
 
-print(user.address.city)  # Access nested fields
+print(user.address.city)  ## Access nested fields
 
-# ============================================================================
-# SECTION 7: Serialization
-# ============================================================================
+## ============================================================================
+## SECTION 7: Serialization
+## ============================================================================
 
 class UserComplete(BaseModel):
     username: str
@@ -1297,26 +1297,26 @@ class UserComplete(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
 
     class Config:
-        # Control JSON serialization
+        ## Control JSON serialization
         json_encoders = {
             datetime: lambda v: v.isoformat()
         }
 
 user = UserComplete(username="alice", email="alice@example.com")
 
-# To dict
+## To dict
 print(user.dict())
 
-# To JSON string
+## To JSON string
 print(user.json())
 
-# From JSON string
+## From JSON string
 json_str = '{"username": "bob", "email": "bob@example.com"}'
 user2 = UserComplete.parse_raw(json_str)
 
-# ============================================================================
-# SECTION 8: Real-World Example - Our PDM App
-# ============================================================================
+## ============================================================================
+## SECTION 8: Real-World Example - Our PDM App
+## ============================================================================
 
 class FileCheckoutRequest(BaseModel):
     """
@@ -1326,7 +1326,7 @@ class FileCheckoutRequest(BaseModel):
         ...,
         min_length=1,
         max_length=255,
-        pattern=r"^[\w\-. ]+\.mcam$",  # Must end in .mcam
+        pattern=r"^[\w\-. ]+\.mcam$",  ## Must end in .mcam
         description="Name of the file to checkout"
     )
     user: str = Field(
@@ -1349,10 +1349,10 @@ class FileCheckoutRequest(BaseModel):
             raise ValueError('Invalid filename: contains path separators')
         return v
 
-# Test it
+## Test it
 try:
     request = FileCheckoutRequest(
-        filename="../../etc/passwd",  # Attack attempt
+        filename="../../etc/passwd",  ## Attack attempt
         user="hacker",
         message="test"
     )
@@ -1378,7 +1378,7 @@ python -m app.learn_pydantic
 
 ---
 
-## 1.5: Adding Real API Endpoints
+### 1.5: Adding Real API Endpoints
 
 **Create schemas directory:**
 
@@ -1399,9 +1399,9 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
-# ============================================================================
-# SECTION 1: Response Models
-# ============================================================================
+## ============================================================================
+## SECTION 1: Response Models
+## ============================================================================
 
 class FileInfo(BaseModel):
     """
@@ -1414,7 +1414,7 @@ class FileInfo(BaseModel):
     locked_by: Optional[str] = Field(None, description="Username who locked the file")
 
     class Config:
-        # Example for API documentation
+        ## Example for API documentation
         schema_extra = {
             "example": {
                 "name": "PN1001_OP1.mcam",
@@ -1431,9 +1431,9 @@ class FileListResponse(BaseModel):
     files: List[FileInfo]
     total: int = Field(..., description="Total number of files")
 
-# ============================================================================
-# SECTION 2: Request Models (for future stages)
-# ============================================================================
+## ============================================================================
+## SECTION 2: Request Models (for future stages)
+## ============================================================================
 
 class FileCheckoutRequest(BaseModel):
     """Request body for checking out a file."""
@@ -1492,18 +1492,18 @@ from fastapi import APIRouter, HTTPException, status
 from app.schemas.files import FileInfo, FileListResponse
 from typing import List
 
-# ============================================================================
-# SECTION 1: Router Setup
-# ============================================================================
+## ============================================================================
+## SECTION 1: Router Setup
+## ============================================================================
 
 router = APIRouter(
     prefix="/api/files",
-    tags=["files"],  # Groups endpoints in OpenAPI docs
+    tags=["files"],  ## Groups endpoints in OpenAPI docs
 )
 
-# ============================================================================
-# SECTION 2: Hardcoded Data (Temporary - Stage 3 will read from filesystem)
-# ============================================================================
+## ============================================================================
+## SECTION 2: Hardcoded Data (Temporary - Stage 3 will read from filesystem)
+## ============================================================================
 
 MOCK_FILES = [
     {
@@ -1526,9 +1526,9 @@ MOCK_FILES = [
     }
 ]
 
-# ============================================================================
-# SECTION 3: GET Endpoints
-# ============================================================================
+## ============================================================================
+## SECTION 3: GET Endpoints
+## ============================================================================
 
 @router.get("/", response_model=FileListResponse)
 def get_files():
@@ -1563,20 +1563,20 @@ def get_file(filename: str):
     Raises:
         404: File not found
     """
-    # Find file in our mock data
+    ## Find file in our mock data
     for file in MOCK_FILES:
         if file["name"] == filename:
             return FileInfo(**file)
 
-    # Not found
+    ## Not found
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"File '{filename}' not found"
     )
 
-# ============================================================================
-# SECTION 4: Placeholder Endpoints (Will implement in Stage 3)
-# ============================================================================
+## ============================================================================
+## SECTION 4: Placeholder Endpoints (Will implement in Stage 3)
+## ============================================================================
 
 @router.post("/checkout")
 def checkout_file():
@@ -1614,14 +1614,14 @@ __all__ = ["files"]
 **Update `backend/app/main.py` to include the router:**
 
 ```python
-# Add this import at the top
+## Add this import at the top
 from app.api import files
 
-# Add this after middleware configuration, before startup events:
+## Add this after middleware configuration, before startup events:
 
-# ====================================================================
-# SECTION 2.5: Include Routers
-# ====================================================================
+## ====================================================================
+## SECTION 2.5: Include Routers
+## ====================================================================
 
 app.include_router(files.router)
 ```
@@ -1629,18 +1629,18 @@ app.include_router(files.router)
 **Test the endpoints:**
 
 ```bash
-# Restart server
+## Restart server
 uvicorn app.main:app --reload
 
-# In another terminal or browser:
+## In another terminal or browser:
 curl http://127.0.0.1:8000/api/files
 curl http://127.0.0.1:8000/api/files/PN1001_OP1.mcam
-curl http://127.0.0.1:8000/api/files/nonexistent.mcam  # Should return 404
+curl http://127.0.0.1:8000/api/files/nonexistent.mcam  ## Should return 404
 ```
 
 ---
 
-## 1.6: Interactive API Documentation
+### 1.6: Interactive API Documentation
 
 FastAPI automatically generates interactive API docs.
 
@@ -1666,7 +1666,7 @@ FastAPI automatically generates interactive API docs.
 
 ---
 
-## Stage 1 Complete
+### Stage 1 Complete
 
 **File structure you now have:**
 
@@ -1674,18 +1674,18 @@ FastAPI automatically generates interactive API docs.
 backend/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                 # App entry point
-│   ├── config.py               # Configuration
-│   ├── learn_asgi.py           # Educational - ASGI concepts
-│   ├── learn_http.py           # Educational - HTTP concepts
-│   ├── learn_pydantic.py       # Educational - Pydantic
+│   ├── main.py                 ## App entry point
+│   ├── config.py               ## Configuration
+│   ├── learn_asgi.py           ## Educational - ASGI concepts
+│   ├── learn_http.py           ## Educational - HTTP concepts
+│   ├── learn_pydantic.py       ## Educational - Pydantic
 │   ├── schemas/
 │   │   ├── __init__.py
-│   │   └── files.py            # Data models
+│   │   └── files.py            ## Data models
 │   └── api/
 │       ├── __init__.py
-│       └── files.py            # File endpoints
-├── static/                     # Ready for Stage 2
+│       └── files.py            ## File endpoints
+├── static/                     ## Ready for Stage 2
 ├── tests/
 ├── venv/
 └── requirements.txt
@@ -1716,7 +1716,7 @@ backend/
 
 Ready for Stage 2?
 
-# Stage 2: Professional Frontend Architecture
+## Stage 2: Professional Frontend Architecture
 
 **Prerequisites**: Completed Stage 1
 
@@ -1726,7 +1726,7 @@ Ready for Stage 2?
 
 ---
 
-## 2.1: Deep Dive - CSS Architecture & Design Systems
+### 2.1: Deep Dive - CSS Architecture & Design Systems
 
 **File: `backend/static/css/learn_css_architecture.css`**
 
@@ -1783,7 +1783,7 @@ Use classes, avoid IDs for styling.
 
 ---
 
-## 2.2: Design Token System
+### 2.2: Design Token System
 
 **File: `backend/static/css/tokens.css`**
 
@@ -2058,7 +2058,7 @@ Use classes, avoid IDs for styling.
 
 ---
 
-## 2.3: Base Styles
+### 2.3: Base Styles
 
 **File: `backend/static/css/base.css`**
 
@@ -2290,7 +2290,7 @@ th {
 
 ---
 
-## 2.4: Component Styles
+### 2.4: Component Styles
 
 **File: `backend/static/css/components.css`**
 
@@ -2688,7 +2688,7 @@ section {
 
 ---
 
-## 2.5: CSS Entry Point
+### 2.5: CSS Entry Point
 
 **File: `backend/static/css/main.css`**
 
@@ -2712,7 +2712,7 @@ section {
 
 ---
 
-## 2.6: Theme Manager JavaScript
+### 2.6: Theme Manager JavaScript
 
 **File: `backend/static/js/modules/theme-manager.js`**
 
@@ -2819,7 +2819,7 @@ export const themeManager = new ThemeManager();
 
 ---
 
-## 2.7: HTML Structure
+### 2.7: HTML Structure
 
 **File: `backend/static/index.html`**
 
@@ -2903,7 +2903,7 @@ export const themeManager = new ThemeManager();
 
 ---
 
-## 2.8: API Client Module
+### 2.8: API Client Module
 
 **File: `backend/static/js/modules/api-client.js`**
 
@@ -3000,7 +3000,7 @@ export const apiClient = new APIClient();
 
 ---
 
-## 2.9: Main Application JavaScript
+### 2.9: Main Application JavaScript
 
 **File: `backend/static/js/app.js`**
 
@@ -3182,26 +3182,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
 ---
 
-## 2.10: Update FastAPI to Serve Static Files
+### 2.10: Update FastAPI to Serve Static Files
 
 **Update `backend/app/main.py`:**
 
 ```python
-# Add these imports at the top
+## Add these imports at the top
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-# In create_application(), after middleware, before startup events:
+## In create_application(), after middleware, before startup events:
 
-# ====================================================================
-# SECTION 2.5: Static Files & Frontend
-# ====================================================================
+## ====================================================================
+## SECTION 2.5: Static Files & Frontend
+## ====================================================================
 
-# Serve static files (CSS, JS, images)
+## Serve static files (CSS, JS, images)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Serve index.html at root
+## Serve index.html at root
 @app.get("/", response_class=FileResponse)
 async def serve_frontend():
     """Serve the main application frontend."""
@@ -3210,15 +3210,15 @@ async def serve_frontend():
 
 ---
 
-## Stage 2 Complete
+### Stage 2 Complete
 
 **Test your application:**
 
 ```bash
-# Start server
+## Start server
 uvicorn app.main:app --reload
 
-# Visit
+## Visit
 http://127.0.0.1:8000
 ```
 
@@ -3276,7 +3276,7 @@ backend/
 
 Ready for Stage 3?
 
-# Stage 3: File Operations & Version Control
+## Stage 3: File Operations & Version Control
 
 **Prerequisites**: Completed Stage 2
 
@@ -3286,7 +3286,7 @@ Ready for Stage 3?
 
 ---
 
-## 3.1: Deep Dive - File System Operations
+### 3.1: Deep Dive - File System Operations
 
 **File: `backend/app/learn_filesystem.py`**
 
@@ -3299,9 +3299,9 @@ import os
 import time
 from pathlib import Path
 
-# ============================================================================
-# SECTION 1: OS Module vs Pathlib
-# ============================================================================
+## ============================================================================
+## SECTION 1: OS Module vs Pathlib
+## ============================================================================
 
 """
 Two ways to work with filesystem:
@@ -3317,16 +3317,16 @@ def os_style():
     """Old style - functional approach"""
     import os.path
 
-    # Join paths
+    ## Join paths
     path = os.path.join("backend", "repo", "file.txt")
 
-    # Check existence
+    ## Check existence
     exists = os.path.exists(path)
 
-    # Get absolute path
+    ## Get absolute path
     abs_path = os.path.abspath(path)
 
-    # List directory
+    ## List directory
     files = os.listdir(".")
 
     return path, exists, abs_path, files
@@ -3335,23 +3335,23 @@ def pathlib_style():
     """Modern style - object-oriented"""
     from pathlib import Path
 
-    # Join paths
+    ## Join paths
     path = Path("backend") / "repo" / "file.txt"
 
-    # Check existence
+    ## Check existence
     exists = path.exists()
 
-    # Get absolute path
+    ## Get absolute path
     abs_path = path.resolve()
 
-    # List directory
+    ## List directory
     files = list(Path(".").iterdir())
 
     return path, exists, abs_path, files
 
-# ============================================================================
-# SECTION 2: File System Performance
-# ============================================================================
+## ============================================================================
+## SECTION 2: File System Performance
+## ============================================================================
 
 def demonstrate_inode_speed():
     """
@@ -3368,11 +3368,11 @@ def demonstrate_inode_speed():
     Reading file content is O(n) - depends on file size
     """
 
-    # Create a large test file
+    ## Create a large test file
     test_file = Path("large_test.txt")
-    test_file.write_text("x" * 10_000_000)  # 10MB file
+    test_file.write_text("x" * 10_000_000)  ## 10MB file
 
-    # Timing metadata access (inode read)
+    ## Timing metadata access (inode read)
     start = time.perf_counter()
     for _ in range(10000):
         size = test_file.stat().st_size
@@ -3380,7 +3380,7 @@ def demonstrate_inode_speed():
 
     print(f"10,000 metadata reads: {metadata_time:.4f}s")
 
-    # Timing content read
+    ## Timing content read
     start = time.perf_counter()
     for _ in range(10):
         content = test_file.read_text()
@@ -3389,12 +3389,12 @@ def demonstrate_inode_speed():
     print(f"10 content reads: {content_time:.4f}s")
     print(f"Metadata is {content_time/metadata_time:.0f}x faster")
 
-    # Cleanup
+    ## Cleanup
     test_file.unlink()
 
-# ============================================================================
-# SECTION 3: Atomic Operations
-# ============================================================================
+## ============================================================================
+## SECTION 3: Atomic Operations
+## ============================================================================
 
 """
 CRITICAL CONCEPT: Atomicity
@@ -3431,16 +3431,16 @@ def demonstrate_race_condition():
     def increment_counter(thread_id):
         """Non-atomic read-modify-write"""
         for _ in range(1000):
-            # Read
+            ## Read
             data = json.loads(test_file.read_text())
 
-            # Modify
+            ## Modify
             data['counter'] += 1
 
-            # Write
+            ## Write
             test_file.write_text(json.dumps(data))
 
-    # Run two threads simultaneously
+    ## Run two threads simultaneously
     t1 = threading.Thread(target=increment_counter, args=(1,))
     t2 = threading.Thread(target=increment_counter, args=(2,))
 
@@ -3449,16 +3449,16 @@ def demonstrate_race_condition():
     t1.join()
     t2.join()
 
-    # Expected: 2000
-    # Actual: Much less due to race condition
+    ## Expected: 2000
+    ## Actual: Much less due to race condition
     final = json.loads(test_file.read_text())
     print(f"Expected: 2000, Got: {final['counter']}")
 
     test_file.unlink()
 
-# ============================================================================
-# SECTION 4: File Locking Mechanisms
-# ============================================================================
+## ============================================================================
+## SECTION 4: File Locking Mechanisms
+## ============================================================================
 
 """
 Operating systems provide file locking to prevent race conditions:
@@ -3493,11 +3493,11 @@ python -m app.learn_filesystem
 
 ---
 
-## 3.2: Cross-Platform File Locking
+### 3.2: Cross-Platform File Locking
 
 **File: `backend/app/utils/file_locking.py`**
 
-## Tutorial: Building a File Lock Manager in Python
+### Tutorial: Building a File Lock Manager in Python
 
 We’re going to build a small Python module that manages locks using JSON files. The goal is to safely share resources between processes (or threads) without conflicts.
 
@@ -3512,7 +3512,7 @@ Along the way, we’ll learn about:
 
 ---
 
-### Step 1: Imports
+#### Step 1: Imports
 
 Let’s start simple — just the imports.
 
@@ -3522,7 +3522,7 @@ import json
 import threading
 ```
 
-#### Explanation:
+##### Explanation:
 
 - `os` → gives us operating system utilities (file paths, existence checks, etc.).
 - `json` → lets us read/write structured data to a `.json` file (instead of raw text).
@@ -3533,7 +3533,7 @@ When building with PyInstaller, imports inside a _function or class_ body can be
 
 ---
 
-### Step 2: Starting the Class
+#### Step 2: Starting the Class
 
 Now, let’s create a class to wrap our lock logic.
 
@@ -3545,7 +3545,7 @@ class LockManager:
         self._ensure_file_exists()
 ```
 
-#### Explanation:
+##### Explanation:
 
 - `class LockManager:` → defines a new class. Think of it like a blueprint for “managing locks.”
 - `__init__` → this is the constructor, called when we make an object (e.g., `lm = LockManager()`).
@@ -3555,7 +3555,7 @@ class LockManager:
 
 ---
 
-### Step 3: Ensuring the File Exists
+#### Step 3: Ensuring the File Exists
 
 Let’s define `_ensure_file_exists`.
 
@@ -3566,7 +3566,7 @@ Let’s define `_ensure_file_exists`.
                 json.dump({}, f)
 ```
 
-#### Explanation:
+##### Explanation:
 
 - `if not os.path.exists(...)` → check if the lock file already exists.
 - `with open(...) as f:` → safely open the file (will auto-close).
@@ -3579,7 +3579,7 @@ Because JSON can hold structured data (e.g., multiple named locks), while text w
 
 ---
 
-### Step 4: Reading and Writing the File
+#### Step 4: Reading and Writing the File
 
 Now we need helper functions to read/write the JSON safely.
 
@@ -3593,7 +3593,7 @@ Now we need helper functions to read/write the JSON safely.
             json.dump(data, f)
 ```
 
-#### Explanation:
+##### Explanation:
 
 - `_read_file` → opens the JSON file in **read mode** and returns the parsed object (likely a dictionary).
 - `_write_file` → opens the JSON file in **write mode** and replaces its contents with whatever dictionary we pass in.
@@ -3603,7 +3603,7 @@ Now we need helper functions to read/write the JSON safely.
 
 ---
 
-### Step 5: Acquiring a Lock
+#### Step 5: Acquiring a Lock
 
 Now, let’s write the method to _acquire_ a lock.
 
@@ -3617,7 +3617,7 @@ Now, let’s write the method to _acquire_ a lock.
             self._write_file(data)
 ```
 
-#### Explanation:
+##### Explanation:
 
 - `with self.lock:` → ensures that only **one thread in this process** can execute this block at once.
 - `data = self._read_file()` → load current lock state from the JSON file.
@@ -3628,7 +3628,7 @@ Now, let’s write the method to _acquire_ a lock.
 
 ---
 
-### Step 6: Releasing a Lock
+#### Step 6: Releasing a Lock
 
 Now the opposite — releasing.
 
@@ -3642,7 +3642,7 @@ Now the opposite — releasing.
             self._write_file(data)
 ```
 
-#### Explanation:
+##### Explanation:
 
 - Again, use `with self.lock` for safety.
 - Load the current locks.
@@ -3651,7 +3651,7 @@ Now the opposite — releasing.
 
 ---
 
-### Step 7: Putting It All Together
+#### Step 7: Putting It All Together
 
 Here’s the full class now:
 
@@ -3698,7 +3698,7 @@ class LockManager:
 
 ---
 
-### Step 8: Example Usage
+#### Step 8: Example Usage
 
 ```python
 if __name__ == "__main__":
@@ -3707,7 +3707,7 @@ if __name__ == "__main__":
     try:
         lm.acquire("my_resource")
         print("Lock acquired! Doing work...")
-        ## simulate work
+        ### simulate work
         import time; time.sleep(2)
     finally:
         lm.release("my_resource")
@@ -3716,7 +3716,7 @@ if __name__ == "__main__":
 
 ---
 
-### Key Takeaways
+#### Key Takeaways
 
 1. **Imports inside classes/functions**: PyInstaller might miss them → keep imports at top-level.
 2. **Locks**: We used `threading.Lock` (for threads) + JSON file (for processes).
@@ -3737,15 +3737,15 @@ import os
 from pathlib import Path
 from typing import Union
 
-# Platform-specific imports
-if os.name == 'nt':  # Windows
+## Platform-specific imports
+if os.name == 'nt':  ## Windows
     import msvcrt
-else:  # Unix-like (Linux, macOS)
+else:  ## Unix-like (Linux, macOS)
     import fcntl
 
-# ============================================================================
-# SECTION 1: Context Manager Implementation
-# ============================================================================
+## ============================================================================
+## SECTION 1: Context Manager Implementation
+## ============================================================================
 
 class LockedFile:
     """
@@ -3785,33 +3785,33 @@ class LockedFile:
         Returns:
             Open file handle with lock acquired
         """
-        # Open file
+        ## Open file
         self.file = open(self.filepath, self.mode)
 
-        # Acquire exclusive lock
+        ## Acquire exclusive lock
         if os.name == 'nt':
-            # Windows: Lock entire file
-            # msvcrt.locking() locks a byte range
-            # We lock from position 0 to EOF
+            ## Windows: Lock entire file
+            ## msvcrt.locking() locks a byte range
+            ## We lock from position 0 to EOF
             file_size = os.path.getsize(self.filepath)
             if file_size == 0:
-                file_size = 1  # Lock at least 1 byte
+                file_size = 1  ## Lock at least 1 byte
 
-            # LK_NBLCK: Non-blocking exclusive lock
-            # Will raise IOError if already locked
+            ## LK_NBLCK: Non-blocking exclusive lock
+            ## Will raise IOError if already locked
             try:
                 msvcrt.locking(
                     self.file.fileno(),
-                    msvcrt.LK_LOCK,  # Blocking lock
+                    msvcrt.LK_LOCK,  ## Blocking lock
                     file_size
                 )
             except IOError as e:
                 self.file.close()
                 raise IOError(f"Could not acquire lock on {self.filepath}: {e}")
         else:
-            # Unix: flock() is simpler and more reliable
-            # LOCK_EX: Exclusive lock
-            # Blocks until lock is available
+            ## Unix: flock() is simpler and more reliable
+            ## LOCK_EX: Exclusive lock
+            ## Blocks until lock is available
             try:
                 fcntl.flock(self.file.fileno(), fcntl.LOCK_EX)
             except IOError as e:
@@ -3827,7 +3827,7 @@ class LockedFile:
         Called even if exception occurs in the with block.
         """
         if self.file:
-            # Release lock
+            ## Release lock
             if os.name == 'nt':
                 try:
                     file_size = os.path.getsize(self.filepath)
@@ -3839,22 +3839,22 @@ class LockedFile:
                         file_size
                     )
                 except:
-                    pass  # Best effort unlock
+                    pass  ## Best effort unlock
             else:
                 try:
                     fcntl.flock(self.file.fileno(), fcntl.LOCK_UN)
                 except:
                     pass
 
-            # Close file
+            ## Close file
             self.file.close()
 
-        # Propagate exceptions (return False)
+        ## Propagate exceptions (return False)
         return False
 
-# ============================================================================
-# SECTION 2: Testing the Lock
-# ============================================================================
+## ============================================================================
+## SECTION 2: Testing the Lock
+## ============================================================================
 
 if __name__ == "__main__":
     """
@@ -3871,23 +3871,23 @@ if __name__ == "__main__":
         """Atomic increment using LockedFile"""
         for i in range(100):
             with LockedFile(test_file, 'r+') as f:
-                # Read
+                ## Read
                 data = json.load(f)
 
-                # Modify
+                ## Modify
                 data['counter'] += 1
 
-                # Write (must seek to beginning and truncate)
+                ## Write (must seek to beginning and truncate)
                 f.seek(0)
                 f.truncate()
                 json.dump(data, f)
 
-            # Small delay to increase chance of contention
+            ## Small delay to increase chance of contention
             time.sleep(0.001)
 
     print("Testing file locking with multiple threads...")
 
-    # Run three threads simultaneously
+    ## Run three threads simultaneously
     threads = [
         threading.Thread(target=safe_increment, args=(i,))
         for i in range(3)
@@ -3899,9 +3899,9 @@ if __name__ == "__main__":
     for t in threads:
         t.join()
 
-    # Verify correctness
+    ## Verify correctness
     final = json.loads(test_file.read_text())
-    expected = 300  # 3 threads × 100 increments
+    expected = 300  ## 3 threads × 100 increments
 
     print(f"Expected: {expected}")
     print(f"Got: {final['counter']}")
@@ -3916,17 +3916,17 @@ Test it:
 python -m app.utils.file_locking
 ```
 
-### Tutorial: File Management, Locking, and Repository Services in Python
+#### Tutorial: File Management, Locking, and Repository Services in Python
 
 This tutorial walks through **building a file management system** with **locking**, **repository operations**, and a **combined service** that merges both. Each section builds incrementally with explanations, common pitfalls, and deeper notes.
 
 ---
 
-#### Section I: Lock Management
+##### Section I: Lock Management
 
 We want a system to ensure **only one user can modify a file at a time**, preventing conflicts in multi-user or multi-process environments.
 
-##### Step 1: Class setup
+###### Step 1: Class setup
 
 ```python
 from pathlib import Path
@@ -3961,13 +3961,13 @@ class LockManager:
 
 ---
 
-##### Step 2: Constructor
+###### Step 2: Constructor
 
 ```python
 def __init__(self, locks_file: Path):
     self.locks_file = locks_file
 
-    ### Ensure file exists
+    #### Ensure file exists
     if not self.locks_file.exists():
         self.locks_file.write_text('{}')
 ```
@@ -3982,7 +3982,7 @@ def __init__(self, locks_file: Path):
 
 ---
 
-##### Step 3: Loading locks
+###### Step 3: Loading locks
 
 ```python
 def load_locks(self) -> Dict[str, dict]:
@@ -4020,7 +4020,7 @@ def load_locks(self) -> Dict[str, dict]:
 
 ---
 
-##### Step 4: Saving locks
+###### Step 4: Saving locks
 
 ```python
 def save_locks(self, locks: dict):
@@ -4039,7 +4039,7 @@ def save_locks(self, locks: dict):
 
 ---
 
-##### Step 5: Checking lock state
+###### Step 5: Checking lock state
 
 ```python
 def is_locked(self, filename: str) -> bool:
@@ -4060,7 +4060,7 @@ def get_lock_info(self, filename: str) -> Optional[dict]:
 
 ---
 
-##### Step 6: Acquiring and releasing locks
+###### Step 6: Acquiring and releasing locks
 
 ```python
 def acquire_lock(self, filename: str, user: str, message: str):
@@ -4101,11 +4101,11 @@ def release_lock(self, filename: str, user: str):
 
 ---
 
-#### Section II: File Repository
+##### Section II: File Repository
 
 Handles **filesystem operations** for your repository.
 
-##### Step 1: Setup
+###### Step 1: Setup
 
 ```python
 class FileRepository:
@@ -4119,7 +4119,7 @@ class FileRepository:
 
 ---
 
-##### Step 2: Listing files with metadata
+###### Step 2: Listing files with metadata
 
 ```python
 def list_files(self, extension: str = '.mcam') -> List[Dict]:
@@ -4149,7 +4149,7 @@ def list_files(self, extension: str = '.mcam') -> List[Dict]:
 
 ---
 
-##### Step 3: Helper methods
+###### Step 3: Helper methods
 
 ```python
 def file_exists(self, filename: str) -> bool:
@@ -4172,11 +4172,11 @@ def write_file(self, filename: str, content: bytes):
 
 ---
 
-#### Section III: Combined File Service
+##### Section III: Combined File Service
 
 This class **combines repository + locks** to provide high-level operations.
 
-##### Step 1: Constructor
+###### Step 1: Constructor
 
 ```python
 class FileService:
@@ -4190,7 +4190,7 @@ class FileService:
 
 ---
 
-##### Step 2: Files with status
+###### Step 2: Files with status
 
 ```python
 def get_files_with_status(self) -> List[Dict]:
@@ -4218,7 +4218,7 @@ def get_files_with_status(self) -> List[Dict]:
 
 ---
 
-##### Step 3: Checkout / Checkin
+###### Step 3: Checkout / Checkin
 
 ```python
 def checkout_file(self, filename: str, user: str, message: str):
@@ -4237,7 +4237,7 @@ def checkin_file(self, filename: str, user: str):
 
 ---
 
-##### ✅ Key Takeaways
+###### ✅ Key Takeaways
 
 - **File locking** prevents race conditions in multi-user / multi-process environments.
 - **Pathlib** is modern and safer than raw strings for file operations.
@@ -4246,13 +4246,13 @@ def checkin_file(self, filename: str, user: str):
 
 ---
 
-## Incremental Coding Tutorial: File Management with Locking
+### Incremental Coding Tutorial: File Management with Locking
 
 ---
 
-### SECTION I: Lock Management
+#### SECTION I: Lock Management
 
-#### Step 1: Imports and Logger
+##### Step 1: Imports and Logger
 
 ```python
 from pathlib import Path
@@ -4279,7 +4279,7 @@ logger = logging.getLogger(__name__)
 
 ---
 
-#### Step 2: Start the LockManager Class
+##### Step 2: Start the LockManager Class
 
 ```python
 class LockManager:
@@ -4295,13 +4295,13 @@ class LockManager:
 
 ---
 
-#### Step 3: Constructor
+##### Step 3: Constructor
 
 ```python
 def __init__(self, locks_file: Path):
     self.locks_file = locks_file
 
-    ## Ensure file exists
+    ### Ensure file exists
     if not self.locks_file.exists():
         self.locks_file.write_text('{}')
 ```
@@ -4320,7 +4320,7 @@ def __init__(self, locks_file: Path):
 
 ---
 
-#### Step 4: Load Locks
+##### Step 4: Load Locks
 
 ```python
 def load_locks(self) -> Dict[str, dict]:
@@ -4357,7 +4357,7 @@ def load_locks(self) -> Dict[str, dict]:
 
 ---
 
-#### Step 5: Save Locks
+##### Step 5: Save Locks
 
 ```python
 def save_locks(self, locks: dict):
@@ -4376,7 +4376,7 @@ def save_locks(self, locks: dict):
 
 ---
 
-#### Step 6: Check Lock State
+##### Step 6: Check Lock State
 
 ```python
 def is_locked(self, filename: str) -> bool:
@@ -4395,7 +4395,7 @@ def get_lock_info(self, filename: str) -> Optional[dict]:
 
 ---
 
-#### Step 7: Acquire and Release Locks
+##### Step 7: Acquire and Release Locks
 
 ```python
 def acquire_lock(self, filename: str, user: str, message: str):
@@ -4435,9 +4435,9 @@ def release_lock(self, filename: str, user: str):
 
 ---
 
-### SECTION II: File Repository
+#### SECTION II: File Repository
 
-#### Step 1: Repository Class
+##### Step 1: Repository Class
 
 ```python
 class FileRepository:
@@ -4451,7 +4451,7 @@ class FileRepository:
 
 ---
 
-#### Step 2: List Files
+##### Step 2: List Files
 
 ```python
 def list_files(self, extension: str = '.mcam') -> list[dict]:
@@ -4476,7 +4476,7 @@ def list_files(self, extension: str = '.mcam') -> list[dict]:
 
 ---
 
-#### Step 3: Helper Methods
+##### Step 3: Helper Methods
 
 ```python
 def file_exists(self, filename: str) -> bool:
@@ -4497,9 +4497,9 @@ def write_file(self, filename: str, content: bytes):
 
 ---
 
-### SECTION III: Combined File Service
+#### SECTION III: Combined File Service
 
-#### Step 1: Service Constructor
+##### Step 1: Service Constructor
 
 ```python
 class FileService:
@@ -4513,7 +4513,7 @@ class FileService:
 
 ---
 
-#### Step 2: Files with Status
+##### Step 2: Files with Status
 
 ```python
 def get_files_with_status(self) -> list[dict]:
@@ -4537,7 +4537,7 @@ def get_files_with_status(self) -> list[dict]:
 
 ---
 
-#### Step 3: Checkout / Checkin
+##### Step 3: Checkout / Checkin
 
 ```python
 def checkout_file(self, filename: str, user: str, message: str):
@@ -4560,7 +4560,7 @@ def checkin_file(self, filename: str, user: str):
 - Try **checking files in/out** from multiple scripts to see the locks in action.
 - Consider **FileLock library** as a cross-platform alternative if you run into weird locking behavior on Windows
 
-## 3.3: File Service Layer
+### 3.3: File Service Layer
 
 **File: `backend/app/services/file_service.py`**
 
@@ -4583,9 +4583,9 @@ from app.utils.file_locking import LockedFile
 
 logger = logging.getLogger(__name__)
 
-# ============================================================================
-# SECTION 1: Lock Management
-# ============================================================================
+## ============================================================================
+## SECTION 1: Lock Management
+## ============================================================================
 
 class LockManager:
     """
@@ -4597,7 +4597,7 @@ class LockManager:
     def __init__(self, locks_file: Path):
         self.locks_file = locks_file
 
-        # Ensure file exists
+        ## Ensure file exists
         if not self.locks_file.exists():
             self.locks_file.write_text('{}')
 
@@ -4663,7 +4663,7 @@ class LockManager:
                 f"File already locked by {existing['user']}"
             )
 
-        # Add lock
+        ## Add lock
         from datetime import datetime, timezone
         locks[filename] = {
             'user': user,
@@ -4695,14 +4695,14 @@ class LockManager:
                 f"Lock owned by {locks[filename]['user']}, not {user}"
             )
 
-        # Remove lock
+        ## Remove lock
         del locks[filename]
         self.save_locks(locks)
         logger.info(f"Lock released: {filename} by {user}")
 
-# ============================================================================
-# SECTION 2: File Repository
-# ============================================================================
+## ============================================================================
+## SECTION 2: File Repository
+## ============================================================================
 
 class FileRepository:
     """
@@ -4712,7 +4712,7 @@ class FileRepository:
     def __init__(self, repo_path: Path):
         self.repo_path = repo_path
 
-        # Ensure repo directory exists
+        ## Ensure repo directory exists
         self.repo_path.mkdir(parents=True, exist_ok=True)
 
     def list_files(self, extension: str = '.mcam') -> List[Dict]:
@@ -4729,13 +4729,13 @@ class FileRepository:
 
         try:
             for item in self.repo_path.iterdir():
-                # Filter by type and extension
+                ## Filter by type and extension
                 if not item.is_file():
                     continue
                 if not item.name.lower().endswith(extension):
                     continue
 
-                # Get file metadata (from inode - fast!)
+                ## Get file metadata (from inode - fast!)
                 stat = item.stat()
 
                 files.append({
@@ -4768,9 +4768,9 @@ class FileRepository:
         path = self.get_file_path(filename)
         path.write_bytes(content)
 
-# ============================================================================
-# SECTION 3: Combined Service
-# ============================================================================
+## ============================================================================
+## SECTION 3: Combined Service
+## ============================================================================
 
 class FileService:
     """
@@ -4790,13 +4790,13 @@ class FileService:
         Returns:
             List of dicts with file info and lock status
         """
-        # Get files from filesystem
+        ## Get files from filesystem
         files = self.repository.list_files()
 
-        # Get lock state
+        ## Get lock state
         locks = self.lock_manager.load_locks()
 
-        # Combine information
+        ## Combine information
         result = []
         for file_info in files:
             filename = file_info['name']
@@ -4818,11 +4818,11 @@ class FileService:
         Raises:
             ValueError: If file doesn't exist or is already locked
         """
-        # Verify file exists
+        ## Verify file exists
         if not self.repository.file_exists(filename):
             raise ValueError(f"File not found: {filename}")
 
-        # Acquire lock
+        ## Acquire lock
         self.lock_manager.acquire_lock(filename, user, message)
 
     def checkin_file(self, filename: str, user: str):
@@ -4837,7 +4837,7 @@ class FileService:
 
 ---
 
-## 3.4: Update API Endpoints
+### 3.4: Update API Endpoints
 
 **Update `backend/app/api/files.py`:**
 
@@ -4856,18 +4856,18 @@ from app.schemas.files import (
 from app.services.file_service import FileService
 from pathlib import Path
 
-# ============================================================================
-# SECTION 1: Router Setup
-# ============================================================================
+## ============================================================================
+## SECTION 1: Router Setup
+## ============================================================================
 
 router = APIRouter(
     prefix="/api/files",
     tags=["files"],
 )
 
-# ============================================================================
-# SECTION 2: Dependency Injection
-# ============================================================================
+## ============================================================================
+## SECTION 2: Dependency Injection
+## ============================================================================
 
 def get_file_service() -> FileService:
     """
@@ -4883,9 +4883,9 @@ def get_file_service() -> FileService:
 
     return FileService(repo_path, locks_file)
 
-# ============================================================================
-# SECTION 3: GET Endpoints
-# ============================================================================
+## ============================================================================
+## SECTION 3: GET Endpoints
+## ============================================================================
 
 @router.get("/", response_model=FileListResponse)
 def get_files(
@@ -4929,9 +4929,9 @@ def get_file(
         detail=f"File '{filename}' not found"
     )
 
-# ============================================================================
-# SECTION 4: POST Endpoints - Checkout/Checkin
-# ============================================================================
+## ============================================================================
+## SECTION 4: POST Endpoints - Checkout/Checkin
+## ============================================================================
 
 @router.post("/checkout")
 def checkout_file(
@@ -4956,14 +4956,14 @@ def checkout_file(
         }
 
     except ValueError as e:
-        # Business logic error (file not found, already locked)
+        ## Business logic error (file not found, already locked)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e)
         )
 
     except Exception as e:
-        # Unexpected error
+        ## Unexpected error
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to checkout file: {str(e)}"
@@ -4991,7 +4991,7 @@ def checkin_file(
         }
 
     except ValueError as e:
-        # Business logic error
+        ## Business logic error
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
@@ -5006,7 +5006,7 @@ def checkin_file(
 
 ---
 
-## 3.5: Create Test Repository
+### 3.5: Create Test Repository
 
 **Create sample files:**
 
@@ -5014,7 +5014,7 @@ def checkin_file(
 cd backend
 mkdir -p repo
 
-# Create sample .mcam files (simulating CAM files)
+## Create sample .mcam files (simulating CAM files)
 echo "G0 X0 Y0 Z10" > repo/PN1001_OP1.mcam
 echo "G1 X10 Y10 F100" > repo/PN1002_OP1.mcam
 echo "G2 X20 Y20 I5 J5" > repo/PN1003_OP1.mcam
@@ -5022,7 +5022,7 @@ echo "G2 X20 Y20 I5 J5" > repo/PN1003_OP1.mcam
 
 ---
 
-## 3.6: Modal Manager for Frontend
+### 3.6: Modal Manager for Frontend
 
 **File: `backend/static/js/modules/modal-manager.js`**
 
@@ -5098,7 +5098,7 @@ export class ModalManager {
 
 ---
 
-## 3.7: Add Modals to HTML
+### 3.7: Add Modals to HTML
 
 **Update `backend/static/index.html` - add before closing `</body>`:**
 
@@ -5204,7 +5204,7 @@ export class ModalManager {
 
 ---
 
-## 3.8: Update Frontend JavaScript
+### 3.8: Update Frontend JavaScript
 
 **Update `backend/static/js/app.js`:**
 
@@ -5425,15 +5425,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 ---
 
-## Stage 3 Complete
+### Stage 3 Complete
 
 **Test the full workflow:**
 
 ```bash
-# Start server
+## Start server
 uvicorn app.main:app --reload
 
-# Visit
+## Visit
 http://127.0.0.1:8000
 ```
 
@@ -5452,19 +5452,19 @@ http://127.0.0.1:8000
 backend/
 ├── app/
 │   ├── services/
-│   │   └── file_service.py      # NEW
+│   │   └── file_service.py      ## NEW
 │   ├── utils/
-│   │   └── file_locking.py      # NEW
-│   ├── learn_filesystem.py      # NEW
+│   │   └── file_locking.py      ## NEW
+│   ├── learn_filesystem.py      ## NEW
 │   └── (existing files)
 ├── static/
 │   └── js/modules/
-│       └── modal-manager.js     # NEW
-├── repo/                        # NEW
+│       └── modal-manager.js     ## NEW
+├── repo/                        ## NEW
 │   ├── PN1001_OP1.mcam
 │   ├── PN1002_OP1.mcam
 │   └── PN1003_OP1.mcam
-└── locks.json                   # Auto-created
+└── locks.json                   ## Auto-created
 ```
 
 **What you learned:**
@@ -5479,7 +5479,7 @@ backend/
 
 Ready for Stage 4?
 
-# Stage 4: Advanced Frontend - State Management & UX Polish
+## Stage 4: Advanced Frontend - State Management & UX Polish
 
 **Prerequisites**: Completed Stage 3
 
@@ -5489,7 +5489,7 @@ Ready for Stage 4?
 
 ---
 
-## 4.1: Deep Dive - State Management Patterns
+### 4.1: Deep Dive - State Management Patterns
 
 **File: `backend/static/js/modules/learn_state_management.js`**
 
@@ -5732,7 +5732,7 @@ export { SimpleStore, StoreWithActions, StoreWithComputed };
 
 ---
 
-## 4.2: Production Store Implementation
+### 4.2: Production Store Implementation
 
 **File: `backend/static/js/modules/store.js`**
 
@@ -5951,7 +5951,7 @@ export const store = new Store();
 
 ---
 
-## 4.3: Toast Notification System
+### 4.3: Toast Notification System
 
 **File: `backend/static/js/modules/toast.js`**
 
@@ -6212,7 +6212,7 @@ export const toast = new ToastManager();
 
 ---
 
-## 4.4: Add Search, Filter, Sort UI
+### 4.4: Add Search, Filter, Sort UI
 
 **Update `backend/static/index.html` - replace the file list section:**
 
@@ -6309,7 +6309,7 @@ export const toast = new ToastManager();
 
 ---
 
-## 4.5: Update Main Application
+### 4.5: Update Main Application
 
 **Update `backend/static/js/app.js`:**
 
@@ -6621,7 +6621,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 ---
 
-## Stage 4 Complete
+### Stage 4 Complete
 
 **Test all features:**
 
@@ -6647,9 +6647,9 @@ backend/
 ├── static/
 │   └── js/
 │       └── modules/
-│           ├── store.js                    # NEW
-│           ├── toast.js                    # NEW
-│           └── learn_state_management.js   # NEW
+│           ├── store.js                    ## NEW
+│           ├── toast.js                    ## NEW
+│           └── learn_state_management.js   ## NEW
 ```
 
 **What you learned:**
@@ -6673,7 +6673,7 @@ backend/
 
 Ready for Stage 5 (Authentication)?
 
-# Stage 5: Authentication & Authorization
+## Stage 5: Authentication & Authorization
 
 **Prerequisites**: Completed Stage 4
 
@@ -6683,7 +6683,7 @@ Ready for Stage 5 (Authentication)?
 
 ---
 
-## 5.1: Deep Dive - Authentication vs Authorization
+### 5.1: Deep Dive - Authentication vs Authorization
 
 **File: `backend/app/learn_auth_concepts.py`**
 
@@ -6694,9 +6694,9 @@ Understanding Authentication and Authorization
 These are two distinct security concepts that work together.
 """
 
-# ============================================================================
-# SECTION 1: Definitions
-# ============================================================================
+## ============================================================================
+## SECTION 1: Definitions
+## ============================================================================
 
 """
 AUTHENTICATION (AuthN): "Who are you?"
@@ -6721,9 +6721,9 @@ You ALWAYS authenticate before you authorize.
 You can be authenticated but not authorized.
 """
 
-# ============================================================================
-# SECTION 2: Password Storage - The Wrong Ways
-# ============================================================================
+## ============================================================================
+## SECTION 2: Password Storage - The Wrong Ways
+## ============================================================================
 
 """
 NEVER STORE PLAIN TEXT PASSWORDS
@@ -6745,8 +6745,8 @@ import hashlib
 def bad_approach_1_plaintext():
     """Storing passwords in plain text - NEVER DO THIS"""
     password = "secret123"
-    # Stored directly in database
-    return password  # Anyone with DB access sees this
+    ## Stored directly in database
+    return password  ## Anyone with DB access sees this
 
 def bad_approach_2_simple_hash():
     """Using fast hash like MD5 or SHA256 - STILL BAD"""
@@ -6771,9 +6771,9 @@ def bad_approach_2_simple_hash():
     """
     return hashed
 
-# ============================================================================
-# SECTION 3: Password Storage - The Right Way
-# ============================================================================
+## ============================================================================
+## SECTION 3: Password Storage - The Right Way
+## ============================================================================
 
 """
 CORRECT APPROACH: Key Derivation Functions (KDFs)
@@ -6797,20 +6797,20 @@ def correct_password_storage():
     """Using bcrypt with passlib"""
     password = "secret123"
 
-    # Hash password (automatically adds random salt)
+    ## Hash password (automatically adds random salt)
     hashed = pwd_context.hash(password)
     print(f"Hashed: {hashed}")
-    # Output: $2b$12$randomsalt...actualhash
-    #         │  │  │
-    #         │  │  └─ Salt (random per password)
-    #         │  └──── Cost factor (12 = 2^12 iterations)
-    #         └─────── Algorithm identifier (bcrypt)
+    ## Output: $2b$12$randomsalt...actualhash
+    ##         │  │  │
+    ##         │  │  └─ Salt (random per password)
+    ##         │  └──── Cost factor (12 = 2^12 iterations)
+    ##         └─────── Algorithm identifier (bcrypt)
 
-    # Same password, different hash each time (different salt)
+    ## Same password, different hash each time (different salt)
     hashed2 = pwd_context.hash(password)
     print(f"Same password, different hash: {hashed != hashed2}")
 
-    # Verify password
+    ## Verify password
     is_correct = pwd_context.verify("secret123", hashed)
     print(f"Password correct: {is_correct}")
 
@@ -6835,9 +6835,9 @@ def correct_password_storage():
        - Currently 12 is good, in 2030 might use 15
     """
 
-# ============================================================================
-# SECTION 4: Session Management - Tokens vs Cookies
-# ============================================================================
+## ============================================================================
+## SECTION 4: Session Management - Tokens vs Cookies
+## ============================================================================
 
 """
 Two approaches to "remember" authenticated users:
@@ -6913,9 +6913,9 @@ Cons:
 We'll use JWT for scalability and simplicity.
 """
 
-# ============================================================================
-# SECTION 5: JWT Structure
-# ============================================================================
+## ============================================================================
+## SECTION 5: JWT Structure
+## ============================================================================
 
 """
 JWT = JSON Web Token
@@ -6928,15 +6928,15 @@ Structure: xxxxx.yyyyy.zzzzz
 
 HEADER (Base64 encoded JSON):
 {
-  "alg": "HS256",     # Algorithm
-  "typ": "JWT"        # Type
+  "alg": "HS256",     ## Algorithm
+  "typ": "JWT"        ## Type
 }
 
 PAYLOAD (Base64 encoded JSON):
 {
-  "sub": "alice",     # Subject (user identifier)
-  "role": "admin",    # Custom claims
-  "exp": 1735689600   # Expiration timestamp
+  "sub": "alice",     ## Subject (user identifier)
+  "role": "admin",    ## Custom claims
+  "exp": 1735689600   ## Expiration timestamp
 }
 
 SIGNATURE:
@@ -6962,16 +6962,16 @@ import json
 
 def decode_jwt_demo():
     """Demonstrate JWT structure"""
-    # Real JWT from our app
+    ## Real JWT from our app
     token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzM1Njg5NjAwfQ.signature"
 
     header, payload, signature = token.split('.')
 
-    # Decode header (add padding if needed)
+    ## Decode header (add padding if needed)
     header_json = base64.urlsafe_b64decode(header + '==')
     print(f"Header: {header_json}")
 
-    # Decode payload
+    ## Decode payload
     payload_json = base64.urlsafe_b64decode(payload + '==')
     print(f"Payload: {payload_json}")
 
@@ -7000,7 +7000,7 @@ python -m app.learn_auth_concepts
 
 ---
 
-## 5.2: Install Authentication Dependencies
+### 5.2: Install Authentication Dependencies
 
 ```bash
 pip install "passlib[bcrypt]" "python-jose[cryptography]" python-multipart
@@ -7015,7 +7015,7 @@ pip freeze > requirements.txt
 
 ---
 
-## 5.3: Update Configuration
+### 5.3: Update Configuration
 
 **Update `backend/app/config.py`:**
 
@@ -7030,27 +7030,27 @@ from pathlib import Path
 class Settings(BaseSettings):
     """Application settings."""
 
-    # ========================================================================
-    # Application Settings
-    # ========================================================================
+    ## ========================================================================
+    ## Application Settings
+    ## ========================================================================
     APP_NAME: str = "PDM Backend API"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = True
 
-    # ========================================================================
-    # Security Settings
-    # ========================================================================
-    # CRITICAL: Change this in production!
-    # Generate with: openssl rand -hex 32
+    ## ========================================================================
+    ## Security Settings
+    ## ========================================================================
+    ## CRITICAL: Change this in production!
+    ## Generate with: openssl rand -hex 32
     SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 
-    # JWT Settings
+    ## JWT Settings
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # ========================================================================
-    # Path Configuration
-    # ========================================================================
+    ## ========================================================================
+    ## Path Configuration
+    ## ========================================================================
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
     class Config:
@@ -7063,7 +7063,7 @@ settings = Settings()
 **Create `.env` file for local overrides:**
 
 ```bash
-# backend/.env
+## backend/.env
 SECRET_KEY=your-super-secret-key-change-in-production
 DEBUG=True
 ```
@@ -7076,7 +7076,7 @@ DEBUG=True
 
 ---
 
-## 5.4: Authentication Schemas
+### 5.4: Authentication Schemas
 
 **File: `backend/app/schemas/auth.py`**
 
@@ -7088,9 +7088,9 @@ Pydantic schemas for authentication.
 from pydantic import BaseModel, Field, validator
 from typing import Optional
 
-# ============================================================================
-# SECTION 1: User Models
-# ============================================================================
+## ============================================================================
+## SECTION 1: User Models
+## ============================================================================
 
 class User(BaseModel):
     """
@@ -7142,9 +7142,9 @@ class UserCreate(BaseModel):
             raise ValueError('Password must contain at least one uppercase letter')
         return v
 
-# ============================================================================
-# SECTION 2: Token Models
-# ============================================================================
+## ============================================================================
+## SECTION 2: Token Models
+## ============================================================================
 
 class Token(BaseModel):
     """JWT token response."""
@@ -7175,12 +7175,12 @@ from app.schemas.auth import (
 )
 
 __all__ = [
-    # Files
+    ## Files
     "FileInfo",
     "FileListResponse",
     "FileCheckoutRequest",
     "FileCheckinRequest",
-    # Auth
+    ## Auth
     "User",
     "UserInDB",
     "UserCreate",
@@ -7191,7 +7191,7 @@ __all__ = [
 
 ---
 
-## 5.5: Authentication Service
+### 5.5: Authentication Service
 
 **File: `backend/app/services/auth_service.py`**
 
@@ -7212,11 +7212,11 @@ from app.config import settings
 from app.schemas.auth import UserInDB, User
 from app.utils.file_locking import LockedFile
 
-# ============================================================================
-# SECTION 1: Password Hashing
-# ============================================================================
+## ============================================================================
+## SECTION 1: Password Hashing
+## ============================================================================
 
-# Create password context for bcrypt
+## Create password context for bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -7244,9 +7244,9 @@ def get_password_hash(password: str) -> str:
     """
     return pwd_context.hash(password)
 
-# ============================================================================
-# SECTION 2: JWT Token Management
-# ============================================================================
+## ============================================================================
+## SECTION 2: JWT Token Management
+## ============================================================================
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
@@ -7266,10 +7266,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
 
-    # Add standard claims
+    ## Add standard claims
     to_encode.update({"exp": expire})
 
-    # Encode and sign with secret key
+    ## Encode and sign with secret key
     encoded_jwt = jwt.encode(
         to_encode,
         settings.SECRET_KEY,
@@ -7298,9 +7298,9 @@ def decode_access_token(token: str) -> Optional[dict]:
     except JWTError:
         return None
 
-# ============================================================================
-# SECTION 3: User Management
-# ============================================================================
+## ============================================================================
+## SECTION 3: User Management
+## ============================================================================
 
 class UserService:
     """Manages user data stored in JSON file."""
@@ -7308,7 +7308,7 @@ class UserService:
     def __init__(self, users_file: Path):
         self.users_file = users_file
 
-        # Ensure file exists
+        ## Ensure file exists
         if not self.users_file.exists():
             self.users_file.write_text('{}')
 
@@ -7354,10 +7354,10 @@ class UserService:
         if username in users:
             raise ValueError(f"Username '{username}' already exists")
 
-        # Hash password
+        ## Hash password
         password_hash = get_password_hash(password)
 
-        # Add user
+        ## Add user
         users[username] = {
             "username": username,
             "password_hash": password_hash,
@@ -7388,11 +7388,11 @@ class UserService:
         """Create default admin and test users."""
         users = self.load_users()
 
-        # Only create if no users exist
+        ## Only create if no users exist
         if users:
             return
 
-        # Create admin user
+        ## Create admin user
         self.create_user(
             username="admin",
             password="Admin123!",
@@ -7400,7 +7400,7 @@ class UserService:
             role="admin"
         )
 
-        # Create test user
+        ## Create test user
         self.create_user(
             username="john",
             password="Password123!",
@@ -7411,7 +7411,7 @@ class UserService:
 
 ---
 
-## 5.6: Authentication Dependencies
+### 5.6: Authentication Dependencies
 
 **File: `backend/app/api/deps.py`**
 
@@ -7429,17 +7429,17 @@ from app.schemas.auth import User, UserInDB
 from app.services.auth_service import decode_access_token, UserService
 from app.config import settings
 
-# ============================================================================
-# SECTION 1: OAuth2 Setup
-# ============================================================================
+## ============================================================================
+## SECTION 1: OAuth2 Setup
+## ============================================================================
 
-# This tells FastAPI where to find the login endpoint
-# and extracts the token from the "Authorization: Bearer <token>" header
+## This tells FastAPI where to find the login endpoint
+## and extracts the token from the "Authorization: Bearer <token>" header
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-# ============================================================================
-# SECTION 2: Get Current User
-# ============================================================================
+## ============================================================================
+## SECTION 2: Get Current User
+## ============================================================================
 
 def get_user_service() -> UserService:
     """Dependency that provides UserService instance."""
@@ -7469,31 +7469,31 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    # Decode token
+    ## Decode token
     payload = decode_access_token(token)
     if payload is None:
         raise credentials_exception
 
-    # Extract username from token
+    ## Extract username from token
     username: str = payload.get("sub")
     if username is None:
         raise credentials_exception
 
-    # Get user from storage
+    ## Get user from storage
     user_in_db = user_service.get_user(username)
     if user_in_db is None:
         raise credentials_exception
 
-    # Return User model (without password_hash)
+    ## Return User model (without password_hash)
     return User(
         username=user_in_db.username,
         full_name=user_in_db.full_name,
         role=user_in_db.role
     )
 
-# ============================================================================
-# SECTION 3: Role-Based Authorization
-# ============================================================================
+## ============================================================================
+## SECTION 3: Role-Based Authorization
+## ============================================================================
 
 def require_role(allowed_roles: list[str]):
     """
@@ -7516,14 +7516,14 @@ def require_role(allowed_roles: list[str]):
 
     return role_checker
 
-# Convenience aliases
+## Convenience aliases
 require_admin = require_role(["admin"])
 require_user = require_role(["admin", "user"])
 ```
 
 ---
 
-## 5.7: Authentication API Routes
+### 5.7: Authentication API Routes
 
 **File: `backend/app/api/auth.py`**
 
@@ -7541,18 +7541,18 @@ from app.services.auth_service import UserService, create_access_token
 from app.api.deps import get_user_service, get_current_user
 from app.config import settings
 
-# ============================================================================
-# SECTION 1: Router Setup
-# ============================================================================
+## ============================================================================
+## SECTION 1: Router Setup
+## ============================================================================
 
 router = APIRouter(
     prefix="/api/auth",
     tags=["authentication"]
 )
 
-# ============================================================================
-# SECTION 2: Login Endpoint
-# ============================================================================
+## ============================================================================
+## SECTION 2: Login Endpoint
+## ============================================================================
 
 @router.post("/login", response_model=Token)
 def login(
@@ -7568,7 +7568,7 @@ def login(
 
     Returns JWT access token.
     """
-    # Authenticate user
+    ## Authenticate user
     user = user_service.authenticate_user(form_data.username, form_data.password)
 
     if not user:
@@ -7578,7 +7578,7 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Create access token
+    ## Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "role": user.role},
@@ -7587,9 +7587,9 @@ def login(
 
     return {"access_token": access_token, "token_type": "bearer"}
 
-# ============================================================================
-# SECTION 3: User Info Endpoint
-# ============================================================================
+## ============================================================================
+## SECTION 3: User Info Endpoint
+## ============================================================================
 
 @router.get("/me", response_model=User)
 async def get_current_user_info(
@@ -7606,18 +7606,18 @@ async def get_current_user_info(
 **Update `backend/app/main.py` to include auth router:**
 
 ```python
-# Add import
+## Add import
 from app.api import files, auth
 
-# In create_application(), after including files router:
+## In create_application(), after including files router:
 app.include_router(auth.router)
 
-# Add startup event to create default users
+## Add startup event to create default users
 @app.on_event("startup")
 async def startup_event():
     print(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
 
-    # Create default users
+    ## Create default users
     from app.services.auth_service import UserService
     users_file = settings.BASE_DIR / 'users.json'
     user_service = UserService(users_file)
@@ -7627,41 +7627,41 @@ async def startup_event():
 
 ---
 
-## 5.8: Protect API Endpoints
+### 5.8: Protect API Endpoints
 
 **Update `backend/app/api/files.py` to require authentication:**
 
 ```python
-# Add import
+## Add import
 from app.api.deps import get_current_user
 from app.schemas.auth import User
 
-# Update all endpoints to require authentication:
+## Update all endpoints to require authentication:
 
 @router.get("/", response_model=FileListResponse)
 def get_files(
-    current_user: User = Depends(get_current_user),  # ADD THIS
+    current_user: User = Depends(get_current_user),  ## ADD THIS
     file_service: FileService = Depends(get_file_service)
 ):
     """Get list of all files. Requires authentication."""
-    # ... rest of implementation
+    ## ... rest of implementation
 
 @router.post("/checkout")
 def checkout_file(
     request: FileCheckoutRequest,
-    current_user: User = Depends(get_current_user),  # ADD THIS
+    current_user: User = Depends(get_current_user),  ## ADD THIS
     file_service: FileService = Depends(get_file_service)
 ):
     """Check out a file. Requires authentication."""
-    # Use current_user.username instead of request.user
+    ## Use current_user.username instead of request.user
     file_service.checkout_file(
         filename=request.filename,
-        user=current_user.username,  # FROM TOKEN
+        user=current_user.username,  ## FROM TOKEN
         message=request.message
     )
-    # ...
+    ## ...
 
-# Do the same for checkin_file and get_file
+## Do the same for checkin_file and get_file
 ```
 
 **Update checkout/checkin schemas to remove user field:**
@@ -7672,18 +7672,18 @@ def checkout_file(
 class FileCheckoutRequest(BaseModel):
     """Request body for checking out a file."""
     filename: str = Field(..., min_length=1)
-    # Remove user field - will come from JWT token
+    ## Remove user field - will come from JWT token
     message: str = Field(..., min_length=1, max_length=500)
 
 class FileCheckinRequest(BaseModel):
     """Request body for checking in a file."""
     filename: str
-    # Remove user field - will come from JWT token
+    ## Remove user field - will come from JWT token
 ```
 
 ---
 
-## 5.9: Frontend - Login Page
+### 5.9: Frontend - Login Page
 
 **File: `backend/static/login.html`:**
 
@@ -7877,7 +7877,7 @@ async def serve_login():
 
 ---
 
-## 5.10: Frontend - Auth Guard
+### 5.10: Frontend - Auth Guard
 
 **Add auth guard to `backend/static/index.html` in `<head>`:**
 
@@ -7895,7 +7895,7 @@ async def serve_login():
 
 ---
 
-## 5.11: Update API Client with Auth
+### 5.11: Update API Client with Auth
 
 **Update `backend/static/js/modules/api-client.js`:**
 
@@ -8127,7 +8127,7 @@ function handleCheckin(filename) {
 
 ---
 
-## Stage 5 Complete
+### Stage 5 Complete
 
 **Test the complete auth flow:**
 
@@ -8151,18 +8151,18 @@ uvicorn app.main:app --reload
 backend/
 ├── app/
 │   ├── services/
-│   │   └── auth_service.py          # NEW
+│   │   └── auth_service.py          ## NEW
 │   ├── schemas/
-│   │   └── auth.py                  # NEW
+│   │   └── auth.py                  ## NEW
 │   ├── api/
-│   │   ├── deps.py                  # NEW
-│   │   └── auth.py                  # NEW
-│   └── learn_auth_concepts.py       # NEW
+│   │   ├── deps.py                  ## NEW
+│   │   └── auth.py                  ## NEW
+│   └── learn_auth_concepts.py       ## NEW
 ├── static/
-│   ├── login.html                   # NEW
+│   ├── login.html                   ## NEW
 │   └── js/
-│       └── login.js                 # NEW
-└── users.json                       # Auto-created
+│       └── login.js                 ## NEW
+└── users.json                       ## Auto-created
 ```
 
 **What you learned:**
@@ -8178,7 +8178,7 @@ backend/
 
 Ready for Stage 6 (Advanced Authorization)?
 
-# Stage 6: Advanced Authorization & Audit System
+## Stage 6: Advanced Authorization & Audit System
 
 **Prerequisites**: Completed Stage 5
 
@@ -8188,7 +8188,7 @@ Ready for Stage 6 (Advanced Authorization)?
 
 ---
 
-## 6.1: Deep Dive - Authorization Patterns
+### 6.1: Deep Dive - Authorization Patterns
 
 **File: `backend/app/learn_authorization.py`**
 
@@ -8200,9 +8200,9 @@ Authorization answers: "What can this user do?"
 After authentication proves identity, authorization grants/denies access.
 """
 
-# ============================================================================
-# SECTION 1: Authorization Models
-# ============================================================================
+## ============================================================================
+## SECTION 1: Authorization Models
+## ============================================================================
 
 """
 AUTHORIZATION MODEL 1: Role-Based Access Control (RBAC)
@@ -8285,15 +8285,15 @@ class ABACExample:
         """
         Attribute-based decision
         """
-        # Rule 1: Owner can always edit
+        ## Rule 1: Owner can always edit
         if file.owner == user.id:
             return True
 
-        # Rule 2: Admin can edit everything
+        ## Rule 2: Admin can edit everything
         if user.role == 'admin':
             return True
 
-        # Rule 3: Same department can edit during business hours
+        ## Rule 3: Same department can edit during business hours
         if (user.department == file.department and
             environment.is_business_hours()):
             return True
@@ -8325,7 +8325,7 @@ class OwnershipExample:
     def can_checkin_file(self, user, file_lock):
         """User can only checkin their own files"""
         if user.role == 'admin':
-            return True  # Admin override
+            return True  ## Admin override
 
         return file_lock.owner == user.username
 
@@ -8339,9 +8339,9 @@ OUR APPROACH: Hybrid RBAC + Ownership
 Best of both worlds for our use case.
 """
 
-# ============================================================================
-# SECTION 2: Common Authorization Anti-Patterns
-# ============================================================================
+## ============================================================================
+## SECTION 2: Common Authorization Anti-Patterns
+## ============================================================================
 
 """
 ANTI-PATTERN 1: Client-Side Authorization
@@ -8362,13 +8362,13 @@ ANTI-PATTERN 2: Insecure Direct Object Reference (IDOR)
 
 BAD:
     DELETE /api/files/123
-    # No check if user owns file 123
+    ## No check if user owns file 123
 
 Problem: User can delete any file by guessing IDs.
 
 CORRECT:
     DELETE /api/files/123
-    # Check: current_user owns file 123 OR is admin
+    ## Check: current_user owns file 123 OR is admin
 """
 
 """
@@ -8377,19 +8377,19 @@ ANTI-PATTERN 3: Privilege Escalation via Parameter Tampering
 BAD:
     POST /api/users
     { "username": "alice", "role": "admin" }
-    # No check on role parameter
+    ## No check on role parameter
 
 Problem: Any user can make themselves admin.
 
 CORRECT:
     POST /api/users
-    # Only admins can set role
-    # OR ignore role parameter from non-admins
+    ## Only admins can set role
+    ## OR ignore role parameter from non-admins
 """
 
-# ============================================================================
-# SECTION 3: Defense in Depth
-# ============================================================================
+## ============================================================================
+## SECTION 3: Defense in Depth
+## ============================================================================
 
 """
 Security Principle: Defense in Depth
@@ -8428,7 +8428,7 @@ If ANY layer fails, reject request.
 if __name__ == "__main__":
     print("Authorization patterns explained.")
 
-    # Demo RBAC
+    ## Demo RBAC
     rbac = RBACExample()
     print(f"\nCan admin delete? {rbac.has_permission('admin', 'delete_files')}")
     print(f"Can user delete? {rbac.has_permission('user', 'delete_files')}")
@@ -8442,7 +8442,7 @@ python -m app.learn_authorization
 
 ---
 
-## 6.2: Enhanced Lock Management with Ownership
+### 6.2: Enhanced Lock Management with Ownership
 
 **Update `backend/app/services/file_service.py` - add audit logging:**
 
@@ -8461,9 +8461,9 @@ from app.utils.file_locking import LockedFile
 
 logger = logging.getLogger(__name__)
 
-# ============================================================================
-# SECTION 1: Audit Logger
-# ============================================================================
+## ============================================================================
+## SECTION 1: Audit Logger
+## ============================================================================
 
 class AuditLogger:
     """
@@ -8473,7 +8473,7 @@ class AuditLogger:
     def __init__(self, audit_file: Path):
         self.audit_file = audit_file
 
-        # Ensure file exists
+        ## Ensure file exists
         if not self.audit_file.exists():
             self.audit_file.write_text('[]')
 
@@ -8496,12 +8496,12 @@ class AuditLogger:
             success: Whether action succeeded
         """
         try:
-            # Load existing logs
+            ## Load existing logs
             with LockedFile(self.audit_file, 'r') as f:
                 content = f.read()
                 logs = json.loads(content) if content.strip() else []
 
-            # Create new log entry
+            ## Create new log entry
             entry = {
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'action': action,
@@ -8513,7 +8513,7 @@ class AuditLogger:
 
             logs.append(entry)
 
-            # Save logs
+            ## Save logs
             with LockedFile(self.audit_file, 'w') as f:
                 json.dump(logs, f, indent=2)
 
@@ -8546,7 +8546,7 @@ class AuditLogger:
                 content = f.read()
                 logs = json.loads(content) if content.strip() else []
 
-            # Apply filters
+            ## Apply filters
             results = logs
 
             if filename:
@@ -8558,16 +8558,16 @@ class AuditLogger:
             if action:
                 results = [log for log in results if log['action'] == action]
 
-            # Return most recent first, up to limit
+            ## Return most recent first, up to limit
             return list(reversed(results))[:limit]
 
         except Exception as e:
             logger.error(f"Failed to read audit logs: {e}")
             return []
 
-# ============================================================================
-# SECTION 2: Update LockManager with Ownership
-# ============================================================================
+## ============================================================================
+## SECTION 2: Update LockManager with Ownership
+## ============================================================================
 
 class LockManager:
     """Manages file lock state with ownership validation."""
@@ -8663,7 +8663,7 @@ class LockManager:
         if filename not in locks:
             raise ValueError("File is not locked")
 
-        # Ownership check (unless admin override)
+        ## Ownership check (unless admin override)
         if not is_admin and locks[filename]['user'] != user:
             raise ValueError(
                 f"Lock owned by {locks[filename]['user']}, not {user}. "
@@ -8689,9 +8689,9 @@ class LockManager:
         self.save_locks(locks)
         logger.warning(f"Lock force-released: {filename}")
 
-# ============================================================================
-# SECTION 3: Update FileRepository (no changes needed)
-# ============================================================================
+## ============================================================================
+## SECTION 3: Update FileRepository (no changes needed)
+## ============================================================================
 
 class FileRepository:
     """Manages file operations on the repository directory."""
@@ -8743,9 +8743,9 @@ class FileRepository:
         path = self.get_file_path(filename)
         path.write_bytes(content)
 
-# ============================================================================
-# SECTION 4: Update FileService with Audit Logging
-# ============================================================================
+## ============================================================================
+## SECTION 4: Update FileService with Audit Logging
+## ============================================================================
 
 class FileService:
     """High-level file management with audit logging."""
@@ -8783,7 +8783,7 @@ class FileService:
         Raises:
             ValueError: If file doesn't exist or is already locked
         """
-        # Verify file exists
+        ## Verify file exists
         if not self.repository.file_exists(filename):
             self.audit_logger.log_action(
                 'checkout', filename, user,
@@ -8793,17 +8793,17 @@ class FileService:
             raise ValueError(f"File not found: {filename}")
 
         try:
-            # Acquire lock
+            ## Acquire lock
             self.lock_manager.acquire_lock(filename, user, message)
 
-            # Log success
+            ## Log success
             self.audit_logger.log_action(
                 'checkout', filename, user,
                 details={'message': message}
             )
 
         except ValueError as e:
-            # Log failure
+            ## Log failure
             self.audit_logger.log_action(
                 'checkout', filename, user,
                 details={'error': str(e)},
@@ -8824,17 +8824,17 @@ class FileService:
             ValueError: If not locked or wrong user
         """
         try:
-            # Release lock (with ownership check)
+            ## Release lock (with ownership check)
             self.lock_manager.release_lock(filename, user, is_admin)
 
-            # Log success
+            ## Log success
             self.audit_logger.log_action(
                 'checkin', filename, user,
                 details={'admin_override': is_admin}
             )
 
         except ValueError as e:
-            # Log failure
+            ## Log failure
             self.audit_logger.log_action(
                 'checkin', filename, user,
                 details={'error': str(e)},
@@ -8854,10 +8854,10 @@ class FileService:
 
         original_user = lock_info['user']
 
-        # Force release
+        ## Force release
         self.lock_manager.force_release(filename)
 
-        # Log admin action
+        ## Log admin action
         self.audit_logger.log_action(
             'force_checkin', filename, admin_user,
             details={
@@ -8878,7 +8878,7 @@ class FileService:
 
 ---
 
-## 6.3: Update Dependencies for Authorization
+### 6.3: Update Dependencies for Authorization
 
 **Update `backend/app/api/deps.py`:**
 
@@ -8897,15 +8897,15 @@ from app.services.auth_service import decode_access_token, UserService
 from app.services.file_service import FileService
 from app.config import settings
 
-# ============================================================================
-# SECTION 1: OAuth2 Setup
-# ============================================================================
+## ============================================================================
+## SECTION 1: OAuth2 Setup
+## ============================================================================
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-# ============================================================================
-# SECTION 2: Service Dependencies
-# ============================================================================
+## ============================================================================
+## SECTION 2: Service Dependencies
+## ============================================================================
 
 def get_user_service() -> UserService:
     """Dependency that provides UserService instance."""
@@ -8916,13 +8916,13 @@ def get_file_service() -> FileService:
     """Dependency that provides FileService instance."""
     repo_path = settings.BASE_DIR / 'repo'
     locks_file = settings.BASE_DIR / 'locks.json'
-    audit_file = settings.BASE_DIR / 'audit.json'  # NEW
+    audit_file = settings.BASE_DIR / 'audit.json'  ## NEW
 
     return FileService(repo_path, locks_file, audit_file)
 
-# ============================================================================
-# SECTION 3: Get Current User
-# ============================================================================
+## ============================================================================
+## SECTION 3: Get Current User
+## ============================================================================
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -8955,9 +8955,9 @@ async def get_current_user(
         role=user_in_db.role
     )
 
-# ============================================================================
-# SECTION 4: Role-Based Authorization
-# ============================================================================
+## ============================================================================
+## SECTION 4: Role-Based Authorization
+## ============================================================================
 
 def require_role(allowed_roles: list[str]):
     """
@@ -8978,13 +8978,13 @@ def require_role(allowed_roles: list[str]):
 
     return role_checker
 
-# Convenience aliases
+## Convenience aliases
 require_admin = require_role(["admin"])
 require_user = require_role(["admin", "user"])
 
-# ============================================================================
-# SECTION 5: Resource Ownership Validation
-# ============================================================================
+## ============================================================================
+## SECTION 5: Resource Ownership Validation
+## ============================================================================
 
 def validate_file_ownership(
     filename: str,
@@ -9002,15 +9002,15 @@ def validate_file_ownership(
     """
     lock_info = file_service.lock_manager.get_lock_info(filename)
 
-    # File not locked - no ownership issue
+    ## File not locked - no ownership issue
     if not lock_info:
         return True
 
-    # Admin can always proceed
+    ## Admin can always proceed
     if current_user.role == 'admin':
         return True
 
-    # Check ownership
+    ## Check ownership
     if lock_info['user'] != current_user.username:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -9022,7 +9022,7 @@ def validate_file_ownership(
 
 ---
 
-## 6.4: Update Files API with Authorization
+### 6.4: Update Files API with Authorization
 
 **Update `backend/app/api/files.py`:**
 
@@ -9048,18 +9048,18 @@ from app.api.deps import (
     require_admin
 )
 
-# ============================================================================
-# SECTION 1: Router Setup
-# ============================================================================
+## ============================================================================
+## SECTION 1: Router Setup
+## ============================================================================
 
 router = APIRouter(
     prefix="/api/files",
     tags=["files"],
 )
 
-# ============================================================================
-# SECTION 2: File Listing Endpoints
-# ============================================================================
+## ============================================================================
+## SECTION 2: File Listing Endpoints
+## ============================================================================
 
 @router.get("/", response_model=FileListResponse)
 def get_files(
@@ -9107,9 +9107,9 @@ def get_file(
         detail=f"File '{filename}' not found"
     )
 
-# ============================================================================
-# SECTION 3: Checkout/Checkin Endpoints
-# ============================================================================
+## ============================================================================
+## SECTION 3: Checkout/Checkin Endpoints
+## ============================================================================
 
 @router.post("/checkout")
 def checkout_file(
@@ -9124,7 +9124,7 @@ def checkout_file(
     Authorization: Any authenticated user can checkout available files
     """
     try:
-        # Use authenticated user's username
+        ## Use authenticated user's username
         file_service.checkout_file(
             filename=request.filename,
             user=current_user.username,
@@ -9162,7 +9162,7 @@ def checkin_file(
     Authorization: Can only checkin files YOU checked out (or admin override)
     """
     try:
-        # Checkin with ownership validation
+        ## Checkin with ownership validation
         is_admin = current_user.role == 'admin'
 
         file_service.checkin_file(
@@ -9177,7 +9177,7 @@ def checkin_file(
         }
 
     except ValueError as e:
-        # Ownership error returns 403 Forbidden
+        ## Ownership error returns 403 Forbidden
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e)
@@ -9189,9 +9189,9 @@ def checkin_file(
             detail=f"Failed to checkin file: {str(e)}"
         )
 
-# ============================================================================
-# SECTION 4: Admin-Only Endpoints
-# ============================================================================
+## ============================================================================
+## SECTION 4: Admin-Only Endpoints
+## ============================================================================
 
 @router.post("/admin/force-checkin/{filename}")
 def force_checkin_file(
@@ -9260,7 +9260,7 @@ def get_audit_logs(
 
 ---
 
-## 6.5: Admin Dashboard UI
+### 6.5: Admin Dashboard UI
 
 **Add admin styles to `backend/static/css/components.css`:**
 
@@ -9398,7 +9398,7 @@ def get_audit_logs(
 
 ---
 
-## 6.6: Update Frontend for Admin Features
+### 6.6: Update Frontend for Admin Features
 
 **Update `backend/static/js/modules/api-client.js` - add admin methods:**
 
@@ -9738,7 +9738,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 ---
 
-## Stage 6 Complete
+### Stage 6 Complete
 
 **Test all authorization features:**
 
@@ -9769,21 +9769,21 @@ uvicorn app.main:app --reload
 ```
 backend/
 ├── app/
-│   ├── learn_authorization.py       # NEW
+│   ├── learn_authorization.py       ## NEW
 │   ├── services/
-│   │   └── file_service.py          # UPDATED with audit
+│   │   └── file_service.py          ## UPDATED with audit
 │   └── api/
-│       ├── deps.py                  # UPDATED
-│       └── files.py                 # UPDATED
+│       ├── deps.py                  ## UPDATED
+│       └── files.py                 ## UPDATED
 ├── static/
 │   ├── css/
-│   │   └── components.css           # UPDATED admin styles
+│   │   └── components.css           ## UPDATED admin styles
 │   ├── js/
 │   │   ├── modules/
-│   │   │   └── api-client.js        # UPDATED
-│   │   └── app.js                   # UPDATED
-│   └── index.html                   # UPDATED
-└── audit.json                       # Auto-created
+│   │   │   └── api-client.js        ## UPDATED
+│   │   └── app.js                   ## UPDATED
+│   └── index.html                   ## UPDATED
+└── audit.json                       ## Auto-created
 ```
 
 **What you learned:**
@@ -9808,7 +9808,7 @@ backend/
 
 Ready for Stage 7? (We could cover Git integration, WebSockets for real-time updates, or Docker deployment - let me know what you'd like next!)
 
-# Stage 7: Version Control with Git Integration
+## Stage 7: Version Control with Git Integration
 
 **Prerequisites**: Completed Stage 6
 
@@ -9818,7 +9818,7 @@ Ready for Stage 7? (We could cover Git integration, WebSockets for real-time upd
 
 ---
 
-## 7.1: Deep Dive - Git Internals
+### 7.1: Deep Dive - Git Internals
 
 **File: `backend/app/learn_git_internals.py`**
 
@@ -9833,9 +9833,9 @@ with a version control UI on top.
 import hashlib
 import zlib
 
-# ============================================================================
-# SECTION 1: Git's Core Concept - Content Addressing
-# ============================================================================
+## ============================================================================
+## SECTION 1: Git's Core Concept - Content Addressing
+## ============================================================================
 
 """
 Content Addressing = Using the content itself as the address/key
@@ -9863,18 +9863,18 @@ def git_hash_object(content: bytes) -> str:
 
     Git's hash format: sha1("blob " + size + "\0" + content)
     """
-    # Git adds a header: "blob <size>\0"
+    ## Git adds a header: "blob <size>\0"
     header = f"blob {len(content)}\0".encode()
     store = header + content
 
-    # Compute SHA-1
+    ## Compute SHA-1
     sha1 = hashlib.sha1(store).hexdigest()
     return sha1
 
 def demonstrate_content_addressing():
     """Show how Git hashes content"""
 
-    # Same content = same hash
+    ## Same content = same hash
     content1 = b"Hello World"
     content2 = b"Hello World"
     hash1 = git_hash_object(content1)
@@ -9884,15 +9884,15 @@ def demonstrate_content_addressing():
     print(f"Content 2 hash: {hash2}")
     print(f"Hashes match: {hash1 == hash2}")
 
-    # Different content = different hash
-    content3 = b"Hello World!"  # Added exclamation
+    ## Different content = different hash
+    content3 = b"Hello World!"  ## Added exclamation
     hash3 = git_hash_object(content3)
     print(f"Content 3 hash: {hash3}")
     print(f"Changed content: {hash3 != hash1}")
 
-# ============================================================================
-# SECTION 2: Git Object Types
-# ============================================================================
+## ============================================================================
+## SECTION 2: Git Object Types
+## ============================================================================
 
 """
 Git stores 4 types of objects (all content-addressed):
@@ -9928,9 +9928,9 @@ commit a1b2c3
 └─ message "Added file3"
 """
 
-# ============================================================================
-# SECTION 3: How Git Tracks Changes
-# ============================================================================
+## ============================================================================
+## SECTION 3: How Git Tracks Changes
+## ============================================================================
 
 """
 Git does NOT store deltas (differences between versions).
@@ -9960,9 +9960,9 @@ Deltas (SVN's approach):
 ✗ Slow history (must compute deltas)
 """
 
-# ============================================================================
-# SECTION 4: How Commits Form a Chain
-# ============================================================================
+## ============================================================================
+## SECTION 4: How Commits Form a Chain
+## ============================================================================
 
 """
 Commits form a Directed Acyclic Graph (DAG):
@@ -9988,9 +9988,9 @@ Before: HEAD → main → D
 After:  HEAD → main → E (where E.parent = D)
 """
 
-# ============================================================================
-# SECTION 5: Working Directory, Staging Area, Repository
-# ============================================================================
+## ============================================================================
+## SECTION 5: Working Directory, Staging Area, Repository
+## ============================================================================
 
 """
 Git has three "states" for files:
@@ -10024,9 +10024,9 @@ Allows partial commits:
 This lets you create logical, focused commits.
 """
 
-# ============================================================================
-# SECTION 6: Branches Are Just Pointers
-# ============================================================================
+## ============================================================================
+## SECTION 6: Branches Are Just Pointers
+## ============================================================================
 
 """
 A branch in Git is just a 41-byte file containing a commit hash.
@@ -10046,9 +10046,9 @@ Git:
   Branch = Create 41-byte file (instant)
 """
 
-# ============================================================================
-# SECTION 7: What We'll Implement
-# ============================================================================
+## ============================================================================
+## SECTION 7: What We'll Implement
+## ============================================================================
 
 """
 For our PDM system, we'll implement:
@@ -10094,28 +10094,28 @@ python -m app.learn_git_internals
 
 ---
 
-## 7.2: Install Git Dependencies
+### 7.2: Install Git Dependencies
 
 ```bash
 pip install GitPython
 pip freeze > requirements.txt
 
-# Also ensure git is installed on system
-# Windows: https://git-scm.com/download/win
-# macOS: brew install git (usually pre-installed)
-# Linux: sudo apt install git
+## Also ensure git is installed on system
+## Windows: https://git-scm.com/download/win
+## macOS: brew install git (usually pre-installed)
+## Linux: sudo apt install git
 ```
 
 **Verify Git installation:**
 
 ```bash
 git --version
-# Should output: git version 2.x.x
+## Should output: git version 2.x.x
 ```
 
 ---
 
-## 7.3: Update Configuration
+### 7.3: Update Configuration
 
 **Update `backend/app/config.py`:**
 
@@ -10130,31 +10130,31 @@ from pathlib import Path
 class Settings(BaseSettings):
     """Application settings."""
 
-    # ========================================================================
-    # Application Settings
-    # ========================================================================
+    ## ========================================================================
+    ## Application Settings
+    ## ========================================================================
     APP_NAME: str = "PDM Backend API"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = True
 
-    # ========================================================================
-    # Security Settings
-    # ========================================================================
+    ## ========================================================================
+    ## Security Settings
+    ## ========================================================================
     SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # ========================================================================
-    # Path Configuration
-    # ========================================================================
+    ## ========================================================================
+    ## Path Configuration
+    ## ========================================================================
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
-    # ========================================================================
-    # Git Settings
-    # ========================================================================
-    GIT_REPO_PATH: Path = BASE_DIR / "git_repo"  # NEW
-    GIT_USER_NAME: str = "PDM System"            # NEW
-    GIT_USER_EMAIL: str = "pdm@example.com"      # NEW
+    ## ========================================================================
+    ## Git Settings
+    ## ========================================================================
+    GIT_REPO_PATH: Path = BASE_DIR / "git_repo"  ## NEW
+    GIT_USER_NAME: str = "PDM System"            ## NEW
+    GIT_USER_EMAIL: str = "pdm@example.com"      ## NEW
 
     class Config:
         env_file = ".env"
@@ -10165,7 +10165,7 @@ settings = Settings()
 
 ---
 
-## 7.4: Git Service Layer
+### 7.4: Git Service Layer
 
 **File: `backend/app/services/git_service.py`**
 
@@ -10188,9 +10188,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# ============================================================================
-# SECTION 1: Git Repository Manager
-# ============================================================================
+## ============================================================================
+## SECTION 1: Git Repository Manager
+## ============================================================================
 
 class GitService:
     """
@@ -10210,7 +10210,7 @@ class GitService:
         self.repo_path = repo_path
         self.repo = None
 
-        # Ensure repository exists
+        ## Ensure repository exists
         self._ensure_repo()
 
     def _ensure_repo(self):
@@ -10218,24 +10218,24 @@ class GitService:
         Ensure Git repository exists, create if needed.
         """
         try:
-            # Try to open existing repo
+            ## Try to open existing repo
             self.repo = Repo(self.repo_path)
             logger.info(f"Opened existing Git repository at {self.repo_path}")
 
         except (InvalidGitRepositoryError, NoSuchPathError):
-            # Create new repository
+            ## Create new repository
             logger.info(f"Creating new Git repository at {self.repo_path}")
             self.repo_path.mkdir(parents=True, exist_ok=True)
             self.repo = Repo.init(self.repo_path)
 
-            # Configure repo
+            ## Configure repo
             with self.repo.config_writer() as config:
                 config.set_value("user", "name", settings.GIT_USER_NAME)
                 config.set_value("user", "email", settings.GIT_USER_EMAIL)
 
-            # Create initial commit
+            ## Create initial commit
             readme_path = self.repo_path / "README.md"
-            readme_path.write_text("# PDM File Repository\n\nVersion controlled files.\n")
+            readme_path.write_text("## PDM File Repository\n\nVersion controlled files.\n")
 
             self.repo.index.add(["README.md"])
             self.repo.index.commit(
@@ -10246,9 +10246,9 @@ class GitService:
 
             logger.info("Created initial commit")
 
-    # ========================================================================
-    # SECTION 2: File Operations
-    # ========================================================================
+    ## ========================================================================
+    ## SECTION 2: File Operations
+    ## ========================================================================
 
     def add_file(self, filename: str, content: bytes):
         """
@@ -10286,9 +10286,9 @@ class GitService:
         """Check if file exists in repository."""
         return (self.repo_path / filename).exists()
 
-    # ========================================================================
-    # SECTION 3: Commit Operations
-    # ========================================================================
+    ## ========================================================================
+    ## SECTION 3: Commit Operations
+    ## ========================================================================
 
     def commit_file(
         self,
@@ -10316,10 +10316,10 @@ class GitService:
             raise ValueError(f"Cannot commit non-existent file: {filename}")
 
         try:
-            # Stage file
+            ## Stage file
             self.repo.index.add([filename])
 
-            # Create commit
+            ## Create commit
             author_email = author_email or f"{author_name}@pdm.local"
 
             commit = self.repo.index.commit(
@@ -10336,9 +10336,9 @@ class GitService:
             logger.error(f"Git commit failed: {e}")
             raise ValueError(f"Failed to commit file: {e}")
 
-    # ========================================================================
-    # SECTION 4: History Queries
-    # ========================================================================
+    ## ========================================================================
+    ## SECTION 4: History Queries
+    ## ========================================================================
 
     def get_file_history(self, filename: str, limit: int = 50) -> List[Dict]:
         """
@@ -10354,8 +10354,8 @@ class GitService:
         try:
             commits = []
 
-            # Get commits that modified this file
-            # rev-list walks the commit graph
+            ## Get commits that modified this file
+            ## rev-list walks the commit graph
             for commit in self.repo.iter_commits(paths=filename, max_count=limit):
                 commits.append({
                     'sha': commit.hexsha,
@@ -10387,15 +10387,15 @@ class GitService:
             commits = []
 
             for commit in self.repo.iter_commits(max_count=limit):
-                # Get files changed in this commit
+                ## Get files changed in this commit
                 changed_files = []
                 if commit.parents:
-                    # Compare with parent to see what changed
+                    ## Compare with parent to see what changed
                     parent = commit.parents[0]
                     diffs = parent.diff(commit)
                     changed_files = [d.a_path or d.b_path for d in diffs]
                 else:
-                    # Initial commit - all files are new
+                    ## Initial commit - all files are new
                     changed_files = [item.path for item in commit.tree.traverse()]
 
                 commits.append({
@@ -10414,9 +10414,9 @@ class GitService:
             logger.error(f"Failed to get commits: {e}")
             return []
 
-    # ========================================================================
-    # SECTION 5: Diff Operations
-    # ========================================================================
+    ## ========================================================================
+    ## SECTION 5: Diff Operations
+    ## ========================================================================
 
     def get_file_diff(self, filename: str, commit_sha: str) -> Dict:
         """
@@ -10434,9 +10434,9 @@ class GitService:
         try:
             commit = self.repo.commit(commit_sha)
 
-            # Get parent commit
+            ## Get parent commit
             if not commit.parents:
-                # Initial commit - entire file is "new"
+                ## Initial commit - entire file is "new"
                 return {
                     'type': 'added',
                     'content': self._get_file_at_commit(filename, commit_sha),
@@ -10445,7 +10445,7 @@ class GitService:
 
             parent = commit.parents[0]
 
-            # Get diff between parent and this commit
+            ## Get diff between parent and this commit
             diffs = parent.diff(commit, paths=filename, create_patch=True)
 
             if not diffs:
@@ -10476,9 +10476,9 @@ class GitService:
         except:
             return ""
 
-    # ========================================================================
-    # SECTION 6: Rollback Operations
-    # ========================================================================
+    ## ========================================================================
+    ## SECTION 6: Rollback Operations
+    ## ========================================================================
 
     def rollback_file(self, filename: str, commit_sha: str) -> str:
         """
@@ -10494,16 +10494,16 @@ class GitService:
             New commit SHA
         """
         try:
-            # Get file content at target commit
+            ## Get file content at target commit
             commit = self.repo.commit(commit_sha)
             blob = commit.tree / filename
             old_content = blob.data_stream.read()
 
-            # Write old content to working directory
+            ## Write old content to working directory
             file_path = self.repo_path / filename
             file_path.write_bytes(old_content)
 
-            # Commit the rollback
+            ## Commit the rollback
             self.repo.index.add([filename])
             rollback_commit = self.repo.index.commit(
                 f"Rollback {filename} to {commit_sha[:8]}",
@@ -10518,9 +10518,9 @@ class GitService:
             logger.error(f"Rollback failed: {e}")
             raise ValueError(f"Failed to rollback file: {e}")
 
-    # ========================================================================
-    # SECTION 7: Repository Statistics
-    # ========================================================================
+    ## ========================================================================
+    ## SECTION 7: Repository Statistics
+    ## ========================================================================
 
     def get_repository_stats(self) -> Dict:
         """
@@ -10530,14 +10530,14 @@ class GitService:
             Dict with commit count, file count, etc.
         """
         try:
-            # Count total commits
+            ## Count total commits
             commit_count = sum(1 for _ in self.repo.iter_commits())
 
-            # Count files in latest commit
+            ## Count files in latest commit
             head_commit = self.repo.head.commit
             file_count = sum(1 for _ in head_commit.tree.traverse() if _.type == 'blob')
 
-            # Get repo size
+            ## Get repo size
             repo_size = sum(
                 f.stat().st_size
                 for f in self.repo_path.rglob('*')
@@ -10563,7 +10563,7 @@ class GitService:
 
 ---
 
-## 7.5: Integrate Git with File Service
+### 7.5: Integrate Git with File Service
 
 **Update `backend/app/services/file_service.py`:**
 
@@ -10584,12 +10584,12 @@ from app.services.git_service import GitService
 
 logger = logging.getLogger(__name__)
 
-# Keep AuditLogger, LockManager, FileRepository classes as-is...
-# (Copy from Stage 6)
+## Keep AuditLogger, LockManager, FileRepository classes as-is...
+## (Copy from Stage 6)
 
-# ============================================================================
-# SECTION 4: Update FileService with Git Integration
-# ============================================================================
+## ============================================================================
+## SECTION 4: Update FileService with Git Integration
+## ============================================================================
 
 class FileService:
     """
@@ -10606,7 +10606,7 @@ class FileService:
         self.repository = FileRepository(repo_path)
         self.lock_manager = LockManager(locks_file)
         self.audit_logger = AuditLogger(audit_file)
-        self.git_service = GitService(git_repo_path)  # NEW
+        self.git_service = GitService(git_repo_path)  ## NEW
 
     def get_files_with_status(self) -> List[Dict]:
         """Get all files with their lock status."""
@@ -10644,10 +10644,10 @@ class FileService:
             raise ValueError(f"File not found: {filename}")
 
         try:
-            # Acquire lock
+            ## Acquire lock
             self.lock_manager.acquire_lock(filename, user, message)
 
-            # Copy file to Git repository (if not already there)
+            ## Copy file to Git repository (if not already there)
             if not self.git_service.file_exists(filename):
                 content = self.repository.read_file(filename)
                 self.git_service.add_file(filename, content)
@@ -10657,7 +10657,7 @@ class FileService:
                     user
                 )
 
-            # Log success
+            ## Log success
             self.audit_logger.log_action(
                 'checkout', filename, user,
                 details={'message': message}
@@ -10678,14 +10678,14 @@ class FileService:
         NEW: Creates Git commit with changes.
         """
         try:
-            # Release lock (with ownership check)
+            ## Release lock (with ownership check)
             self.lock_manager.release_lock(filename, user, is_admin)
 
-            # Copy current version to Git repo
+            ## Copy current version to Git repo
             content = self.repository.read_file(filename)
             self.git_service.add_file(filename, content)
 
-            # Commit changes
+            ## Commit changes
             lock_info = self.lock_manager.get_lock_info(filename)
             commit_message = lock_info.get('message', 'File updated') if lock_info else 'File updated'
 
@@ -10695,7 +10695,7 @@ class FileService:
                 user
             )
 
-            # Log success
+            ## Log success
             self.audit_logger.log_action(
                 'checkin', filename, user,
                 details={
@@ -10720,10 +10720,10 @@ class FileService:
 
         original_user = lock_info['user']
 
-        # Force release
+        ## Force release
         self.lock_manager.force_release(filename)
 
-        # Commit current state
+        ## Commit current state
         content = self.repository.read_file(filename)
         self.git_service.add_file(filename, content)
         commit_sha = self.git_service.commit_file(
@@ -10732,7 +10732,7 @@ class FileService:
             admin_user
         )
 
-        # Log admin action
+        ## Log admin action
         self.audit_logger.log_action(
             'force_checkin', filename, admin_user,
             details={
@@ -10741,9 +10741,9 @@ class FileService:
             }
         )
 
-    # ========================================================================
-    # NEW: Git Operations
-    # ========================================================================
+    ## ========================================================================
+    ## NEW: Git Operations
+    ## ========================================================================
 
     def get_file_history(self, filename: str, limit: int = 50) -> List[Dict]:
         """Get version history for a file."""
@@ -10769,20 +10769,20 @@ class FileService:
         Returns:
             New commit SHA
         """
-        # Must have file locked to rollback
+        ## Must have file locked to rollback
         if not self.lock_manager.is_locked_by_user(filename, user):
-            if user != 'admin':  # Allow admin override
+            if user != 'admin':  ## Allow admin override
                 raise ValueError("You must checkout the file before rolling back")
 
         try:
-            # Perform rollback
+            ## Perform rollback
             new_commit = self.git_service.rollback_file(filename, commit_sha)
 
-            # Copy rolled-back version to working directory
+            ## Copy rolled-back version to working directory
             content = self.git_service.get_file_content(filename)
             self.repository.write_file(filename, content)
 
-            # Log action
+            ## Log action
             self.audit_logger.log_action(
                 'rollback', filename, user,
                 details={
@@ -10817,26 +10817,26 @@ class FileService:
 
 ---
 
-## 7.6: Update API Dependencies
+### 7.6: Update API Dependencies
 
 **Update `backend/app/api/deps.py`:**
 
 ```python
-# Update get_file_service:
+## Update get_file_service:
 
 def get_file_service() -> FileService:
     """Dependency that provides FileService instance."""
     repo_path = settings.BASE_DIR / 'repo'
     locks_file = settings.BASE_DIR / 'locks.json'
     audit_file = settings.BASE_DIR / 'audit.json'
-    git_repo_path = settings.GIT_REPO_PATH  # NEW
+    git_repo_path = settings.GIT_REPO_PATH  ## NEW
 
     return FileService(repo_path, locks_file, audit_file, git_repo_path)
 ```
 
 ---
 
-## 7.7: Version Control API Endpoints
+### 7.7: Version Control API Endpoints
 
 **File: `backend/app/api/version_control.py`:**
 
@@ -10852,18 +10852,18 @@ from app.schemas.auth import User
 from app.services.file_service import FileService
 from app.api.deps import get_current_user, get_file_service, require_admin
 
-# ============================================================================
-# SECTION 1: Router Setup
-# ============================================================================
+## ============================================================================
+## SECTION 1: Router Setup
+## ============================================================================
 
 router = APIRouter(
     prefix="/api/version-control",
     tags=["version-control"],
 )
 
-# ============================================================================
-# SECTION 2: History Endpoints
-# ============================================================================
+## ============================================================================
+## SECTION 2: History Endpoints
+## ============================================================================
 
 @router.get("/history/{filename}")
 def get_file_history(
@@ -10917,9 +10917,9 @@ def get_all_commits(
             detail=f"Failed to get commits: {str(e)}"
         )
 
-# ============================================================================
-# SECTION 3: Diff Endpoints
-# ============================================================================
+## ============================================================================
+## SECTION 3: Diff Endpoints
+## ============================================================================
 
 @router.get("/diff/{filename}/{commit_sha}")
 def get_file_diff(
@@ -10948,9 +10948,9 @@ def get_file_diff(
             detail=f"Failed to get diff: {str(e)}"
         )
 
-# ============================================================================
-# SECTION 4: Rollback Endpoints
-# ============================================================================
+## ============================================================================
+## SECTION 4: Rollback Endpoints
+## ============================================================================
 
 @router.post("/rollback/{filename}/{commit_sha}")
 def rollback_file(
@@ -10990,9 +10990,9 @@ def rollback_file(
             detail=f"Rollback failed: {str(e)}"
         )
 
-# ============================================================================
-# SECTION 5: Repository Stats
-# ============================================================================
+## ============================================================================
+## SECTION 5: Repository Stats
+## ============================================================================
 
 @router.get("/stats")
 def get_repository_stats(
@@ -11019,16 +11019,16 @@ def get_repository_stats(
 **Update `backend/app/main.py` to include version control router:**
 
 ```python
-# Add import
+## Add import
 from app.api import files, auth, version_control
 
-# After including other routers:
+## After including other routers:
 app.include_router(version_control.router)
 ```
 
 ---
 
-## 7.8: Frontend - Version History UI
+### 7.8: Frontend - Version History UI
 
 **Add history styles to `backend/static/css/components.css`:**
 
@@ -11188,7 +11188,7 @@ app.include_router(version_control.router)
 
 ---
 
-## 7.9: Update Frontend API Client
+### 7.9: Update Frontend API Client
 
 **Update `backend/static/js/modules/api-client.js`:**
 
@@ -11233,7 +11233,7 @@ async getRepoStats() {
 
 ---
 
-## 7.10: Update Main Application
+### 7.10: Update Main Application
 
 **Update `backend/static/js/app.js` - add version control features:**
 
@@ -11545,7 +11545,7 @@ function escapeHtml(text) {
 
 ---
 
-## Stage 7 Complete
+### Stage 7 Complete
 
 **Test version control features:**
 
@@ -11569,24 +11569,24 @@ uvicorn app.main:app --reload
 ```
 backend/
 ├── app/
-│   ├── learn_git_internals.py      # NEW
+│   ├── learn_git_internals.py      ## NEW
 │   ├── services/
-│   │   ├── git_service.py          # NEW
-│   │   └── file_service.py         # UPDATED
+│   │   ├── git_service.py          ## NEW
+│   │   └── file_service.py         ## UPDATED
 │   └── api/
-│       ├── version_control.py      # NEW
-│       └── deps.py                 # UPDATED
+│       ├── version_control.py      ## NEW
+│       └── deps.py                 ## UPDATED
 ├── static/
 │   ├── css/
-│   │   └── components.css          # UPDATED
+│   │   └── components.css          ## UPDATED
 │   ├── js/
 │   │   ├── modules/
-│   │   │   └── api-client.js       # UPDATED
-│   │   └── app.js                  # UPDATED
-│   └── index.html                  # UPDATED
-├── git_repo/                       # Auto-created Git repo
+│   │   │   └── api-client.js       ## UPDATED
+│   │   └── app.js                  ## UPDATED
+│   └── index.html                  ## UPDATED
+├── git_repo/                       ## Auto-created Git repo
 │   └── .git/
-└── repo/                           # Working files
+└── repo/                           ## Working files
 ```
 
 **What you learned:**
@@ -11634,7 +11634,7 @@ backend/
 
 Let me know what you'd like for Stage 8!
 
-# Stage 8: Hybrid Architecture - GitLab Integration for Both Modes
+## Stage 8: Hybrid Architecture - GitLab Integration for Both Modes
 
 **Prerequisites**: Completed Stage 7
 
@@ -11644,7 +11644,7 @@ Let me know what you'd like for Stage 8!
 
 ---
 
-## 8.1: Deep Dive - Hybrid Architecture Patterns
+### 8.1: Deep Dive - Hybrid Architecture Patterns
 
 **File: `backend/app/learn_hybrid_architecture.py`**
 
@@ -11674,9 +11674,9 @@ BOTH MODES share:
 - GitLab acts as coordination layer
 """
 
-# ============================================================================
-# SECTION 1: The Problem with Distributed Systems
-# ============================================================================
+## ============================================================================
+## SECTION 1: The Problem with Distributed Systems
+## ============================================================================
 
 """
 When multiple machines modify the same files, you get conflicts:
@@ -11709,9 +11709,9 @@ SOLUTION: Always pull before modifying
 This is called "Optimistic Locking"
 """
 
-# ============================================================================
-# SECTION 2: GitLab Personal Access Token (PAT) Authentication
-# ============================================================================
+## ============================================================================
+## SECTION 2: GitLab Personal Access Token (PAT) Authentication
+## ============================================================================
 
 """
 GitLab Personal Access Token = API key for authentication
@@ -11776,15 +11776,15 @@ SOLUTION: Encrypt PAT with user's password
 - PAT never stored in plain text
 """
 
-# ============================================================================
-# SECTION 3: Configuration Modes
-# ============================================================================
+## ============================================================================
+## SECTION 3: Configuration Modes
+## ============================================================================
 
 """
 Configuration file determines mode:
 
-# config.yaml
-mode: "standalone"  # or "server"
+## config.yaml
+mode: "standalone"  ## or "server"
 gitlab:
   repo_url: "https://gitlab.com/your-org/pdm-files"
   branch: "main"
@@ -11794,7 +11794,7 @@ local_storage:
 server:
   host: "0.0.0.0"
   port: 8000
-  sync_interval: 60  # seconds
+  sync_interval: 60  ## seconds
 
 STANDALONE MODE:
 - App starts embedded FastAPI server on localhost:5000
@@ -11812,9 +11812,9 @@ SERVER MODE:
 - Periodic background sync with GitLab
 """
 
-# ============================================================================
-# SECTION 4: Git LFS (Large File Storage)
-# ============================================================================
+## ============================================================================
+## SECTION 4: Git LFS (Large File Storage)
+## ============================================================================
 
 """
 Git LFS for Large Files (.mcam files might be large)
@@ -11843,9 +11843,9 @@ In our app:
 - Provide installation instructions
 """
 
-# ============================================================================
-# SECTION 5: Sync Strategy
-# ============================================================================
+## ============================================================================
+## SECTION 5: Sync Strategy
+## ============================================================================
 
 """
 STANDALONE MODE Sync Strategy:
@@ -11876,9 +11876,9 @@ User operations:
 4. If push fails → pull, merge, retry
 """
 
-# ============================================================================
-# SECTION 6: Conflict Resolution
-# ============================================================================
+## ============================================================================
+## SECTION 6: Conflict Resolution
+## ============================================================================
 
 """
 What if two users modify locks.json simultaneously?
@@ -11929,7 +11929,7 @@ python -m app.learn_hybrid_architecture
 
 ---
 
-## 8.2: Update Configuration for Hybrid Mode
+### 8.2: Update Configuration for Hybrid Mode
 
 **Update `backend/app/config.py`:**
 
@@ -11945,60 +11945,60 @@ from typing import Literal
 class Settings(BaseSettings):
     """Application settings."""
 
-    # ========================================================================
-    # Application Settings
-    # ========================================================================
+    ## ========================================================================
+    ## Application Settings
+    ## ========================================================================
     APP_NAME: str = "PDM System"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
 
-    # ========================================================================
-    # Deployment Mode
-    # ========================================================================
-    MODE: Literal["standalone", "server"] = "server"  # NEW
+    ## ========================================================================
+    ## Deployment Mode
+    ## ========================================================================
+    MODE: Literal["standalone", "server"] = "server"  ## NEW
 
-    # In standalone mode, server starts on localhost
-    # In server mode, server starts on configured host
+    ## In standalone mode, server starts on localhost
+    ## In server mode, server starts on configured host
 
-    # ========================================================================
-    # Security Settings
-    # ========================================================================
+    ## ========================================================================
+    ## Security Settings
+    ## ========================================================================
     SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # Encryption key for storing GitLab PAT
-    # Generate with: from cryptography.fernet import Fernet; Fernet.generate_key()
-    ENCRYPTION_KEY: str = "your-fernet-encryption-key-here"  # NEW
+    ## Encryption key for storing GitLab PAT
+    ## Generate with: from cryptography.fernet import Fernet; Fernet.generate_key()
+    ENCRYPTION_KEY: str = "your-fernet-encryption-key-here"  ## NEW
 
-    # ========================================================================
-    # GitLab Configuration
-    # ========================================================================
-    GITLAB_ENABLED: bool = True  # NEW
-    GITLAB_URL: str = "https://gitlab.com"  # NEW
-    GITLAB_REPO_URL: str = ""  # NEW - e.g., "https://gitlab.com/username/pdm-repo.git"
-    GITLAB_BRANCH: str = "main"  # NEW
-    GITLAB_LFS_ENABLED: bool = True  # NEW
+    ## ========================================================================
+    ## GitLab Configuration
+    ## ========================================================================
+    GITLAB_ENABLED: bool = True  ## NEW
+    GITLAB_URL: str = "https://gitlab.com"  ## NEW
+    GITLAB_REPO_URL: str = ""  ## NEW - e.g., "https://gitlab.com/username/pdm-repo.git"
+    GITLAB_BRANCH: str = "main"  ## NEW
+    GITLAB_LFS_ENABLED: bool = True  ## NEW
 
-    # ========================================================================
-    # Path Configuration
-    # ========================================================================
+    ## ========================================================================
+    ## Path Configuration
+    ## ========================================================================
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
-    # Local Git repository clone
-    GITLAB_CLONE_PATH: Path = BASE_DIR / "gitlab_repo_clone"  # NEW
+    ## Local Git repository clone
+    GITLAB_CLONE_PATH: Path = BASE_DIR / "gitlab_repo_clone"  ## NEW
 
-    # Legacy local paths (used when GitLab disabled)
+    ## Legacy local paths (used when GitLab disabled)
     GIT_REPO_PATH: Path = BASE_DIR / "git_repo"
 
-    # ========================================================================
-    # Server Configuration
-    # ========================================================================
-    HOST: str = "127.0.0.1"  # NEW - localhost for standalone, 0.0.0.0 for server
-    PORT: int = 8000  # NEW
+    ## ========================================================================
+    ## Server Configuration
+    ## ========================================================================
+    HOST: str = "127.0.0.1"  ## NEW - localhost for standalone, 0.0.0.0 for server
+    PORT: int = 8000  ## NEW
 
-    # Sync interval for server mode (seconds)
-    GITLAB_SYNC_INTERVAL: int = 60  # NEW
+    ## Sync interval for server mode (seconds)
+    GITLAB_SYNC_INTERVAL: int = 60  ## NEW
 
     class Config:
         env_file = ".env"
@@ -12006,7 +12006,7 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Auto-adjust host based on mode
+## Auto-adjust host based on mode
 if settings.MODE == "standalone":
     settings.HOST = "127.0.0.1"
 elif settings.MODE == "server":
@@ -12016,30 +12016,30 @@ elif settings.MODE == "server":
 **Create `.env` file with your GitLab details:**
 
 ```bash
-# backend/.env
+## backend/.env
 
-# Deployment mode
+## Deployment mode
 MODE=server
 
-# GitLab Configuration
+## GitLab Configuration
 GITLAB_ENABLED=true
 GITLAB_URL=https://gitlab.com
 GITLAB_REPO_URL=https://gitlab.com/YOUR_USERNAME/pdm-files.git
 GITLAB_BRANCH=main
 GITLAB_LFS_ENABLED=true
 
-# Security
+## Security
 SECRET_KEY=your-secret-key-change-this
 ENCRYPTION_KEY=your-fernet-key-here
 
-# Server settings
+## Server settings
 HOST=0.0.0.0
 PORT=8000
 ```
 
 ---
 
-## 8.3: GitLab API Service
+### 8.3: GitLab API Service
 
 **Install dependencies:**
 
@@ -12066,9 +12066,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# ============================================================================
-# SECTION 1: GitLab API Client
-# ============================================================================
+## ============================================================================
+## SECTION 1: GitLab API Client
+## ============================================================================
 
 class GitLabService:
     """
@@ -12102,13 +12102,13 @@ class GitLabService:
             }
         """
         try:
-            # Connect to GitLab with token
+            ## Connect to GitLab with token
             gl = gitlab.Gitlab(self.gitlab_url, private_token=token)
 
-            # Authenticate (this validates the token)
+            ## Authenticate (this validates the token)
             gl.auth()
 
-            # Get current user info
+            ## Get current user info
             current_user = gl.user
 
             return {
@@ -12140,16 +12140,16 @@ class GitLabService:
             gl = gitlab.Gitlab(self.gitlab_url, private_token=token)
             gl.auth()
 
-            # Extract project path from URL
-            # https://gitlab.com/username/project → username/project
+            ## Extract project path from URL
+            ## https://gitlab.com/username/project → username/project
             if '//' in repo_url:
                 path = repo_url.split('//')[-1]
-                path = '/'.join(path.split('/')[1:])  # Remove domain
+                path = '/'.join(path.split('/')[1:])  ## Remove domain
                 path = path.replace('.git', '')
             else:
                 path = repo_url.replace('.git', '')
 
-            # Try to get project
+            ## Try to get project
             project = gl.projects.get(path)
 
             return True
@@ -12176,7 +12176,7 @@ class GitLabService:
             gl = gitlab.Gitlab(self.gitlab_url, private_token=token)
             gl.auth()
 
-            # Extract project path
+            ## Extract project path
             if '//' in repo_url:
                 path = repo_url.split('//')[-1]
                 path = '/'.join(path.split('/')[1:])
@@ -12203,7 +12203,7 @@ class GitLabService:
 
 ---
 
-## 8.4: GitLab Repository Sync Service
+### 8.4: GitLab Repository Sync Service
 
 **File: `backend/app/services/gitlab_sync_service.py`:**
 
@@ -12228,9 +12228,9 @@ from app.utils.file_locking import LockedFile
 
 logger = logging.getLogger(__name__)
 
-# ============================================================================
-# SECTION 1: GitLab Sync Manager
-# ============================================================================
+## ============================================================================
+## SECTION 1: GitLab Sync Manager
+## ============================================================================
 
 class GitLabSyncService:
     """
@@ -12253,7 +12253,7 @@ class GitLabSyncService:
         self.token = token
         self.repo = None
 
-        # Ensure repository is cloned and ready
+        ## Ensure repository is cloned and ready
         self._ensure_repository()
 
     def _inject_token_to_url(self, url: str, token: str) -> str:
@@ -12265,7 +12265,7 @@ class GitLabSyncService:
         https://oauth2:TOKEN@gitlab.com/user/repo.git
         """
         if '@' in url:
-            # Token already in URL
+            ## Token already in URL
             return url
 
         if url.startswith('https://'):
@@ -12280,16 +12280,16 @@ class GitLabSyncService:
         Ensure repository is cloned and accessible.
         """
         try:
-            # Try to open existing repo
+            ## Try to open existing repo
             self.repo = Repo(self.clone_path)
             logger.info(f"Opened existing GitLab clone at {self.clone_path}")
 
-            # Ensure we're on correct branch
+            ## Ensure we're on correct branch
             if self.repo.active_branch.name != settings.GITLAB_BRANCH:
                 self.repo.git.checkout(settings.GITLAB_BRANCH)
 
         except (InvalidGitRepositoryError, Exception):
-            # Clone repository
+            ## Clone repository
             logger.info(f"Cloning GitLab repository to {self.clone_path}")
             self.clone_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -12301,7 +12301,7 @@ class GitLabSyncService:
                 )
                 logger.info("Successfully cloned GitLab repository")
 
-                # Configure Git LFS if enabled
+                ## Configure Git LFS if enabled
                 if settings.GITLAB_LFS_ENABLED:
                     try:
                         self.repo.git.execute(['git', 'lfs', 'install'])
@@ -12313,9 +12313,9 @@ class GitLabSyncService:
                 logger.error(f"Failed to clone repository: {e}")
                 raise ValueError(f"Cannot clone GitLab repository. Check token and URL.")
 
-    # ========================================================================
-    # SECTION 2: Sync Operations
-    # ========================================================================
+    ## ========================================================================
+    ## SECTION 2: Sync Operations
+    ## ========================================================================
 
     def pull(self) -> bool:
         """
@@ -12325,7 +12325,7 @@ class GitLabSyncService:
             True if successful, False otherwise
         """
         try:
-            # Fetch latest
+            ## Fetch latest
             origin = self.repo.remote('origin')
             origin.pull(settings.GITLAB_BRANCH)
 
@@ -12359,26 +12359,26 @@ class GitLabSyncService:
             True if successful, False otherwise
         """
         try:
-            # Pull first to ensure we're up to date
+            ## Pull first to ensure we're up to date
             if not self.pull():
                 logger.warning("Pull failed before commit, proceeding anyway")
 
-            # Stage files
+            ## Stage files
             self.repo.index.add(files)
 
-            # Check if there are changes to commit
+            ## Check if there are changes to commit
             if not self.repo.index.diff("HEAD"):
                 logger.info("No changes to commit")
                 return True
 
-            # Commit
+            ## Commit
             commit = self.repo.index.commit(
                 message,
                 author=f"{author_name} <{author_email}>"
             )
             logger.info(f"Created commit: {commit.hexsha[:8]}")
 
-            # Push
+            ## Push
             origin = self.repo.remote('origin')
             origin.push(settings.GITLAB_BRANCH)
 
@@ -12388,11 +12388,11 @@ class GitLabSyncService:
         except GitCommandError as e:
             logger.error(f"Git operation failed: {e}")
 
-            # If push failed due to conflict, try pull and retry once
+            ## If push failed due to conflict, try pull and retry once
             if 'rejected' in str(e).lower() or 'conflict' in str(e).lower():
                 logger.info("Push rejected, pulling and retrying...")
                 if self.pull():
-                    # Retry push
+                    ## Retry push
                     try:
                         origin = self.repo.remote('origin')
                         origin.push(settings.GITLAB_BRANCH)
@@ -12407,9 +12407,9 @@ class GitLabSyncService:
             logger.error(f"Unexpected error during commit/push: {e}")
             return False
 
-    # ========================================================================
-    # SECTION 3: File Operations
-    # ========================================================================
+    ## ========================================================================
+    ## SECTION 3: File Operations
+    ## ========================================================================
 
     def read_file(self, filename: str) -> Optional[bytes]:
         """
@@ -12466,9 +12466,9 @@ class GitLabSyncService:
             logger.error(f"Failed to list files: {e}")
             return []
 
-    # ========================================================================
-    # SECTION 4: JSON State Files (users.json, locks.json, messages.json)
-    # ========================================================================
+    ## ========================================================================
+    ## SECTION 4: JSON State Files (users.json, locks.json, messages.json)
+    ## ========================================================================
 
     def load_json_file(self, filename: str) -> dict:
         """
@@ -12514,9 +12514,9 @@ class GitLabSyncService:
             logger.error(f"Failed to save {filename}: {e}")
             raise
 
-    # ========================================================================
-    # SECTION 5: Repository Info
-    # ========================================================================
+    ## ========================================================================
+    ## SECTION 5: Repository Info
+    ## ========================================================================
 
     def get_current_commit(self) -> str:
         """Get current commit SHA."""
@@ -12529,7 +12529,7 @@ class GitLabSyncService:
         """Get remote URL (without token)."""
         try:
             url = self.repo.remote('origin').url
-            # Remove token from URL
+            ## Remove token from URL
             if '@' in url and 'oauth2:' in url:
                 parts = url.split('@')
                 return 'https://' + parts[-1]
@@ -12553,11 +12553,11 @@ This is getting quite long. Should I continue with:
 
 Or would you prefer I provide a summary of what's next and you can request specific parts?
 
-# Stage 8 - Part 2: GitLab Authentication & Messaging
+## Stage 8 - Part 2: GitLab Authentication & Messaging
 
 ---
 
-## 8.5: Encrypted Token Storage
+### 8.5: Encrypted Token Storage
 
 **File: `backend/app/utils/encryption.py`:**
 
@@ -12576,9 +12576,9 @@ import base64
 import os
 from typing import Optional
 
-# ============================================================================
-# SECTION 1: Key Derivation
-# ============================================================================
+## ============================================================================
+## SECTION 1: Key Derivation
+## ============================================================================
 
 def derive_key_from_password(password: str, salt: bytes) -> bytes:
     """
@@ -12605,14 +12605,14 @@ def derive_key_from_password(password: str, salt: bytes) -> bytes:
         algorithm=hashes.SHA256(),
         length=32,
         salt=salt,
-        iterations=100_000,  # Deliberately slow
+        iterations=100_000,  ## Deliberately slow
     )
     key = kdf.derive(password.encode())
     return base64.urlsafe_b64encode(key)
 
-# ============================================================================
-# SECTION 2: Token Encryption/Decryption
-# ============================================================================
+## ============================================================================
+## SECTION 2: Token Encryption/Decryption
+## ============================================================================
 
 def encrypt_token(token: str, password: str) -> dict:
     """
@@ -12634,16 +12634,16 @@ def encrypt_token(token: str, password: str) -> dict:
             'salt': base64_string
         }
     """
-    # Generate random salt
+    ## Generate random salt
     salt = os.urandom(16)
 
-    # Derive key from password
+    ## Derive key from password
     key = derive_key_from_password(password, salt)
 
-    # Create Fernet cipher
+    ## Create Fernet cipher
     cipher = Fernet(key)
 
-    # Encrypt token
+    ## Encrypt token
     encrypted = cipher.encrypt(token.encode())
 
     return {
@@ -12664,33 +12664,33 @@ def decrypt_token(encrypted_token: str, salt: str, password: str) -> Optional[st
         Decrypted token string, or None if decryption fails
     """
     try:
-        # Decode from base64
+        ## Decode from base64
         encrypted_bytes = base64.urlsafe_b64decode(encrypted_token)
         salt_bytes = base64.urlsafe_b64decode(salt)
 
-        # Derive key from password
+        ## Derive key from password
         key = derive_key_from_password(password, salt_bytes)
 
-        # Create cipher
+        ## Create cipher
         cipher = Fernet(key)
 
-        # Decrypt
+        ## Decrypt
         decrypted = cipher.decrypt(encrypted_bytes)
 
         return decrypted.decode('utf-8')
 
     except (InvalidToken, Exception) as e:
-        # Wrong password or corrupted data
+        ## Wrong password or corrupted data
         return None
 
-# ============================================================================
-# SECTION 3: Testing Encryption
-# ============================================================================
+## ============================================================================
+## SECTION 3: Testing Encryption
+## ============================================================================
 
 if __name__ == "__main__":
     """Test encryption/decryption"""
 
-    # Simulate GitLab PAT
+    ## Simulate GitLab PAT
     original_token = "glpat-xxxxxxxxxxxxxxxxxxxx"
     user_password = "MySecurePassword123!"
 
@@ -12698,12 +12698,12 @@ if __name__ == "__main__":
     print(f"Original token: {original_token}")
     print(f"User password: {user_password}")
 
-    # Encrypt
+    ## Encrypt
     encrypted_data = encrypt_token(original_token, user_password)
     print(f"\nEncrypted token: {encrypted_data['encrypted_token'][:50]}...")
     print(f"Salt: {encrypted_data['salt']}")
 
-    # Decrypt with correct password
+    ## Decrypt with correct password
     decrypted = decrypt_token(
         encrypted_data['encrypted_token'],
         encrypted_data['salt'],
@@ -12712,7 +12712,7 @@ if __name__ == "__main__":
     print(f"\nDecrypted token: {decrypted}")
     print(f"Match: {decrypted == original_token}")
 
-    # Try with wrong password
+    ## Try with wrong password
     wrong_decrypted = decrypt_token(
         encrypted_data['encrypted_token'],
         encrypted_data['salt'],
@@ -12723,7 +12723,7 @@ if __name__ == "__main__":
 
 ---
 
-## 8.6: GitLab-Aware User Service
+### 8.6: GitLab-Aware User Service
 
 **Update `backend/app/services/auth_service.py`:**
 
@@ -12747,7 +12747,7 @@ from app.services.gitlab_service import GitLabService
 from app.services.gitlab_sync_service import GitLabSyncService
 from app.utils.encryption import encrypt_token, decrypt_token
 
-# Password hashing
+## Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -12758,7 +12758,7 @@ def get_password_hash(password: str) -> str:
     """Hash password with bcrypt."""
     return pwd_context.hash(password)
 
-# JWT token functions remain the same...
+## JWT token functions remain the same...
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Create JWT access token."""
     to_encode = data.copy()
@@ -12790,9 +12790,9 @@ def decode_access_token(token: str) -> Optional[dict]:
     except JWTError:
         return None
 
-# ============================================================================
-# SECTION 3: GitLab-Aware User Service
-# ============================================================================
+## ============================================================================
+## SECTION 3: GitLab-Aware User Service
+## ============================================================================
 
 class UserService:
     """
@@ -12819,11 +12819,11 @@ class UserService:
         self.gitlab_sync = gitlab_sync
         self.gitlab_service = GitLabService()
 
-        # Determine which storage to use
+        ## Determine which storage to use
         self.use_gitlab = gitlab_sync is not None and settings.GITLAB_ENABLED
 
         if not self.use_gitlab and users_file:
-            # Legacy mode: local users.json
+            ## Legacy mode: local users.json
             if not self.users_file.exists():
                 self.users_file.write_text('{}')
 
@@ -12835,13 +12835,13 @@ class UserService:
             Dict mapping username to user data
         """
         if self.use_gitlab:
-            # Pull latest from GitLab first
+            ## Pull latest from GitLab first
             self.gitlab_sync.pull()
 
-            # Load users.json from GitLab clone
+            ## Load users.json from GitLab clone
             return self.gitlab_sync.load_json_file('users.json')
         else:
-            # Legacy: load from local file
+            ## Legacy: load from local file
             try:
                 with LockedFile(self.users_file, 'r') as f:
                     content = f.read()
@@ -12859,10 +12859,10 @@ class UserService:
             users: Dict mapping username to user data
         """
         if self.use_gitlab:
-            # Save to GitLab clone
+            ## Save to GitLab clone
             self.gitlab_sync.save_json_file('users.json', users)
 
-            # Commit and push to GitLab
+            ## Commit and push to GitLab
             self.gitlab_sync.commit_and_push(
                 files=['users.json'],
                 message="Update user database",
@@ -12870,7 +12870,7 @@ class UserService:
                 author_email=settings.GIT_USER_EMAIL
             )
         else:
-            # Legacy: save to local file
+            ## Legacy: save to local file
             with LockedFile(self.users_file, 'w') as f:
                 json.dump(users, f, indent=2)
 
@@ -12914,23 +12914,23 @@ class UserService:
         if username in users:
             raise ValueError(f"Username '{username}' already exists")
 
-        # Validate GitLab token if provided
+        ## Validate GitLab token if provided
         if gitlab_token and self.use_gitlab:
             user_info = self.gitlab_service.validate_token(gitlab_token)
             if not user_info:
                 raise ValueError("Invalid GitLab token")
 
-            # Check if token username matches requested username
+            ## Check if token username matches requested username
             if user_info['username'] != username:
                 raise ValueError(
                     f"GitLab username '{user_info['username']}' "
                     f"doesn't match requested username '{username}'"
                 )
 
-        # Hash password
+        ## Hash password
         password_hash = get_password_hash(password)
 
-        # Prepare user data
+        ## Prepare user data
         user_data = {
             "username": username,
             "password_hash": password_hash,
@@ -12938,13 +12938,13 @@ class UserService:
             "role": role
         }
 
-        # Encrypt and store GitLab token if provided
+        ## Encrypt and store GitLab token if provided
         if gitlab_token:
             encrypted_data = encrypt_token(gitlab_token, password)
             user_data['encrypted_gitlab_token'] = encrypted_data['encrypted_token']
             user_data['token_salt'] = encrypted_data['salt']
 
-        # Save user
+        ## Save user
         users[username] = user_data
         self.save_users(users)
 
@@ -12984,21 +12984,21 @@ class UserService:
         Returns:
             UserInDB if successful, None otherwise
         """
-        # Validate token with GitLab API
+        ## Validate token with GitLab API
         user_info = self.gitlab_service.validate_token(gitlab_token)
         if not user_info:
             return None
 
-        # Check if username matches
+        ## Check if username matches
         if user_info['username'] != username:
             return None
 
-        # Get or create user
+        ## Get or create user
         user = self.get_user(username)
 
         if not user:
-            # Auto-register user from GitLab
-            # Generate random password (user won't use it)
+            ## Auto-register user from GitLab
+            ## Generate random password (user won't use it)
             import secrets
             temp_password = secrets.token_urlsafe(32)
 
@@ -13029,7 +13029,7 @@ class UserService:
         if not user:
             return None
 
-        # Check if user has encrypted token stored
+        ## Check if user has encrypted token stored
         users = self.load_users()
         user_data = users.get(username, {})
 
@@ -13039,7 +13039,7 @@ class UserService:
         if not encrypted_token or not salt:
             return None
 
-        # Decrypt token
+        ## Decrypt token
         return decrypt_token(encrypted_token, salt, password)
 
     def create_default_users(self):
@@ -13047,9 +13047,9 @@ class UserService:
         users = self.load_users()
 
         if users:
-            return  # Users already exist
+            return  ## Users already exist
 
-        # Create admin
+        ## Create admin
         self.create_user(
             username="admin",
             password="Admin123!",
@@ -13060,7 +13060,7 @@ class UserService:
 
 ---
 
-## 8.7: Messaging System
+### 8.7: Messaging System
 
 **File: `backend/app/services/message_service.py`:**
 
@@ -13082,9 +13082,9 @@ from app.utils.file_locking import LockedFile
 
 logger = logging.getLogger(__name__)
 
-# ============================================================================
-# SECTION 1: Message Service
-# ============================================================================
+## ============================================================================
+## SECTION 1: Message Service
+## ============================================================================
 
 class MessageService:
     """
@@ -13094,12 +13094,12 @@ class MessageService:
     {
         "id": "uuid",
         "from_user": "alice",
-        "to_user": "bob",  # or "all" for broadcast
+        "to_user": "bob",  ## or "all" for broadcast
         "subject": "About PN1001",
         "body": "Message content...",
         "timestamp": "2025-01-01T12:00:00Z",
         "read": false,
-        "related_file": "PN1001.mcam"  # optional
+        "related_file": "PN1001.mcam"  ## optional
     }
     """
 
@@ -13131,18 +13131,18 @@ class MessageService:
             List of message dicts
         """
         if self.use_gitlab:
-            # Pull latest from GitLab
+            ## Pull latest from GitLab
             self.gitlab_sync.pull()
 
-            # Load messages.json
+            ## Load messages.json
             messages = self.gitlab_sync.load_json_file('messages.json')
 
-            # Handle both dict and list formats
+            ## Handle both dict and list formats
             if isinstance(messages, dict):
                 return messages.get('messages', [])
             return messages if isinstance(messages, list) else []
         else:
-            # Legacy: local file
+            ## Legacy: local file
             try:
                 with LockedFile(self.messages_file, 'r') as f:
                     content = f.read()
@@ -13160,10 +13160,10 @@ class MessageService:
             messages: List of message dicts
         """
         if self.use_gitlab:
-            # Save to GitLab clone
+            ## Save to GitLab clone
             self.gitlab_sync.save_json_file('messages.json', messages)
 
-            # Commit and push
+            ## Commit and push
             self.gitlab_sync.commit_and_push(
                 files=['messages.json'],
                 message="Update messages",
@@ -13171,7 +13171,7 @@ class MessageService:
                 author_email="pdm@system.local"
             )
         else:
-            # Legacy: local file
+            ## Legacy: local file
             with LockedFile(self.messages_file, 'w') as f:
                 json.dump(messages, f, indent=2)
 
@@ -13239,7 +13239,7 @@ class MessageService:
             if msg['to_user'] == username or msg['to_user'] == 'all'
         ]
 
-        # Sort by timestamp, newest first
+        ## Sort by timestamp, newest first
         user_messages.sort(key=lambda m: m['timestamp'], reverse=True)
 
         return user_messages
@@ -13269,7 +13269,7 @@ class MessageService:
 
         for msg in messages:
             if msg['id'] == message_id:
-                # Verify user is recipient
+                ## Verify user is recipient
                 if msg['to_user'] == username or msg['to_user'] == 'all':
                     msg['read'] = True
                     self.save_messages(messages)
@@ -13315,7 +13315,7 @@ class MessageService:
 
 ---
 
-## 8.8: Update API Authentication
+### 8.8: Update API Authentication
 
 **Update `backend/app/api/auth.py`:**
 
@@ -13335,18 +13335,18 @@ from app.services.gitlab_service import GitLabService
 from app.api.deps import get_user_service, get_current_user
 from app.config import settings
 
-# ============================================================================
-# SECTION 1: Router Setup
-# ============================================================================
+## ============================================================================
+## SECTION 1: Router Setup
+## ============================================================================
 
 router = APIRouter(
     prefix="/api/auth",
     tags=["authentication"]
 )
 
-# ============================================================================
-# SECTION 2: Login Endpoints
-# ============================================================================
+## ============================================================================
+## SECTION 2: Login Endpoints
+## ============================================================================
 
 @router.post("/login", response_model=Token)
 def login(
@@ -13360,7 +13360,7 @@ def login(
     - Local password authentication
     - GitLab PAT authentication
     """
-    # Try local password authentication first
+    ## Try local password authentication first
     user = user_service.authenticate_user(form_data.username, form_data.password)
 
     if not user:
@@ -13370,7 +13370,7 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Create access token
+    ## Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "role": user.role},
@@ -13396,7 +13396,7 @@ def login_with_gitlab(
             detail="GitLab authentication is disabled"
         )
 
-    # Authenticate with GitLab
+    ## Authenticate with GitLab
     user = user_service.authenticate_with_gitlab_token(username, gitlab_token)
 
     if not user:
@@ -13406,7 +13406,7 @@ def login_with_gitlab(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Create access token
+    ## Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "role": user.role},
@@ -13415,9 +13415,9 @@ def login_with_gitlab(
 
     return {"access_token": access_token, "token_type": "bearer"}
 
-# ============================================================================
-# SECTION 3: Registration
-# ============================================================================
+## ============================================================================
+## SECTION 3: Registration
+## ============================================================================
 
 @router.post("/register", response_model=User)
 def register(
@@ -13439,7 +13439,7 @@ def register(
             gitlab_token=gitlab_token
         )
 
-        # Return created user (without password)
+        ## Return created user (without password)
         user = user_service.get_user(user_data.username)
         return User(
             username=user.username,
@@ -13453,9 +13453,9 @@ def register(
             detail=str(e)
         )
 
-# ============================================================================
-# SECTION 4: User Info
-# ============================================================================
+## ============================================================================
+## SECTION 4: User Info
+## ============================================================================
 
 @router.get("/me", response_model=User)
 async def get_current_user_info(
@@ -13487,7 +13487,7 @@ def validate_gitlab_token(
 
 ---
 
-## 8.9: Messaging API
+### 8.9: Messaging API
 
 **File: `backend/app/api/messages.py`:**
 
@@ -13504,9 +13504,9 @@ from app.schemas.auth import User
 from app.services.message_service import MessageService
 from app.api.deps import get_current_user
 
-# ============================================================================
-# SECTION 1: Schemas
-# ============================================================================
+## ============================================================================
+## SECTION 1: Schemas
+## ============================================================================
 
 class MessageCreate(BaseModel):
     """Schema for creating a message."""
@@ -13526,45 +13526,45 @@ class Message(BaseModel):
     read: bool
     related_file: str | None = None
 
-# ============================================================================
-# SECTION 2: Router Setup
-# ============================================================================
+## ============================================================================
+## SECTION 2: Router Setup
+## ============================================================================
 
 router = APIRouter(
     prefix="/api/messages",
     tags=["messages"],
 )
 
-# ============================================================================
-# SECTION 3: Dependency Injection
-# ============================================================================
+## ============================================================================
+## SECTION 3: Dependency Injection
+## ============================================================================
 
 def get_message_service() -> MessageService:
     """Get message service instance."""
     from app.config import settings
 
     if settings.GITLAB_ENABLED:
-        # Use GitLab sync
+        ## Use GitLab sync
         from app.services.gitlab_sync_service import GitLabSyncService
 
-        # Get GitLab token from current request context
-        # For now, use a system token
-        # TODO: Get user's token from session
+        ## Get GitLab token from current request context
+        ## For now, use a system token
+        ## TODO: Get user's token from session
         gitlab_sync = GitLabSyncService(
             clone_path=settings.GITLAB_CLONE_PATH,
             repo_url=settings.GITLAB_REPO_URL,
-            token="system-token"  # TODO: Use user token
+            token="system-token"  ## TODO: Use user token
         )
 
         return MessageService(gitlab_sync=gitlab_sync)
     else:
-        # Legacy mode
+        ## Legacy mode
         messages_file = settings.BASE_DIR / 'messages.json'
         return MessageService(messages_file=messages_file)
 
-# ============================================================================
-# SECTION 4: Message Endpoints
-# ============================================================================
+## ============================================================================
+## SECTION 4: Message Endpoints
+## ============================================================================
 
 @router.get("/", response_model=List[Message])
 def get_my_messages(
@@ -13685,16 +13685,16 @@ def get_file_messages(
 **Update `backend/app/main.py` to include messages router:**
 
 ```python
-# Add import
+## Add import
 from app.api import files, auth, version_control, messages
 
-# Include router
+## Include router
 app.include_router(messages.router)
 ```
 
 ---
 
-## 8.10: Update Dependencies for GitLab Mode
+### 8.10: Update Dependencies for GitLab Mode
 
 **Update `backend/app/api/deps.py`:**
 
@@ -13715,9 +13715,9 @@ from app.config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-# ============================================================================
-# SECTION 1: GitLab Sync Dependency
-# ============================================================================
+## ============================================================================
+## SECTION 1: GitLab Sync Dependency
+## ============================================================================
 
 def get_gitlab_sync(token: str = Depends(oauth2_scheme)) -> GitLabSyncService:
     """
@@ -13732,32 +13732,32 @@ def get_gitlab_sync(token: str = Depends(oauth2_scheme)) -> GitLabSyncService:
             detail="GitLab integration is disabled"
         )
 
-    # TODO: Retrieve user's encrypted GitLab token from storage
-    # For now, use a placeholder
+    ## TODO: Retrieve user's encrypted GitLab token from storage
+    ## For now, use a placeholder
     gitlab_sync = GitLabSyncService(
         clone_path=settings.GITLAB_CLONE_PATH,
         repo_url=settings.GITLAB_REPO_URL,
-        token="placeholder-token"  # TODO: Get from user
+        token="placeholder-token"  ## TODO: Get from user
     )
 
     return gitlab_sync
 
-# ============================================================================
-# SECTION 2: Service Dependencies
-# ============================================================================
+## ============================================================================
+## SECTION 2: Service Dependencies
+## ============================================================================
 
 def get_user_service() -> UserService:
     """Get user service instance."""
     if settings.GITLAB_ENABLED:
-        # Use GitLab sync
+        ## Use GitLab sync
         try:
             gitlab_sync = get_gitlab_sync()
             return UserService(gitlab_sync=gitlab_sync)
         except:
-            # Fallback to local if GitLab fails
+            ## Fallback to local if GitLab fails
             pass
 
-    # Legacy mode
+    ## Legacy mode
     users_file = settings.BASE_DIR / 'users.json'
     return UserService(users_file=users_file)
 
@@ -13770,9 +13770,9 @@ def get_file_service() -> FileService:
 
     return FileService(repo_path, locks_file, audit_file, git_repo_path)
 
-# ============================================================================
-# SECTION 3: Authentication
-# ============================================================================
+## ============================================================================
+## SECTION 3: Authentication
+## ============================================================================
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -13803,7 +13803,7 @@ async def get_current_user(
         role=user_in_db.role
     )
 
-# Keep existing role-based dependencies...
+## Keep existing role-based dependencies...
 def require_role(allowed_roles: list[str]):
     """Role-based authorization."""
     async def role_checker(current_user: User = Depends(get_current_user)) -> User:
@@ -13821,7 +13821,7 @@ require_user = require_role(["admin", "user"])
 
 ---
 
-## Stage 8 Part 2 Complete
+### Stage 8 Part 2 Complete
 
 **What we've built:**
 
@@ -13839,17 +13839,17 @@ require_user = require_role(["admin", "user"])
 backend/
 ├── app/
 │   ├── utils/
-│   │   └── encryption.py           # NEW
+│   │   └── encryption.py           ## NEW
 │   ├── services/
-│   │   ├── gitlab_service.py       # NEW
-│   │   ├── gitlab_sync_service.py  # NEW
-│   │   ├── message_service.py      # NEW
-│   │   └── auth_service.py         # UPDATED
+│   │   ├── gitlab_service.py       ## NEW
+│   │   ├── gitlab_sync_service.py  ## NEW
+│   │   ├── message_service.py      ## NEW
+│   │   └── auth_service.py         ## UPDATED
 │   ├── api/
-│   │   ├── messages.py             # NEW
-│   │   ├── auth.py                 # UPDATED
-│   │   └── deps.py                 # UPDATED
-│   └── config.py                   # UPDATED
+│   │   ├── messages.py             ## NEW
+│   │   ├── auth.py                 ## UPDATED
+│   │   └── deps.py                 ## UPDATED
+│   └── config.py                   ## UPDATED
 ```
 
 **Next: Stage 8 Part 3 will cover:**
@@ -13862,11 +13862,11 @@ backend/
 
 Ready for Part 3?
 
-# Stage 8 - Part 3: Frontend Integration & Deployment
+## Stage 8 - Part 3: Frontend Integration & Deployment
 
 ---
 
-## 8.11: Frontend - GitLab Login UI
+### 8.11: Frontend - GitLab Login UI
 
 **Update `backend/static/login.html`:**
 
@@ -14250,7 +14250,7 @@ document
 
 ---
 
-## 8.12: Frontend - Messaging UI
+### 8.12: Frontend - Messaging UI
 
 **Add message styles to `backend/static/css/components.css`:**
 
@@ -14516,7 +14516,7 @@ document
 
 ---
 
-## 8.13: Frontend - Messaging JavaScript
+### 8.13: Frontend - Messaging JavaScript
 
 **Update `backend/static/js/modules/api-client.js` - add message methods:**
 
@@ -14779,7 +14779,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 ---
 
-## 8.14: Configuration Manager
+### 8.14: Configuration Manager
 
 **File: `backend/app/config_manager.py`:**
 
@@ -14795,12 +14795,12 @@ from pathlib import Path
 from typing import Optional, Dict
 import os
 
-# ============================================================================
-# SECTION 1: Configuration Schema
-# ============================================================================
+## ============================================================================
+## SECTION 1: Configuration Schema
+## ============================================================================
 
 DEFAULT_CONFIG = {
-    'mode': 'server',  # 'standalone' or 'server'
+    'mode': 'server',  ## 'standalone' or 'server'
     'gitlab': {
         'enabled': True,
         'url': 'https://gitlab.com',
@@ -14822,9 +14822,9 @@ DEFAULT_CONFIG = {
     }
 }
 
-# ============================================================================
-# SECTION 2: Config Manager
-# ============================================================================
+## ============================================================================
+## SECTION 2: Config Manager
+## ============================================================================
 
 class ConfigManager:
     """
@@ -14848,16 +14848,16 @@ class ConfigManager:
 
     def _load_config(self) -> Dict:
         """Load configuration from all sources."""
-        # Start with defaults
+        ## Start with defaults
         config = DEFAULT_CONFIG.copy()
 
-        # Load from file if exists
+        ## Load from file if exists
         if self.config_file.exists():
             with open(self.config_file, 'r') as f:
                 file_config = yaml.safe_load(f) or {}
                 self._merge_config(config, file_config)
 
-        # Override with environment variables
+        ## Override with environment variables
         self._load_from_env(config)
 
         return config
@@ -14872,11 +14872,11 @@ class ConfigManager:
 
     def _load_from_env(self, config: Dict):
         """Load configuration from environment variables."""
-        # Mode
+        ## Mode
         if os.getenv('MODE'):
             config['mode'] = os.getenv('MODE')
 
-        # GitLab
+        ## GitLab
         if os.getenv('GITLAB_ENABLED'):
             config['gitlab']['enabled'] = os.getenv('GITLAB_ENABLED').lower() == 'true'
         if os.getenv('GITLAB_URL'):
@@ -14886,13 +14886,13 @@ class ConfigManager:
         if os.getenv('GITLAB_BRANCH'):
             config['gitlab']['branch'] = os.getenv('GITLAB_BRANCH')
 
-        # Server
+        ## Server
         if os.getenv('HOST'):
             config['server']['host'] = os.getenv('HOST')
         if os.getenv('PORT'):
             config['server']['port'] = int(os.getenv('PORT'))
 
-        # Security
+        ## Security
         if os.getenv('SECRET_KEY'):
             config['security']['secret_key'] = os.getenv('SECRET_KEY')
         if os.getenv('ENCRYPTION_KEY'):
@@ -14947,23 +14947,23 @@ class ConfigManager:
         """Check if GitLab integration is enabled."""
         return self.config['gitlab']['enabled']
 
-# ============================================================================
-# SECTION 3: Singleton Instance
-# ============================================================================
+## ============================================================================
+## SECTION 3: Singleton Instance
+## ============================================================================
 
-# Global config instance
+## Global config instance
 config_manager = ConfigManager()
 ```
 
 **Create example `config.yaml`:**
 
 ```yaml
-# PDM System Configuration
+## PDM System Configuration
 
-# Deployment mode: 'standalone' or 'server'
+## Deployment mode: 'standalone' or 'server'
 mode: server
 
-# GitLab Integration
+## GitLab Integration
 gitlab:
   enabled: true
   url: https://gitlab.com
@@ -14971,25 +14971,25 @@ gitlab:
   branch: main
   lfs_enabled: true
 
-# Server Configuration
+## Server Configuration
 server:
   host: 0.0.0.0
   port: 8000
-  sync_interval: 60 # seconds
+  sync_interval: 60 ## seconds
 
-# Security (leave empty, use environment variables)
+## Security (leave empty, use environment variables)
 security:
   secret_key: ""
   encryption_key: ""
 
-# Paths
+## Paths
 paths:
   clone_path: ./gitlab_repo_clone
 ```
 
 ---
 
-## 8.15: PyInstaller Packaging
+### 8.15: PyInstaller Packaging
 
 **File: `backend/pdm_app.py` - Standalone app entry point:**
 
@@ -15007,16 +15007,16 @@ import threading
 import time
 from pathlib import Path
 
-# Add backend to path
+## Add backend to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from app.main import app
 from app.config import settings
 import uvicorn
 
-# ============================================================================
-# SECTION 1: Standalone Mode
-# ============================================================================
+## ============================================================================
+## SECTION 1: Standalone Mode
+## ============================================================================
 
 def run_server():
     """Run FastAPI server."""
@@ -15029,7 +15029,7 @@ def run_server():
 
 def open_browser():
     """Open browser after server starts."""
-    time.sleep(2)  # Wait for server to start
+    time.sleep(2)  ## Wait for server to start
     webbrowser.open(f'http://127.0.0.1:{settings.PORT}')
 
 def main():
@@ -15047,11 +15047,11 @@ def main():
     ╚══════════════════════════════════════════════════════════╝
     """)
 
-    # Start browser opener in background
+    ## Start browser opener in background
     browser_thread = threading.Thread(target=open_browser, daemon=True)
     browser_thread.start()
 
-    # Run server (blocking)
+    ## Run server (blocking)
     try:
         run_server()
     except KeyboardInterrupt:
@@ -15065,7 +15065,7 @@ if __name__ == '__main__':
 **Create PyInstaller spec file: `backend/pdm.spec`:**
 
 ```python
-# -*- mode: python ; coding: utf-8 -*-
+## -*- mode: python ; coding: utf-8 -*-
 
 block_cipher = None
 
@@ -15125,7 +15125,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icon.ico'  # Optional: add your icon
+    icon='icon.ico'  ## Optional: add your icon
 )
 ```
 
@@ -15146,14 +15146,14 @@ def build():
     print("Building PDM System standalone executable...")
     print("=" * 60)
 
-    # Check if PyInstaller is installed
+    ## Check if PyInstaller is installed
     try:
         import PyInstaller
     except ImportError:
         print("PyInstaller not found. Installing...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller"])
 
-    # Run PyInstaller
+    ## Run PyInstaller
     spec_file = Path(__file__).parent / "pdm.spec"
 
     cmd = [
@@ -15191,16 +15191,16 @@ python build_standalone.py
 
 ---
 
-## 8.16: Testing Guide
+### 8.16: Testing Guide
 
 **File: `TESTING.md`:**
 
 ```markdown
-# PDM System Testing Guide
+## PDM System Testing Guide
 
-## Mode 1: Server Mode (Development)
+### Mode 1: Server Mode (Development)
 
-### Setup
+#### Setup
 
 1. Create GitLab repository
 2. Configure `.env`:
@@ -15217,16 +15217,16 @@ GITLAB_REPO_URL=https://gitlab.com/YOUR_USERNAME/pdm-files.git
 uvicorn app.main:app --reload
 ````
 
-### Test Cases
+#### Test Cases
 
-#### 1. Authentication
+##### 1. Authentication
 
 - [ ] Login with local password
 - [ ] Login with GitLab PAT
 - [ ] Auto-registration with GitLab PAT
 - [ ] Invalid credentials rejected
 
-#### 2. File Operations
+##### 2. File Operations
 
 - [ ] List files
 - [ ] Checkout available file
@@ -15236,7 +15236,7 @@ uvicorn app.main:app --reload
 - [ ] View version history
 - [ ] Rollback to previous version
 
-#### 3. Messaging
+##### 3. Messaging
 
 - [ ] Send message to user
 - [ ] Send broadcast message (all)
@@ -15245,7 +15245,7 @@ uvicorn app.main:app --reload
 - [ ] Delete message
 - [ ] View unread count badge
 
-#### 4. GitLab Sync
+##### 4. GitLab Sync
 
 - [ ] Changes committed to GitLab
 - [ ] Pull updates from GitLab
@@ -15253,7 +15253,7 @@ uvicorn app.main:app --reload
 - [ ] locks.json synced
 - [ ] messages.json synced
 
-#### 5. Admin Features
+##### 5. Admin Features
 
 - [ ] View audit logs
 - [ ] Force checkin
@@ -15262,9 +15262,9 @@ uvicorn app.main:app --reload
 
 ---
 
-## Mode 2: Standalone Mode (PyInstaller)
+### Mode 2: Standalone Mode (PyInstaller)
 
-### Setup
+#### Setup
 
 1. Build executable:
    ```bash
@@ -15283,23 +15283,23 @@ uvicorn app.main:app --reload
      port: 5000
    ```
 
-### Test Cases
+#### Test Cases
 
-#### 1. Startup
+##### 1. Startup
 
 - [ ] Double-click executable
 - [ ] Server starts on localhost:5000
 - [ ] Browser opens automatically
 - [ ] Login page loads
 
-#### 2. GitLab Integration
+##### 2. GitLab Integration
 
 - [ ] First run clones GitLab repo
 - [ ] Subsequent runs use existing clone
 - [ ] Changes sync to GitLab
 - [ ] Pull on startup
 
-#### 3. Multi-User Scenario
+##### 3. Multi-User Scenario
 
 - [ ] User A runs executable on Machine 1
 - [ ] User A checks out file
@@ -15307,7 +15307,7 @@ uvicorn app.main:app --reload
 - [ ] User B sees file locked by User A
 - [ ] User B cannot checkout locked file
 
-#### 4. Messaging Between Machines
+##### 4. Messaging Between Machines
 
 - [ ] User A sends message on Machine 1
 - [ ] Message commits to GitLab
@@ -15315,9 +15315,9 @@ uvicorn app.main:app --reload
 
 ---
 
-## Performance Testing
+### Performance Testing
 
-### Metrics to Monitor
+#### Metrics to Monitor
 
 - [ ] GitLab clone time (first run)
 - [ ] GitLab pull time (subsequent runs)
@@ -15325,7 +15325,7 @@ uvicorn app.main:app --reload
 - [ ] Commit/push time
 - [ ] Message load time
 
-### Expected Performance
+#### Expected Performance
 
 - Local operations: < 100ms
 - GitLab operations: 1-5 seconds
@@ -15333,22 +15333,22 @@ uvicorn app.main:app --reload
 
 ---
 
-## Security Testing
+### Security Testing
 
-### Authentication
+#### Authentication
 
 - [ ] JWT tokens expire correctly
 - [ ] Invalid tokens rejected
 - [ ] Encrypted GitLab PAT not readable in users.json
 - [ ] Password hashes secure (bcrypt)
 
-### Authorization
+#### Authorization
 
 - [ ] Users cannot access admin endpoints
 - [ ] Users cannot checkin others' files
 - [ ] Audit logs cannot be tampered
 
-### GitLab Security
+#### GitLab Security
 
 - [ ] PAT not exposed in logs
 - [ ] PAT not in Git history
@@ -15356,27 +15356,27 @@ uvicorn app.main:app --reload
 
 ---
 
-## Troubleshooting
+### Troubleshooting
 
-### GitLab Clone Fails
+#### GitLab Clone Fails
 
 - Check PAT has correct scopes
 - Check repository URL
 - Check network connectivity
 - Check Git is installed
 
-### LFS Issues
+#### LFS Issues
 
 - Install Git LFS: `git lfs install`
 - Verify: `git lfs version`
 
-### Build Issues
+#### Build Issues
 
 - Update PyInstaller: `pip install --upgrade pyinstaller`
 - Clear build cache: `rm -rf build/ dist/`
 - Check hidden imports in spec file
 
-### Sync Conflicts
+#### Sync Conflicts
 
 - Check GitLab repo for conflicts
 - Force pull if needed
@@ -15386,7 +15386,7 @@ uvicorn app.main:app --reload
 
 ---
 
-## Stage 8 Complete! 🎉
+### Stage 8 Complete! 🎉
 
 **What we've built:**
 
@@ -15457,22 +15457,22 @@ pdm-tutorial/
 
 **Option 1: Server Mode (Team deployment)**
 ```bash
-# Configure .env with GitLab repo
+## Configure .env with GitLab repo
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 
-# Access from any browser
+## Access from any browser
 http://your-server:8000
 ````
 
 **Option 2: Standalone Mode (Individual users)**
 
 ```bash
-# Build once
+## Build once
 python build_standalone.py
 
-# Distribute PDM_System.exe to users
-# Each user double-clicks executable
-# Browser opens automatically
+## Distribute PDM_System.exe to users
+## Each user double-clicks executable
+## Browser opens automatically
 ```
 
 **Does this match your original app now?**
