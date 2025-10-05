@@ -1,9 +1,3 @@
-Yes, those are perfect additions. They round out Stage 0 beautifully by introducing key developer tools and providing a great hook for what's next. It's a fantastic idea to lock this in as our definitive blueprint.
-
-I will rewrite Stage 0 one last time to fold in those three tweaks. This will be our "final edition" that we'll use as the starting point for the rest of the tutorial.
-
----
-
 # PDM Tutorial (Definitive Edition) - Stage 0: The Professional Environment
 
 **Goal**: To establish a professional, scalable, and maintainable project environment from the ground up. We will not just run commands; we will understand _why_ each part of this structure is an industry best practice, building the mental models you need for all future projects.
@@ -25,38 +19,38 @@ First, we create our project's folder structure. A clean structure is like the f
 
 ### Your Turn: Create the Directory Tree
 
-1.  Open your terminal or command prompt.
+1. Open your terminal or command prompt.
 
-2.  Navigate to a directory where you like to keep your projects (e.g., `Documents/Projects`).
+2. Navigate to a directory where you like to keep your projects (e.g., `Documents/Projects`).
 
-3.  Run these commands one by one to build our project's skeleton.
+3. Run these commands one by one to build our project's skeleton.
 
-    ```bash
-    # 1. Create the 'project root' and enter it.
-    # The project root is the top-level folder for everything.
-    mkdir pdm-tutorial
-    cd pdm-tutorial
+```bash
+# 1. Create the 'project root' and enter it.
+# The project root is the top-level folder for everything.
+mkdir pdm-tutorial
+cd pdm-tutorial
 
-    # 2. Create the 'backend' folder for our Python app
-    mkdir backend
+# 2. Create the 'backend' folder for our Python app
+mkdir backend
 
-    # 3. Create the Python 'package' folder 'app' inside 'backend'
-    mkdir backend/app
+# 3. Create the Python 'package' folder 'app' inside 'backend'
+mkdir backend/app
 
-    # 4. Create folders for our frontend assets (HTML, CSS, JS)
-    mkdir -p backend/static/css
-    mkdir -p backend/static/js
+# 4. Create folders for our frontend assets (HTML, CSS, JS)
+mkdir -p backend/static/css
+mkdir -p backend/static/js
 
-    # 5. Create the folder for our automated tests
-    mkdir backend/tests
+# 5. Create the folder for our automated tests
+mkdir backend/tests
 
-    # 6. Create the essential starting files
-    touch backend/app/__init__.py
-    touch backend/app/main.py
-    touch backend/.gitignore
-    touch backend/requirements.txt
-    touch README.md
-    ```
+# 6. Create the essential starting files
+touch backend/app/__init__.py
+touch backend/app/main.py
+touch backend/.gitignore
+touch backend/requirements.txt
+touch README.md
+```
 
 ### ✅ Verification
 
@@ -65,15 +59,15 @@ Your project structure should now look exactly like this:
 ```
 pdm-tutorial/
 ├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   └── main.py
-│   ├── static/
-│   │   ├── css/
-│   │   └── js/
-│   ├── tests/
-│   ├── .gitignore
-│   └── requirements.txt
+│  ├── app/
+│  │  ├── __init__.py
+│  │  └── main.py
+│  ├── static/
+│  │  ├── css/
+│  │  └── js/
+│  ├── tests/
+│  ├── .gitignore
+│  └── requirements.txt
 └── README.md
 ```
 
@@ -82,7 +76,7 @@ pdm-tutorial/
 - `pdm-tutorial/`: The **project root**. This is the main container for your entire project. Your version control (`.git` folder) will live here.
 - `backend/`: Contains everything related to our Python server application. This clearly separates our backend code from other potential top-level folders like `documentation/`.
 - `app/`: This is our main **Python package**.
-  - `app/__init__.py`: This empty file is crucial. It's a "magic" file that tells Python: "This folder is not just a folder; it's a package of code that you can import from." This is what allows us to write clean imports like `from app.services import ...` later on.
+- `app/__init__.py`: This empty file is crucial. It's a "magic" file that tells Python: "This folder is not just a folder; it's a package of code that you can import from." This is what allows us to write clean imports like `from app.services import ...` later on.
 - `static/`: This folder holds files served _directly_ to the user's browser without being processed by Python: HTML, CSS, JavaScript, images, etc.
 - `tests/`: A dedicated, separate place for automated tests. Professional projects always include tests to prevent regressions.
 - `.gitignore`: Tells the Git version control system which files and folders to **ignore**. This is critical for security and for keeping your repository clean.
@@ -102,30 +96,30 @@ Think of a virtual environment as a **clean, dedicated toolbox for a single proj
 
 ### Your Turn: Create and Activate Your `venv`
 
-1.  In your terminal, make sure you are inside the `backend` directory.
+1. In your terminal, make sure you are inside the `backend` directory.
 
-2.  Run the command to create the virtual environment. This will create a new folder named `venv` inside `backend`.
+2. Run the command to create the virtual environment. This will create a new folder named `venv` inside `backend`.
 
-    ```bash
-    # This command means: "Python, run the 'venv' module to create a new environment named 'venv'."
-    python -m venv venv
-    ```
+```bash
+# This command means: "Python, run the 'venv' module to create a new environment named 'venv'."
+python -m venv venv
+```
 
-3.  **Activate** the environment. This tells your current terminal session to use this project's specific Python toolbox.
+3. **Activate** the environment. This tells your current terminal session to use this project's specific Python toolbox.
 
-    **On macOS/Linux:**
+   **On macOS/Linux:**
 
-    ```bash
-    source venv/bin/activate
-    ```
+```bash
+source venv/bin/activate
+```
 
-    **On Windows (PowerShell):**
+**On Windows (PowerShell):**
 
-    ```powershell
-    .\venv\Scripts\Activate.ps1
-    ```
+```powershell
+.\venv\Scripts\Activate.ps1
+```
 
-    _(Note: If you get a script execution error on Windows, you may need to run this command once in your terminal: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process`)_
+_(Note: If you get a script execution error on Windows, you may need to run this command once in your terminal: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process`)_
 
 ### ✅ Verification
 
@@ -142,34 +136,36 @@ The `requirements.txt` file lists all the external packages your project needs t
 
 ### Your Turn: Define and Install Requirements
 
-1.  Make sure you are in the `backend` directory with your `venv` active.
+1. Make sure you are in the `backend` directory with your `venv` active.
 
-2.  Open the `backend/requirements.txt` file and add our first two dependencies.
+2. Open the `backend/requirements.txt` file and add our first two dependencies.
 
-    **File: `backend/requirements.txt`**
+   **File: `backend/requirements.txt`**
 
-    ```
-    # The modern, high-performance web framework for our API
-    fastapi==0.104.1
+```
+# The modern, high-performance web framework for our API
+fastapi==0.104.1
 
-    # The high-speed ASGI server that will run our FastAPI application
-    uvicorn[standard]==0.24.0
-    ```
+# The high-speed ASGI server that will run our FastAPI application
+uvicorn[standard]==0.24.0
+```
 
-3.  Now, tell `pip` (Python's package installer) to install everything on this list.
+3. Now, tell `pip` (Python's package installer) to install everything on this list.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+```bash
+pip install -r requirements.txt
+```
 
 ### ✅ Verification
 
-1.  You will see `pip` download and install the packages.
-2.  To confirm a package is installed correctly _inside your virtual environment_, run:
-    ```bash
-    pip show fastapi
-    ```
-3.  You should see output detailing the package version, its location inside your `venv` folder, and its own dependencies. This confirms your setup is isolated and correct.
+1. You will see `pip` download and install the packages.
+2. To confirm a package is installed correctly _inside your virtual environment_, run:
+
+```bash
+pip show fastapi
+```
+
+3. You should see output detailing the package version, its location inside your `venv` folder, and its own dependencies. This confirms your setup is isolated and correct.
 
 ---
 
@@ -179,64 +175,64 @@ A **repository** (or "repo") is a project whose history is tracked by Git. Let's
 
 ### Your Turn: Initialize and Configure Git
 
-1.  Navigate to the **project root** (`pdm-tutorial` folder).
+1. Navigate to the **project root** (`pdm-tutorial` folder).
 
-2.  Configure Git with your name and email. This only needs to be done once per machine.
+2. Configure Git with your name and email. This only needs to be done once per machine.
 
-    ```bash
-    git config --global user.name "Your Name"
-    git config --global user.email "your.email@example.com"
-    ```
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+```
 
-3.  Initialize the repository. This creates the hidden `.git` folder where Git stores all the project's history.
+3. Initialize the repository. This creates the hidden `.git` folder where Git stores all the project's history.
 
-    ```bash
-    git init
-    ```
+```bash
+git init
+```
 
 ### Your Turn: Configure `.gitignore`
 
 Now, let's tell Git what _not_ to track.
 
-1.  Open the `.gitignore` file in your `backend` directory.
+1. Open the `.gitignore` file in your `backend` directory.
 
-2.  Add the following rules. The comments explain why we're ignoring each.
+2. Add the following rules. The comments explain why we're ignoring each.
 
-    **File: `backend/.gitignore`**
+   **File: `backend/.gitignore`**
 
-    ```
-    # Python temporary files that are generated automatically
-    __pycache__/
+```
+# Python temporary files that are generated automatically
+__pycache__/
 
-    # The Virtual Environment folder.
-    # Why ignore? It's huge, machine-specific, and can be rebuilt from requirements.txt.
-    venv/
+# The Virtual Environment folder.
+# Why ignore? It's huge, machine-specific, and can be rebuilt from requirements.txt.
+venv/
 
-    # Environment files containing secrets!
-    # Why ignore? For security. NEVER commit passwords or API keys.
-    .env
+# Environment files containing secrets!
+# Why ignore? For security. NEVER commit passwords or API keys.
+.env
 
-    # IDE and editor configuration files
-    .vscode/
-    .idea/
-    ```
+# IDE and editor configuration files
+.vscode/
+.idea/
+```
 
 ### Your Turn: Make Your First Commit
 
 A **commit** is a saved snapshot of your project's state. Let's save our initial structure.
 
-1.  **Stage** your changes. This tells Git you want to include these changes in the next snapshot.
+1. **Stage** your changes. This tells Git you want to include these changes in the next snapshot.
 
-    ```bash
-    # Make sure you are in the 'pdm-tutorial' root folder
-    git add .
-    ```
+```bash
+# Make sure you are in the 'pdm-tutorial' root folder
+git add .
+```
 
-2.  **Commit** your staged changes with a descriptive message.
+2. **Commit** your staged changes with a descriptive message.
 
-    ```bash
-    git commit -m "Initial commit: Set up project structure and environment"
-    ```
+```bash
+git commit -m "Initial commit: Set up project structure and environment"
+```
 
 ### ✅ Verification
 
@@ -250,63 +246,65 @@ All this setup is pointless if we don't see something working. Let's create the 
 
 ### Your Turn: Write the "Hello, World" App
 
-1.  Open `backend/app/main.py`.
+1. Open `backend/app/main.py`.
 
-2.  Add the following Python code.
+2. Add the following Python code.
 
-    **File: `backend/app/main.py`**
+   **File: `backend/app/main.py`**
 
-    ```python
-    from fastapi import FastAPI
+```python
+from fastapi import FastAPI
 
-    # Create an instance of the FastAPI application
-    app = FastAPI()
+# Create an instance of the FastAPI application
+app = FastAPI()
 
-    # Define an endpoint for the root URL ("/")
-    # @app.get("/") is a "decorator" that tells FastAPI that the function
-    # below it should handle GET requests to the root path.
-    @app.get("/")
-    def read_root():
-        """This function will run when a user visits the main page."""
-        return {"message": "Hello, Stage 0!"}
-    ```
+# Define an endpoint for the root URL ("/")
+# @app.get("/") is a "decorator" that tells FastAPI that the function
+# below it should handle GET requests to the root path.
+@app.get("/")
+def read_root():
+  """This function will run when a user visits the main page."""
+  return {"message": "Hello, Stage 0!"}
+```
 
 ### Your Turn: Run the Server
 
-1.  Make sure you are in the `backend` directory with your `venv` active.
+1. Make sure you are in the `backend` directory with your `venv` active.
 
-2.  Run the **Uvicorn** server, pointing it to your `app` instance.
+2. Run the **Uvicorn** server, pointing it to your `app` instance.
 
-    ```bash
-    # This command means: "Uvicorn, run the 'app' object,
-    # which you can find in the 'app.main' module.
-    # Also, --reload the server automatically when I save code changes."
-    uvicorn app.main:app --reload
-    ```
+```bash
+# This command means: "Uvicorn, run the 'app' object,
+# which you can find in the 'app.main' module.
+# Also, --reload the server automatically when I save code changes."
+uvicorn app.main:app --reload
+```
 
 ### ✅ Verification (Part 1: The Visual Check)
 
-1.  Your terminal will show that Uvicorn is running on `http://127.0.0.1:8000`.
-2.  Open your web browser and navigate to **[http://127.0.0.1:8000](http://127.0.0.1:8000)**.
-3.  You should see the JSON response in your browser: `{"message":"Hello, Stage 0!"}`
+1. Your terminal will show that Uvicorn is running on `http://127.0.0.1:8000`.
+2. Open your web browser and navigate to **[http://127.0.0.1:8000](http://127.0.0.1:8000)**.
+3. You should see the JSON response in your browser: `{"message":"Hello, Stage 0!"}`
 
 ### ✅ Verification (Part 2: The Developer Check with `curl`)
 
 While a browser is great for visual checks, developers often use command-line tools like `curl` to test APIs. Let's try it.
 
-1.  Open a **new terminal window** (leave your server running).
-2.  Run the following command:
-    ```bash
-    curl http://127.0.0.1:8000/
-    ```
-3.  You will see the same JSON response printed directly to your terminal. This is a fast, scriptable way to test your endpoints, which will become essential in later stages.
+1. Open a **new terminal window** (leave your server running).
+2. Run the following command:
+
+```bash
+curl http://127.0.0.1:8000/
+```
+
+3. You will see the same JSON response printed directly to your terminal. This is a fast, scriptable way to test your endpoints, which will become essential in later stages.
 
 ### ✅ Verification (Part 3: The FastAPI "Wow" Moment - Auto-Docs)
 
 This is one of the best features of FastAPI. Because you used Python type hints (even simple ones), FastAPI has automatically generated interactive documentation for your API.
 
-1.  In your browser, go to **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**. You'll see the Swagger UI, an interactive page where you can see and test your endpoints.
-2.  Now go to **[http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)**. This is an alternative documentation view.
+1. In your browser, go to **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**. You'll see the Swagger UI, an interactive page where you can see and test your endpoints.
+2. Now go to **[http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)**. This is an alternative documentation view.
 
 This "free" documentation is a massive productivity boost and ensures your API docs can never be out-of-date with your code.
 
@@ -318,18 +316,18 @@ Now that we have a working application, we must save this milestone in our versi
 
 ### Your Turn: Commit the Working App
 
-1.  Go back to your terminal (you can stop the server with `Ctrl+C` for now).
+1. Go back to your terminal (you can stop the server with `Ctrl+C` for now).
 
-2.  Navigate to the `pdm-tutorial` root directory.
+2. Navigate to the `pdm-tutorial` root directory.
 
-3.  Stage and commit your new and modified files.
+3. Stage and commit your new and modified files.
 
-    ```bash
-    git add .
-    git commit -m "feat: Add initial 'Hello, World' FastAPI application"
-    ```
+```bash
+git add .
+git commit -m "feat: Add initial 'Hello, World' FastAPI application"
+```
 
-    _(Note: `feat:` is a common convention for commit messages that add a new **feat**ure.)_
+_(Note: `feat:` is a common convention for commit messages that add a new **feat**ure.)_
 
 ---
 
@@ -344,8 +342,6 @@ This is fantastic feedback. You're absolutely right on all points. These refinem
 I will incorporate all of your suggestions. Let's lock in this definitive, polished version of Stage 1.
 
 ---
-
-# PDM Tutorial (Definitive Edition) - Stage 1: Building a Professional API
 
 **Goal**: To build our first real API endpoints for the PDM system. We'll replace the "Hello, World" with endpoints that can list files and retrieve a single file's details, all based on a professional, organized structure.
 
@@ -373,70 +369,71 @@ Think of a schema as a **blueprint or a strict "data contract"** for your API. I
 
 Let's create a dedicated `schemas` directory for these blueprints.
 
-1.  In your terminal, navigate to the `backend` directory.
-2.  Create the new directory and files:
-    ```bash
-    mkdir app/schemas
-    touch app/schemas/__init__.py
-    touch app/schemas/files.py
-    ```
+1. In your terminal, navigate to the `backend` directory.
+2. Create the new directory and files:
+
+```bash
+mkdir app/schemas
+touch app/schemas/__init__.py
+touch app/schemas/files.py
+```
 
 ### Your Turn: Build the File Schemas
 
 Now, let's define the contracts for our file data.
 
-1.  Open `backend/app/schemas/files.py`.
+1. Open `backend/app/schemas/files.py`.
 
-2.  Add the following code to define our two models.
+2. Add the following code to define our two models.
 
-    **File: `backend/app/schemas/files.py`**
+   **File: `backend/app/schemas/files.py`**
 
-    ```python
-    from pydantic import BaseModel
-    from typing import Optional, List
+```python
+from pydantic import BaseModel
+from typing import Optional, List
 
-    class FileInfo(BaseModel):
-        """This is our 'data contract' for a single file."""
-        name: str
-        status: str
-        size_bytes: int
-        locked_by: Optional[str] = None # 'Optional' means it can be str or None
+class FileInfo(BaseModel):
+  """This is our 'data contract' for a single file."""
+  name: str
+  status: str
+  size_bytes: int
+  locked_by: Optional[str] = None # 'Optional' means it can be str or None
 
-        class Config:
-            # Provide an example that will show up in our API documentation.
-            json_schema_extra = {
-                "example": {
-                    "name": "PN1001_OP1.mcam",
-                    "status": "available",
-                    "size_bytes": 1234567,
-                    "locked_by": None
-                }
-            }
+  class Config:
+    # Provide an example that will show up in our API documentation.
+    json_schema_extra = {
+      "example": {
+        "name": "PN1001_OP1.mcam",
+        "status": "available",
+        "size_bytes": 1234567,
+        "locked_by": None
+      }
+    }
 
-    class FileListResponse(BaseModel):
-        """The contract for the response when a user asks for all files."""
-        files: List[FileInfo]
-        total: int
-    ```
+class FileListResponse(BaseModel):
+  """The contract for the response when a user asks for all files."""
+  files: List[FileInfo]
+  total: int
+```
 
 ### Your Turn: See Validation in Action (An Experiment)
 
 Let's do a quick experiment to see _why_ schemas are so powerful.
 
-1.  Open `backend/app/api/files.py` (we'll create it in the next step, but you can create it now).
+1. Open `backend/app/api/files.py` (we'll create it in the next step, but you can create it now).
 
-2.  Temporarily add this mock data, but notice that `size_bytes` for the first file is a **string**, not an integer, which violates our `FileInfo` schema.
+2. Temporarily add this mock data, but notice that `size_bytes` for the first file is a **string**, not an integer, which violates our `FileInfo` schema.
 
-    ```python
-    # Temporary code for the experiment
-    MOCK_FILES_BROKEN = [
-        {"name": "PN1001_OP1.mcam", "status": "available", "size_bytes": "a very large file", "locked_by": None},
-    ]
-    ```
+```python
+# Temporary code for the experiment
+MOCK_FILES_BROKEN = [
+  {"name": "PN1001_OP1.mcam", "status": "available", "size_bytes": "a very large file", "locked_by": None},
+]
+```
 
-3.  When you later run the server and try to access `/api/files`, FastAPI will stop and raise a `500 Internal Server Error`. In your terminal, you will see a detailed **ValidationError** from Pydantic, telling you exactly where the data failed to match the contract (`size_bytes` is not a valid integer).
+3. When you later run the server and try to access `/api/files`, FastAPI will stop and raise a `500 Internal Server Error`. In your terminal, you will see a detailed **ValidationError** from Pydantic, telling you exactly where the data failed to match the contract (`size_bytes` is not a valid integer).
 
-4.  This immediate, clear feedback is invaluable. **Remember to delete this broken mock data** before proceeding to the next step.
+4. This immediate, clear feedback is invaluable. **Remember to delete this broken mock data** before proceeding to the next step.
 
 ---
 
@@ -450,59 +447,60 @@ Think of an `APIRouter` as a **mini-FastAPI application** or a department in a l
 
 ### Your Turn: Create the API Router Files
 
-1.  In your `backend` directory, create the `api` directory and its files:
-    ```bash
-    mkdir app/api
-    touch app/api/__init__.py
-    touch app/api/files.py
-    ```
+1. In your `backend` directory, create the `api` directory and its files:
+
+```bash
+mkdir app/api
+touch app/api/__init__.py
+touch app/api/files.py
+```
 
 ### Your Turn: Build the File Endpoints
 
 Now we'll create our file-related API endpoints in their own dedicated file.
 
-1.  Open `backend/app/api/files.py`.
+1. Open `backend/app/api/files.py`.
 
-2.  Add the following code.
+2. Add the following code.
 
-    **File: `backend/app/api/files.py`**
+   **File: `backend/app/api/files.py`**
 
-    ```python
-    from fastapi import APIRouter, HTTPException, status
-    from app.schemas.files import FileInfo, FileListResponse
+```python
+from fastapi import APIRouter, HTTPException, status
+from app.schemas.files import FileInfo, FileListResponse
 
-    # 1. Create a router instance.
-    router = APIRouter(
-        prefix="/api/files",  # All routes in this file will start with /api/files
-        tags=["Files"],       # Group these endpoints under a "Files" heading in the docs
-    )
+# 1. Create a router instance.
+router = APIRouter(
+  prefix="/api/files", # All routes in this file will start with /api/files
+  tags=["Files"],    # Group these endpoints under a "Files" heading in the docs
+)
 
-    # 2. Create correct temporary mock data.
-    MOCK_FILES = [
-        {"name": "PN1001_OP1.mcam", "status": "available", "size_bytes": 1234567, "locked_by": None},
-        {"name": "PN1002_OP1.mcam", "status": "checked_out", "size_bytes": 2345678, "locked_by": "john"},
-        {"name": "PN1003_OP1.mcam", "status": "available", "size_bytes": 987654, "locked_by": None},
-    ]
+# 2. Create correct temporary mock data.
+MOCK_FILES = [
+  {"name": "PN1001_OP1.mcam", "status": "available", "size_bytes": 1234567, "locked_by": None},
+  {"name": "PN1002_OP1.mcam", "status": "checked_out", "size_bytes": 2345678, "locked_by": "john"},
+  {"name": "PN1003_OP1.mcam", "status": "available", "size_bytes": 987654, "locked_by": None},
+]
 
-    # 3. Create the "List Files" endpoint.
-    @router.get("/", response_model=FileListResponse)
-    def get_files():
-        return FileListResponse(files=MOCK_FILES, total=len(MOCK_FILES))
+# 3. Create the "List Files" endpoint.
+@router.get("/", response_model=FileListResponse)
+def get_files():
+  return FileListResponse(files=MOCK_FILES, total=len(MOCK_FILES))
 
-    # 4. Create the "Get Single File" endpoint.
-    @router.get("/{filename}", response_model=FileInfo)
-    def get_file(filename: str):
-        # A 'path parameter' like {filename} is taken from the URL.
-        # A 'query parameter' would be different, like /api/files?status=available
-        for file in MOCK_FILES:
-            if file["name"] == filename:
-                return file
+# 4. Create the "Get Single File" endpoint.
+@router.get("/{filename}", response_model=FileInfo)
+def get_file(filename: str):
+  # A 'path parameter' like {filename} is taken from the URL.
+  # A 'query parameter' would be different, like /api/files?status=available
+  for file in MOCK_FILES:
+    if file["name"] == filename:
+      return file
 
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"File '{filename}' not found",
-        )
-    ```
+  raise HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND,
+    detail=f"File '{filename}' not found",
+  )
+```
 
 ---
 
@@ -512,37 +510,39 @@ We've created our schemas and router, but our main application doesn't know abou
 
 ### Your Turn: Update the Main App
 
-1.  Open `backend/app/main.py`.
+1. Open `backend/app/main.py`.
 
-2.  We'll replace our old "Hello, World" code and tell our main `app` to include the new `files` router.
+2. We'll replace our old "Hello, World" code and tell our main `app` to include the new `files` router.
 
-    **File: `backend/app/main.py`**
+   **File: `backend/app/main.py`**
 
-    ```python
-    from fastapi import FastAPI
-    from app.api import files # NEW: Import our new router
+```python
+from fastapi import FastAPI
+from app.api import files # NEW: Import our new router
 
-    app = FastAPI(title="PDM System")
+app = FastAPI(title="PDM System")
 
-    # NEW: Tell the main app to include all the routes from our files router.
-    # This one line makes '/api/files' and '/api/files/{filename}' live.
-    app.include_router(files.router)
+# NEW: Tell the main app to include all the routes from our files router.
+# This one line makes '/api/files' and '/api/files/{filename}' live.
+app.include_router(files.router)
 
-    @app.get("/")
-    def read_root():
-        """A simple health-check endpoint for the root."""
-        return {"status": "ok", "message": "Welcome to the PDM API!"}
-    ```
+@app.get("/")
+def read_root():
+  """A simple health-check endpoint for the root."""
+  return {"status": "ok", "message": "Welcome to the PDM API!"}
+```
 
 ### ✅ Verification
 
 Your `uvicorn` server has been auto-reloading. Let's test the new endpoints.
 
-1.  **Test the error case with `curl`**. Open a new terminal and run:
-    ```bash
-    curl -i http://127.0.0.1:8000/api/files/fakefile.mcam
-    ```
-    The `-i` flag includes the HTTP headers in the response. You should see `HTTP/1.1 404 Not Found`.
+1. **Test the error case with `curl`**. Open a new terminal and run:
+
+```bash
+curl -i http://127.0.0.1:8000/api/files/fakefile.mcam
+```
+
+The `-i` flag includes the HTTP headers in the response. You should see `HTTP/1.1 404 Not Found`.
 
 ### Deep Dive: Common HTTP Status Codes
 
@@ -562,7 +562,7 @@ All the work we just did with schemas and routers has automatically upgraded our
 
 ### Your Turn: Explore Your New Docs
 
-1.  Refresh your browser tab at **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**.
+1. Refresh your browser tab at **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**.
 
 You'll now see a **"Files"** section with your two new endpoints.
 
@@ -578,16 +578,16 @@ We've built a significant new feature. It's time to save a snapshot of our work 
 
 ### Your Turn: Commit Your Feature
 
-1.  Stop the server (`Ctrl+C`).
+1. Stop the server (`Ctrl+C`).
 
-2.  Navigate to the `pdm-tutorial` root directory.
+2. Navigate to the `pdm-tutorial` root directory.
 
-3.  Stage and commit your changes.
+3. Stage and commit your changes.
 
-    ```bash
-    git add .
-    git commit -m "feat: Add File schemas and API endpoints for listing and retrieval"
-    ```
+```bash
+git add .
+git commit -m "feat: Add File schemas and API endpoints for listing and retrieval"
+```
 
 ---
 
@@ -600,14 +600,14 @@ You've successfully built a well-structured, multi-endpoint API. You are now usi
 ```
 backend/
 ├── app/
-│   ├── api/
-│   │   ├── __init__.py
-│   │   └── files.py
-│   ├── schemas/
-│   │   ├── __init__.py
-│   │   └── files.py
-│   ├── __init__.py
-│   └── main.py
+│  ├── api/
+│  │  ├── __init__.py
+│  │  └── files.py
+│  ├── schemas/
+│  │  ├── __init__.py
+│  │  └── files.py
+│  ├── __init__.py
+│  └── main.py
 └── ... (other files)
 ```
 
@@ -626,7 +626,7 @@ You are absolutely correct. These refinements will make Stage 2 even stronger an
 
 ---
 
-# PDM Tutorial (Definitive Edition) - Stage 2: Building the Frontend
+## PDM Tutorial (Definitive Edition) - Stage 2: Building the Frontend
 
 **Goal**: To build a dynamic, professional-grade frontend that communicates with our API. We'll focus on a scalable CSS architecture and modular JavaScript, building and testing one component at a time.
 
@@ -654,66 +654,67 @@ We will organize our CSS files to follow a logical cascade, from broadest to mos
 
 ```
 ┌───────────────────────────────┐
-│ Tokens (Variables)            │  <- Most generic, widest impact
+│ Tokens (Variables)      │ <- Most generic, widest impact
 ├───────────────────────────────┤
 │ Base (Reset, body, h1 styles) │
 ├───────────────────────────────┤
-│ Components (Buttons, Cards)   │  <- Most specific, narrow impact
+│ Components (Buttons, Cards)  │ <- Most specific, narrow impact
 └───────────────────────────────┘
 ```
 
 ### Your Turn: Create the CSS Files
 
-1.  Navigate to `backend/static/css` in your project.
-2.  If they don't already exist, create the empty files:
-    ```bash
-    touch tokens.css base.css components.css main.css
-    ```
+1. Navigate to `backend/static/css` in your project.
+2. If they don't already exist, create the empty files:
+
+```bash
+touch tokens.css base.css components.css main.css
+```
 
 ### Your Turn: Define the Design Tokens
 
 Let's build our design system's foundation in `tokens.css`.
 
-1.  Open `backend/static/css/tokens.css`.
+1. Open `backend/static/css/tokens.css`.
 
-2.  Add the `:root` selector and our tokens.
+2. Add the `:root` selector and our tokens.
 
-    **File: `backend/static/css/tokens.css`**
+   **File: `backend/static/css/tokens.css`**
 
-    ```css
-    /**
-     * Design Tokens - The Single Source of Truth for our UI
-     * The :root selector is a pseudo-class that represents the <html> element.
-     * It's the perfect place to declare global CSS variables that will be
-     * available everywhere in our document.
-     */
-    :root {
-      /* ==================================
-         PRIMITIVE TOKENS (The Raw Values)
-         ================================== */
-      --color-primary-500: #667eea;
-      --color-primary-700: #4453b8;
-      --color-gray-50: #f9fafb;
-      --color-gray-200: #e5e7eb;
-      --color-gray-900: #111827;
-      --color-success-fg: #059669;
-      --color-success-bg: #d1fae5;
-      --color-warning-fg: #d97706;
-      --color-warning-bg: #fef3c7;
+```css
+/**
+ * Design Tokens - The Single Source of Truth for our UI
+ * The :root selector is a pseudo-class that represents the <html> element.
+ * It's the perfect place to declare global CSS variables that will be
+ * available everywhere in our document.
+ */
+:root {
+  /* ==================================
+   PRIMITIVE TOKENS (The Raw Values)
+   ================================== */
+  --color-primary-500: #667eea;
+  --color-primary-700: #4453b8;
+  --color-gray-50: #f9fafb;
+  --color-gray-200: #e5e7eb;
+  --color-gray-900: #111827;
+  --color-success-fg: #059669;
+  --color-success-bg: #d1fae5;
+  --color-warning-fg: #d97706;
+  --color-warning-bg: #fef3c7;
 
-      --spacing-4: 1rem; /* 16px */
-      --spacing-6: 1.5rem; /* 24px */
-      --spacing-8: 2rem; /* 32px */
+  --spacing-4: 1rem; /* 16px */
+  --spacing-6: 1.5rem; /* 24px */
+  --spacing-8: 2rem; /* 32px */
 
-      /* ===================================================
-         SEMANTIC TOKENS (The Purpose of the Values)
-         =================================================== */
-      --bg-primary: #ffffff;
-      --bg-secondary: var(--color-gray-50);
-      --text-primary: var(--color-gray-900);
-      --border-default: var(--color-gray-200);
-    }
-    ```
+  /* ===================================================
+   SEMANTIC TOKENS (The Purpose of the Values)
+   =================================================== */
+  --bg-primary: #ffffff;
+  --bg-secondary: var(--color-gray-50);
+  --text-primary: var(--color-gray-900);
+  --border-default: var(--color-gray-200);
+}
+```
 
 ---
 
@@ -723,31 +724,31 @@ Now we'll add styles to `base.css` to set up sensible, consistent defaults for o
 
 ### Your Turn: Add Base and Body Styles
 
-1.  Open `backend/static/css/base.css`.
+1. Open `backend/static/css/base.css`.
 
-2.  Add a "CSS Reset" and styles for the `<body>`, using our new tokens.
+2. Add a "CSS Reset" and styles for the `<body>`, using our new tokens.
 
-    **File: `backend/static/css/base.css`**
+   **File: `backend/static/css/base.css`**
 
-    ```css
-    /* A simple "CSS Reset" for a consistent baseline across browsers. */
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+```css
+/* A simple "CSS Reset" for a consistent baseline across browsers. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      line-height: 1.6;
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
 
-      /* USING OUR TOKENS! */
-      color: var(--text-primary);
-      background-color: var(--bg-secondary);
-    }
-    ```
+  /* USING OUR TOKENS! */
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+}
+```
 
 ---
 
@@ -757,79 +758,79 @@ It's time to see our work in the browser.
 
 ### Your Turn: Create the HTML and Link CSS
 
-1.  Open `backend/static/index.html`. If it has any content, replace it with this basic structure.
+1. Open `backend/static/index.html`. If it has any content, replace it with this basic structure.
 
-2.  In the `<head>`, link to `main.css`, which will be our single entry point for all styles.
+2. In the `<head>`, link to `main.css`, which will be our single entry point for all styles.
 
-    **File: `backend/static/index.html`**
+   **File: `backend/static/index.html`**
 
-    ```html
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PDM System</title>
-        <link rel="stylesheet" href="/static/css/main.css" />
-      </head>
-      <body>
-        <h1>PDM System</h1>
-      </body>
-    </html>
-    ```
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDM System</title>
+    <link rel="stylesheet" href="/static/css/main.css" />
+  </head>
+  <body>
+    <h1>PDM System</h1>
+  </body>
+</html>
+```
 
-3.  Now, open `backend/static/css/main.css` and use it to import the other CSS files in the correct order. The order is critical for the cascade to work properly.
+3. Now, open `backend/static/css/main.css` and use it to import the other CSS files in the correct order. The order is critical for the cascade to work properly.
 
-    **File: `backend/static/css/main.css`**
+   **File: `backend/static/css/main.css`**
 
-    ```css
-    /* 1. Design Tokens - Must load first so variables are available */
-    @import "tokens.css";
+```css
+/* 1. Design Tokens - Must load first so variables are available */
+@import "tokens.css";
 
-    /* 2. Base Styles - Sets defaults for raw HTML elements */
-    @import "base.css";
+/* 2. Base Styles - Sets defaults for raw HTML elements */
+@import "base.css";
 
-    /* 3. Components - We'll add styles here soon */
-    @import "components.css";
-    ```
+/* 3. Components - We'll add styles here soon */
+@import "components.css";
+```
 
 ### Your Turn: Update FastAPI to Serve the Frontend
 
 Let's tell our Python server to serve these new files.
 
-1.  Open `backend/app/main.py`.
+1. Open `backend/app/main.py`.
 
-2.  Modify your `main.py` to mount the `static` directory and change the root endpoint to serve the `index.html` file.
+2. Modify your `main.py` to mount the `static` directory and change the root endpoint to serve the `index.html` file.
 
-    **File: `backend/app/main.py`**
+   **File: `backend/app/main.py`**
 
-    ```python
-    from fastapi import FastAPI
-    from fastapi.staticfiles import StaticFiles
-    from fastapi.responses import FileResponse
-    from app.api import files
+```python
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from app.api import files
 
-    app = FastAPI(title="PDM System")
+app = FastAPI(title="PDM System")
 
-    # This tells FastAPI to serve any file in the 'static' directory
-    # if the URL starts with /static. This is how our CSS and JS will be loaded.
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+# This tells FastAPI to serve any file in the 'static' directory
+# if the URL starts with /static. This is how our CSS and JS will be loaded.
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-    app.include_router(files.router)
+app.include_router(files.router)
 
-    # We change the root endpoint to serve our main HTML file.
-    @app.get("/", response_class=FileResponse, include_in_schema=False)
-    def read_root():
-        """Serves the main application frontend."""
-        return FileResponse("static/index.html")
-    ```
+# We change the root endpoint to serve our main HTML file.
+@app.get("/", response_class=FileResponse, include_in_schema=False)
+def read_root():
+  """Serves the main application frontend."""
+  return FileResponse("static/index.html")
+```
 
-    _(Note: `include_in_schema=False` just hides this from our API docs, as it's not a data endpoint.)_
+_(Note: `include_in_schema=False` just hides this from our API docs, as it's not a data endpoint.)_
 
 ### ✅ Verification Point 1
 
-1.  If your `uvicorn` server isn't running, start it from the `backend` directory: `uvicorn app.main:app --reload`.
-2.  Go to **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
+1. If your `uvicorn` server isn't running, start it from the `backend` directory: `uvicorn app.main:app --reload`.
+2. Go to **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
 You should see a very plain page with "PDM System". But crucially, the page has our light gray background color and dark text. Our CSS architecture is working\!
 
@@ -841,55 +842,55 @@ Now we'll add styles to `components.css` and the corresponding HTML to `index.ht
 
 ### Your Turn: Style and Build the Header & Main Content Area
 
-1.  **Add the CSS** for our main layout components to `backend/static/css/components.css`.
+1. **Add the CSS** for our main layout components to `backend/static/css/components.css`.
 
-    ```css
-    /* === Layout Components === */
-    .container {
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 var(--spacing-4);
-    }
+```css
+/* === Layout Components === */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-4);
+}
 
-    header {
-      background: linear-gradient(
-        135deg,
-        var(--color-primary-500),
-        var(--color-primary-700)
-      );
-      color: #ffffff;
-      padding: var(--spacing-6) 0;
-    }
+header {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-500),
+    var(--color-primary-700)
+  );
+  color: #ffffff;
+  padding: var(--spacing-6) 0;
+}
 
-    .file-list-card {
-      background: var(--bg-primary);
-      border-radius: 0.5rem;
-      padding: var(--spacing-6);
-      margin-top: var(--spacing-8);
-    }
-    ```
+.file-list-card {
+  background: var(--bg-primary);
+  border-radius: 0.5rem;
+  padding: var(--spacing-6);
+  margin-top: var(--spacing-8);
+}
+```
 
-2.  **Update the HTML** in `backend/static/index.html` to use these new classes.
+2. **Update the HTML** in `backend/static/index.html` to use these new classes.
 
-    ```html
-    <body>
-      <header>
-        <div class="container">
-          <h1>PDM System</h1>
-          <p>Parts Data Management</p>
-        </div>
-      </header>
+```html
+<body>
+  <header>
+    <div class="container">
+      <h1>PDM System</h1>
+      <p>Parts Data Management</p>
+    </div>
+  </header>
 
-      <main class="container">
-        <section class="file-list-card">
-          <h2>Available Files</h2>
-          <div id="loading-indicator"><p>Loading files from API...</p></div>
-          <div id="file-list"></div>
-        </section>
-      </main>
-    </body>
-    ```
+  <main class="container">
+    <section class="file-list-card">
+      <h2>Available Files</h2>
+      <div id="loading-indicator"><p>Loading files from API...</p></div>
+      <div id="file-list"></div>
+    </section>
+  </main>
+</body>
+```
 
 ### ✅ Verification Point 2
 
@@ -914,174 +915,174 @@ Both are **HTTP clients** sending a `GET` request to the same endpoint on your s
 
 We'll create a dedicated module whose only job is to talk to our backend. This keeps our code organized.
 
-1.  Open `backend/static/js/modules/api-client.js`.
+1. Open `backend/static/js/modules/api-client.js`.
 
-2.  Add the `APIClient` class.
+2. Add the `APIClient` class.
 
-    **File: `backend/static/js/modules/api-client.js`**
+   **File: `backend/static/js/modules/api-client.js`**
 
-    ```javascript
-    /**
-     * A centralized module for all communication with our backend API.
-     */
-    export class APIClient {
-      async getFiles() {
-        try {
-          const response = await fetch("/api/files");
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(
-              errorData.detail || `HTTP error! status: ${response.status}`
-            );
-          }
-          return await response.json();
-        } catch (error) {
-          console.error("Failed to fetch files:", error);
-          throw error; // Re-throw so the UI can handle it
-        }
+```javascript
+/**
+ * A centralized module for all communication with our backend API.
+ */
+export class APIClient {
+  async getFiles() {
+    try {
+      const response = await fetch("/api/files");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.detail || `HTTP error! status: ${response.status}`
+        );
       }
+      return await response.json();
+    } catch (error) {
+      console.error("Failed to fetch files:", error);
+      throw error; // Re-throw so the UI can handle it
     }
+  }
+}
 
-    export const apiClient = new APIClient();
-    ```
+export const apiClient = new APIClient();
+```
 
 ### Your Turn: Write the Main Application Logic
 
 Now let's use our API client in `app.js` to fetch data and update the **DOM** (the live HTML structure of the page).
 
-1.  Open `backend/static/js/app.js`.
+1. Open `backend/static/js/app.js`.
 
-2.  Replace its content with this logic.
+2. Replace its content with this logic.
 
-    **File: `backend/static/js/app.js`**
+   **File: `backend/static/js/app.js`**
 
-    ```javascript
-    // Import the apiClient we just created
-    import { apiClient } from "./modules/api-client.js";
+```javascript
+// Import the apiClient we just created
+import { apiClient } from "./modules/api-client.js";
 
-    const fileListEl = document.getElementById("file-list");
-    const loadingEl = document.getElementById("loading-indicator");
+const fileListEl = document.getElementById("file-list");
+const loadingEl = document.getElementById("loading-indicator");
 
-    /**
-     * Creates the HTML for a single file item.
-     * @param {object} file - The file data from the API.
-     */
-    function createFileElement(file) {
-      const div = document.createElement("div");
-      // We will style this class in the next step
-      div.className = "file-item";
-      div.innerHTML = `<span>${file.name}</span>`;
-      return div;
-    }
+/**
+ * Creates the HTML for a single file item.
+ * @param {object} file - The file data from the API.
+ */
+function createFileElement(file) {
+  const div = document.createElement("div");
+  // We will style this class in the next step
+  div.className = "file-item";
+  div.innerHTML = `<span>${file.name}</span>`;
+  return div;
+}
 
-    async function loadAndDisplayFiles() {
-      try {
-        loadingEl.style.display = "block";
-        fileListEl.innerHTML = "";
+async function loadAndDisplayFiles() {
+  try {
+    loadingEl.style.display = "block";
+    fileListEl.innerHTML = "";
 
-        const data = await apiClient.getFiles();
-        loadingEl.style.display = "none";
+    const data = await apiClient.getFiles();
+    loadingEl.style.display = "none";
 
-        data.files.forEach((file) => {
-          const fileElement = createFileElement(file);
-          fileListEl.appendChild(fileElement);
-        });
-      } catch (error) {
-        loadingEl.style.display = "none";
-        fileListEl.innerHTML = `<p style="color: red;">Error loading files: ${error.message}</p>`;
-      }
-    }
-
-    // This runs when the browser has finished building the page.
-    document.addEventListener("DOMContentLoaded", () => {
-      loadAndDisplayFiles();
+    data.files.forEach((file) => {
+      const fileElement = createFileElement(file);
+      fileListEl.appendChild(fileElement);
     });
-    ```
+  } catch (error) {
+    loadingEl.style.display = "none";
+    fileListEl.innerHTML = `<p style="color: red;">Error loading files: ${error.message}</p>`;
+  }
+}
 
-3.  Add `type="module"` to your `<script>` tag in `index.html` so it can use `import`.
+// This runs when the browser has finished building the page.
+document.addEventListener("DOMContentLoaded", () => {
+  loadAndDisplayFiles();
+});
+```
 
-    **Modify `index.html`:**
+3. Add `type="module"` to your `<script>` tag in `index.html` so it can use `import`.
 
-    ```html
-    <script type="module" src="/static/js/app.js"></script>
-    ```
+   **Modify `index.html`:**
+
+```html
+<script type="module" src="/static/js/app.js"></script>
+```
 
 ### ✅ Verification Point 3 (The "It Works\!" Moment)
 
-1.  Refresh your browser. You should see the "Loading..." message, followed by a simple, unstyled list of the file names from your API\!
-2.  **For the curious**: Open your browser's Developer Tools (F12 or Ctrl+Shift+I), go to the **Network** tab, and refresh the page. You will see the actual `GET` request being made to `/api/files` and the JSON response from your server.
+1. Refresh your browser. You should see the "Loading..." message, followed by a simple, unstyled list of the file names from your API\!
+2. **For the curious**: Open your browser's Developer Tools (F12 or Ctrl+Shift+I), go to the **Network** tab, and refresh the page. You will see the actual `GET` request being made to `/api/files` and the JSON response from your server.
 
 ### Your Turn: Style the Final File List
 
 Our last step is to apply the styles we wrote earlier.
 
-1.  Open `backend/static/css/components.css` and add the styles for `.file-item` and its children.
+1. Open `backend/static/css/components.css` and add the styles for `.file-item` and its children.
 
-    **File: `backend/static/css/components.css`**
+   **File: `backend/static/css/components.css`**
 
-    ```css
-    /* Add to the bottom of the file */
-    .file-item {
-      padding: var(--spacing-4);
-      border-bottom: 1px solid var(--border-default);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .file-item:last-child {
-      border-bottom: none;
-    }
+```css
+/* Add to the bottom of the file */
+.file-item {
+  padding: var(--spacing-4);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.file-item:last-child {
+  border-bottom: none;
+}
 
-    .file-name {
-      font-weight: 600;
-    }
+.file-name {
+  font-weight: 600;
+}
 
-    .file-status {
-      padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      text-transform: capitalize;
-    }
-    .status-available {
-      background-color: var(--color-success-bg);
-      color: var(--color-success-fg);
-    }
-    .status-checked_out {
-      background-color: var(--color-warning-bg);
-      color: var(--color-warning-fg);
-    }
-    ```
+.file-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+.status-available {
+  background-color: var(--color-success-bg);
+  color: var(--color-success-fg);
+}
+.status-checked_out {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-fg);
+}
+```
 
-2.  Update `createFileElement` in `app.js` to use these new classes.
+2. Update `createFileElement` in `app.js` to use these new classes.
 
-    **Modify `app.js`:**
+   **Modify `app.js`:**
 
-    ```javascript
-    function createFileElement(file) {
-      const div = document.createElement("div");
-      div.className = "file-item";
+```javascript
+function createFileElement(file) {
+  const div = document.createElement("div");
+  div.className = "file-item";
 
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "file-name";
-      nameSpan.textContent = file.name;
+  const nameSpan = document.createElement("span");
+  nameSpan.className = "file-name";
+  nameSpan.textContent = file.name;
 
-      const statusSpan = document.createElement("span");
-      statusSpan.className = `file-status status-${file.status}`;
-      statusSpan.textContent = file.status.replace("_", " ");
+  const statusSpan = document.createElement("span");
+  statusSpan.className = `file-status status-${file.status}`;
+  statusSpan.textContent = file.status.replace("_", " ");
 
-      div.appendChild(nameSpan);
-      div.appendChild(statusSpan);
-      return div;
-    }
-    ```
+  div.appendChild(nameSpan);
+  div.appendChild(statusSpan);
+  return div;
+}
+```
 
 ### ✅ Verification Point 4 (Error Handling Demo)
 
-1.  Go to your terminal where `uvicorn` is running and stop the server (`Ctrl+C`).
-2.  Refresh your browser.
-3.  You should now see the red error message: "Error loading files: Failed to fetch". This proves your `try...catch` block is working correctly\!
-4.  Restart your server (`uvicorn app.main:app --reload`) and refresh the page to see the file list again.
+1. Go to your terminal where `uvicorn` is running and stop the server (`Ctrl+C`).
+2. Refresh your browser.
+3. You should now see the red error message: "Error loading files: Failed to fetch". This proves your `try...catch` block is working correctly\!
+4. Restart your server (`uvicorn app.main:app --reload`) and refresh the page to see the file list again.
 
 ---
 
@@ -1091,13 +1092,14 @@ We've built a complete, styled, data-driven frontend. It's time to commit this m
 
 ### Your Turn: Commit Your Feature
 
-1.  Stop the server.
-2.  Navigate to the `pdm-tutorial` root directory.
-3.  Stage and commit your changes.
-    ```bash
-    git add .
-    git commit -m "feat: Build dynamic frontend with CSS architecture and API integration"
-    ```
+1. Stop the server.
+2. Navigate to the `pdm-tutorial` root directory.
+3. Stage and commit your changes.
+
+```bash
+git add .
+git commit -m "feat: Build dynamic frontend with CSS architecture and API integration"
+```
 
 ---
 
@@ -1110,42 +1112,293 @@ You've successfully built a dynamic frontend with a professional and scalable ar
 ```
 backend/
 ├── app/
-│   └── (unchanged from Stage 1)
+│  └── (unchanged from Stage 1)
 ├── static/
-│   ├── css/
-│   │   ├── base.css
-│   │   ├── components.css
-│   │   ├── main.css
-│   │   └── tokens.css
-│   ├── js/
-│   │   ├── modules/
-│   │   │   └── api-client.js
-│   │   └── app.js
-│   └── index.html
+│  ├── css/
+│  │  ├── base.css
+│  │  ├── components.css
+│  │  ├── main.css
+│  │  └── tokens.css
+│  ├── js/
+│  │  ├── modules/
+│  │  │  └── api-client.js
+│  │  └── app.js
+│  └── index.html
 └── ... (other files)
 ```
 
 ### Verification Checklist
 
-- [ ] The page loads a styled header and a main content "card".
-- [ ] JavaScript is modular, with a separate `api-client.js`.
-- [ ] On page load, the file list is dynamically fetched and displayed with correct styling.
-- [ ] Stopping the backend server causes a user-friendly error message to appear on the frontend.
-- [ ] A new Git commit for this feature has been made.
+---
 
-So far, our frontend is "read-only." In **Stage 3**, we’ll make it interactive by replacing our backend's mock data with real filesystem logic and building a robust locking system. We'll then wire up buttons on the frontend, turning this into a real tool, not just a viewer.
+## PDM Tutorial (Definitive Edition) - Stage 3: Real Files & Atomic Locking
 
-This is a perfect set of refinements. You’ve pinpointed exactly how to elevate this from a good tutorial to a great one by reinforcing the core concepts with visuals, command-line parallels, and explicit testing of failure cases.
+**Goal**: To make our application fully functional by replacing our backend's mock data with real file system logic. We will build a robust, cross-platform file locking mechanism to prevent data corruption and make our frontend fully interactive.
 
-Let's do it. I will integrate every one of your suggestions to create the definitive, polished edition of Stage 3. This will be our new blueprint.
+**What You'll Learn**:
+
+- The critical importance of **atomic operations** and how to prevent **race conditions**.
+- How to build a Python **context manager** for safe, concurrent file access.
+- The **Service Layer** architecture pattern for clean, testable code.
+- How to use **Dependency Injection** in FastAPI to provide services to your API endpoints.
+- How to build and handle interactive **modal dialogs** on the frontend.
+- How to test API endpoints from both the browser and the command line with `curl`.
 
 ---
 
-Absolutely possible. Let me rebuild Stage 3 to be **incremental, explanatory, and comprehensive** - a teaching tool that builds understanding at every step.
+## 3.1: The "Why" - The Race Condition Problem
+
+Imagine two users, Alice and Bob, using our app at the same time.
+
+1. At 10:00:00 AM, Alice's browser fetches `locks.json`. The file is empty.
+2. At 10:00:01 AM, Bob's browser _also_ fetches `locks.json`. It's still empty.
+3. At 10:00:02 AM, Alice clicks "Checkout". Her request writes a lock for `PN1001.mcam` to the file.
+4. At 10:00:03 AM, Bob, whose app still _thinks_ the file is available, clicks "Checkout". His request **overwrites** Alice's change.
+
+Now, both users think they have the lock, and our system's state is corrupt. This is a **race condition**.
+
+### Deep Dive: Visualizing a Race Condition
+
+Here's what that looks like on a timeline:
+
+```
+Alice: READ {} ----------------> MODIFY {"Alice": lock} -----> WRITE
+Bob:     READ {} ----> MODIFY {"Bob": lock} ----------> WRITE
+
+                              ▲
+                              └─ CONFLICT! Bob's WRITE overwrites Alice's work.
+```
+
+The solution is to make the entire "read-modify-write" sequence **atomic**—an indivisible operation that only one process can perform at a time.
+
+### Your Turn: Witness a Race Condition
+
+Let's prove this is a real problem with a playground script.
+
+1. Create a new file: `backend/app/learn_race_condition.py`.
+
+2. Add and run the following code. It simulates two "threads" (like two concurrent user requests) trying to increment a number in a JSON file.
+
+   **File: `backend/app/learn_race_condition.py`**
+
+```python
+import threading
+import json
+from pathlib import Path
+
+# ... (Copy the code from the previous response's "learn_race_condition.py") ...
+```
+
+### ✅ Verification
+
+1. Run the script from your `backend` directory: `python -m app.learn_race_condition`.
+2. **Observe the output.** The "Actual final counter" will be less than the expected value. This is tangible proof that our current approach is unsafe. We need a lock.
 
 ---
 
-# PDM Tutorial (Complete Edition) - Stage 3: Real Files & Atomic Locking
+## 3.2: The Solution - A Cross-Platform File Lock
+
+We will build a Python **context manager** that uses a `with` statement to create a "safe zone" for our code, guaranteeing that only one process can access a file at a time.
+
+### Deep Dive: Python's Context Managers (`with` statement)
+
+A context manager is a simple but powerful tool for managing resources. It automates setup and teardown.
+
+- **Without `with` (dangerous):**
+
+```python
+lock.acquire()
+# What if an error happens here?
+file.write(...)
+# The lock is never released!
+lock.release()
+```
+
+- **With `with` (safe):**
+
+```python
+# The __enter__ method (acquire lock) is called automatically.
+with LockedFile(...) as f:
+  # This code runs in the "safe zone".
+  f.write(...)
+# The __exit__ method (release lock) is called automatically,
+# EVEN IF AN ERROR OCCURRED INSIDE THE BLOCK.
+```
+
+This guarantees that resources like locks are always released properly.
+
+### Your Turn: Build the `LockedFile` Utility
+
+1. Create the directory and file: `backend/app/utils/file_locking.py`.
+
+2. Add the `LockedFile` class.
+
+   **File: `backend/app/utils/file_locking.py`**
+
+```python
+# ... (Copy the code for the LockedFile class from the previous response) ...
+# It should include the __init__, __enter__, and __exit__ methods.
+```
+
+### Your Turn: Save Your Progress
+
+This utility is a complete, reusable, and critical piece of our infrastructure. Let's commit it.
+
+1. From the `pdm-tutorial` root directory, run:
+
+```bash
+git add .
+git commit -m "feat: Add cross-platform file locking utility"
+```
+
+---
+
+## 3.3: Building the Service Layer
+
+We will now move our business logic (how to read files, how to manage locks) out of the API layer and into a dedicated **Service Layer**.
+
+### Deep Dive: The Service Layer
+
+This is a core architectural pattern that promotes **Separation of Concerns**.
+
+```
+   ┌──────────────────┐
+User ->│  API / Router  │ (Handles HTTP, knows nothing about business rules)
+   └──────────────────┘
+        ↓ calls
+   ┌──────────────────┐
+   │ Service Layer  │ (Contains business rules, knows nothing about HTTP)
+   └──────────────────┘
+        ↓ uses
+   ┌──────────────────┐
+   │ Utility / Driver │ (Handles low-level details, e.g., file locks, DB connections)
+   └──────────────────┘
+```
+
+This makes our code cleaner, easier to test, and more maintainable.
+
+### Your Turn: Create the `FileService`
+
+1. Create the file `backend/app/services/file_service.py`.
+
+2. Add the `FileService` class, which will be the "brain" of our file operations. It uses the `LockedFile` utility we just built.
+
+   **File: `backend/app/services/file_service.py`**
+
+```python
+# ... (Copy the code for the FileService class from the previous response) ...
+# It should include the __init__, get_files_with_status, checkout_file,
+# and the modified checkin_file methods.
+```
+
+---
+
+## 3.4: Connecting the Service to the API
+
+Now, let's wire up our API endpoints to use this new, robust service instead of mock data, using **Dependency Injection**.
+
+### Your Turn: Update the API Endpoints
+
+1. Open `backend/app/api/files.py`.
+
+2. Replace the entire file with this new version.
+
+   **File: `backend/app/api/files.py`**
+
+```python
+# ... (Copy the full code for api/files.py from the previous response) ...
+# It should include the `get_file_service` dependency and the updated
+# endpoints that use it.
+```
+
+3. Add the `FileCheckoutRequest` and `FileCheckinRequest` schemas to `backend/app/schemas/files.py`.
+
+### ✅ Verification
+
+1. Create a `repo` directory and some test files in `backend`:
+
+```bash
+mkdir -p backend/repo
+touch backend/repo/PN1001.mcam
+touch backend/repo/PN1002.mcam
+```
+
+2. With your server running, visit **[http://120.0.0.1:8000/api/files](https://www.google.com/search?q=http://120.0.0.1:8000/api/files)** in your browser. You should see the real files\!
+
+3. **Test with `curl`:** Open a new terminal and run the checkout command.
+
+   **On macOS/Linux:**
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/files/checkout \
+ -H "Content-Type: application/json" \
+ -d '{"filename":"PN1001.mcam","user":"alice","message":"test"}'
+```
+
+**On Windows PowerShell:**
+
+```powershell
+curl.exe -X POST http://127.0.0.1:8000/api/files/checkout `
+ -H "Content-Type: application/json" `
+ -d '{\"filename\":\"PN1001.mcam\",\"user\":\"alice\",\"message\":\"test\"}'
+```
+
+You should get a `{"success":true,...}` response.
+
+4. **Test for Errors:** Run the exact same `curl` command again. This time, you should get a **409 Conflict** error with the detail message, proving our service logic and error handling are working.
+
+---
+
+## 3.5: Making the Frontend Interactive
+
+The final step is to connect our frontend buttons to these new, functional backend endpoints.
+
+### Your Turn: Add the Modal UI and Logic
+
+1. **Add the Modal CSS** to `backend/static/css/components.css`.
+2. **Add the Modal HTML** to `index.html`.
+3. **Create the `ModalManager`** in `backend/static/js/modules/modal-manager.js`.
+4. **Update `api-client.js`** with a `post` method.
+5. **Update `app.js`** to be fully interactive.
+   _(For these steps, copy the corresponding code blocks from the previous detailed response for Stage 3.)_
+
+### ✅ Verification
+
+1. Refresh your browser at **[http://127.0.0.1:8000](http://127.0.0.1:8000)**.
+2. Click the "Checkout" button on `PN1001.mcam`. The modal should appear.
+3. Fill in the form and click "Confirm Checkout."
+4. **For the curious:** Open your browser's Developer Tools (F12) to the **Network** tab before you click confirm. You will see a `checkout` request appear in the list. This is your JavaScript making the same `POST` request that your `curl` command did\!
+5. The modal should close, and the file list should refresh, showing the file as "checked out."
+
+---
+
+## 3.6: Saving Our Progress
+
+We've completed a massive, full-stack feature. Let's commit it.
+
+### Your Turn: Commit the Feature
+
+1. Stop the server (`Ctrl+C`).
+2. From the `pdm-tutorial` root directory, run:
+
+```bash
+git add .
+git commit -m "feat: Implement full file checkout/checkin lifecycle with service layer and locking"
+```
+
+---
+
+## Stage 3 Complete ✓
+
+You have now replaced the entire mock data system with a real, robust, and safe backend service layer and connected it to an interactive frontend. The application is now a functional tool.
+
+Now that our app works with real files and concurrency safety, the next pain point is state management—every action requires a full manual refresh of the file list. In **Stage 4**, we’ll introduce a professional frontend state management pattern to make our UI instantly reactive.
+
+Ready for Stage 4?
+
+---
+
+## PDM Tutorial (Complete Edition) - Stage 3: Real Files & Atomic Locking
 
 **Goal**: To transform our application from displaying mock data to managing real files with a robust, race-condition-proof locking system. We'll build this incrementally, understanding each piece before moving to the next.
 
@@ -1186,16 +1439,16 @@ Timeline: What happens without locks
 ─────────────────────────────────────────────────────────
 
 Alice: READ {"locks": []}
-                ↓
-                MODIFY (add Alice's lock)
-                         ↓
-Bob:                     READ {"locks": []} ← Still empty!
-                         ↓
-                         MODIFY (add Bob's lock)
-                                  ↓
-Alice:                            WRITE {"locks": ["Alice"]}
-                                           ↓
-Bob:                                       WRITE {"locks": ["Bob"]} ← Overwrites Alice!
+        ↓
+        MODIFY (add Alice's lock)
+             ↓
+Bob:           READ {"locks": []} ← Still empty!
+             ↓
+             MODIFY (add Bob's lock)
+                 ↓
+Alice:              WRITE {"locks": ["Alice"]}
+                      ↓
+Bob:                    WRITE {"locks": ["Bob"]} ← Overwrites Alice!
 
 Result: Alice's lock disappeared! Data corruption.
 ```
@@ -1206,16 +1459,16 @@ Let's write a simulation that demonstrates this problem in action.
 
 1. Create a new directory for utility experiments:
 
-   ```bash
-   mkdir backend/app/utils
-   touch backend/app/utils/__init__.py
-   ```
+```bash
+mkdir backend/app/utils
+touch backend/app/utils/__init__.py
+```
 
 2. Create the learning script:
 
-   ```bash
-   touch backend/app/learn_race_condition.py
-   ```
+```bash
+touch backend/app/learn_race_condition.py
+```
 
 3. Add this code to **understand** the problem before we solve it:
 
@@ -1236,28 +1489,28 @@ TEMP_FILE = Path("temp_counter.json")
 TEMP_FILE.write_text('{"counter": 0}')
 
 def unsafe_increment(user_name, iterations):
-    """
-    This function has the race condition bug.
-    It reads, modifies, and writes without any protection.
-    """
-    for i in range(iterations):
-        # STEP 1: READ
-        data = json.loads(TEMP_FILE.read_text())
-        current = data["counter"]
+  """
+  This function has the race condition bug.
+  It reads, modifies, and writes without any protection.
+  """
+  for i in range(iterations):
+    # STEP 1: READ
+    data = json.loads(TEMP_FILE.read_text())
+    current = data["counter"]
 
-        # STEP 2: MODIFY (in memory)
-        new_value = current + 1
+    # STEP 2: MODIFY (in memory)
+    new_value = current + 1
 
-        # Simulate some processing time
-        # This makes the race condition more obvious
-        time.sleep(0.001)  # 1 millisecond
+    # Simulate some processing time
+    # This makes the race condition more obvious
+    time.sleep(0.001) # 1 millisecond
 
-        # STEP 3: WRITE
-        data["counter"] = new_value
-        TEMP_FILE.write_text(json.dumps(data))
+    # STEP 3: WRITE
+    data["counter"] = new_value
+    TEMP_FILE.write_text(json.dumps(data))
 
-        if i % 10 == 0:
-            print(f"  {user_name} incremented to {new_value}")
+    if i % 10 == 0:
+      print(f" {user_name} incremented to {new_value}")
 
 # Run the experiment
 print("Starting race condition demonstration...")
@@ -1281,23 +1534,24 @@ thread2.join()
 final_data = json.loads(TEMP_FILE.read_text())
 print()
 print(f"Expected final counter: 100")
-print(f"Actual final counter:   {final_data['counter']}")
+print(f"Actual final counter:  {final_data['counter']}")
 print()
 
 if final_data['counter'] < 100:
-    print("❌ DATA LOSS! Some increments were overwritten.")
-    print(f"   Lost updates: {100 - final_data['counter']}")
+  print("❌ DATA LOSS! Some increments were overwritten.")
+  print(f"  Lost updates: {100 - final_data['counter']}")
 else:
-    print("✓ No data loss (but this is just luck - the bug still exists)")
+  print("✓ No data loss (but this is just luck - the bug still exists)")
 
 # Clean up
 TEMP_FILE.unlink()
 ```
 
 4. Run the demonstration:
-   ```bash
-   python -m app.learn_race_condition
-   ```
+
+```bash
+python -m app.learn_race_condition
+```
 
 ### ✅ Verification
 
@@ -1307,9 +1561,9 @@ You should see output showing that the final counter is **less than 100**. This 
 
 ```
 Expected final counter: 100
-Actual final counter:   73
+Actual final counter:  73
 ❌ DATA LOSS! Some increments were overwritten.
-   Lost updates: 27
+  Lost updates: 27
 ```
 
 ---
@@ -1336,9 +1590,9 @@ We'll build our `LockedFile` class incrementally, understanding each piece.
 
 1. Create the file:
 
-   ```bash
-   touch backend/app/utils/file_locking.py
-   ```
+```bash
+touch backend/app/utils/file_locking.py
+```
 
 2. Start with the **imports and basic structure**:
 
@@ -1352,33 +1606,33 @@ This module provides a context manager for safe, concurrent file access.
 It prevents race conditions by ensuring that only one process can read/write
 a file at a time.
 """
-import fcntl  # Unix/Linux/Mac file locking
-import msvcrt  # Windows file locking
+import fcntl # Unix/Linux/Mac file locking
+import msvcrt # Windows file locking
 import platform
 from pathlib import Path
 from typing import Any
 import json
 
 class LockedFile:
+  """
+  A context manager that provides exclusive access to a JSON file.
+
+  Usage:
+    with LockedFile('data.json') as data:
+      data['key'] = 'value'
+    # File is automatically saved and unlocked here
+  """
+
+  def __init__(self, filepath: Path | str):
     """
-    A context manager that provides exclusive access to a JSON file.
+    Initialize the LockedFile.
 
-    Usage:
-        with LockedFile('data.json') as data:
-            data['key'] = 'value'
-        # File is automatically saved and unlocked here
+    Args:
+      filepath: Path to the JSON file to lock
     """
-
-    def __init__(self, filepath: Path | str):
-        """
-        Initialize the LockedFile.
-
-        Args:
-            filepath: Path to the JSON file to lock
-        """
-        self.filepath = Path(filepath)
-        self.file_handle = None
-        self.data = None
+    self.filepath = Path(filepath)
+    self.file_handle = None
+    self.data = None
 ```
 
 **Deep Dive: Why a Context Manager?**
@@ -1398,37 +1652,37 @@ Now let's add the `__enter__` method, which runs when you write `with LockedFile
 **Add to `backend/app/utils/file_locking.py`:**
 
 ```python
-    def __enter__(self):
-        """
-        Called when entering the 'with' block.
+  def __enter__(self):
+    """
+    Called when entering the 'with' block.
 
-        This method:
-        1. Opens the file
-        2. Acquires an exclusive lock
-        3. Reads and parses the JSON data
-        4. Returns the data for you to modify
-        """
-        # Step 1: Open the file
-        # Mode 'r+' means: open for reading AND writing, file must exist
-        # Mode 'a+' means: create if missing, open for reading AND writing
-        mode = 'r+' if self.filepath.exists() else 'a+'
-        self.file_handle = open(self.filepath, mode)
+    This method:
+    1. Opens the file
+    2. Acquires an exclusive lock
+    3. Reads and parses the JSON data
+    4. Returns the data for you to modify
+    """
+    # Step 1: Open the file
+    # Mode 'r+' means: open for reading AND writing, file must exist
+    # Mode 'a+' means: create if missing, open for reading AND writing
+    mode = 'r+' if self.filepath.exists() else 'a+'
+    self.file_handle = open(self.filepath, mode)
 
-        # Step 2: Acquire the lock (blocks until available)
-        self._acquire_lock()
+    # Step 2: Acquire the lock (blocks until available)
+    self._acquire_lock()
 
-        # Step 3: Read the current contents
-        self.file_handle.seek(0)  # Go to start of file
-        content = self.file_handle.read()
+    # Step 3: Read the current contents
+    self.file_handle.seek(0) # Go to start of file
+    content = self.file_handle.read()
 
-        # Step 4: Parse JSON (or start with empty dict if file is new)
-        if content.strip():
-            self.data = json.loads(content)
-        else:
-            self.data = {}
+    # Step 4: Parse JSON (or start with empty dict if file is new)
+    if content.strip():
+      self.data = json.loads(content)
+    else:
+      self.data = {}
 
-        # Step 5: Return the data so the user can modify it
-        return self.data
+    # Step 5: Return the data so the user can modify it
+    return self.data
 ```
 
 **What's happening here?**
@@ -1447,26 +1701,26 @@ Different operating systems lock files differently. Let's add the cross-platform
 **Add to `backend/app/utils/file_locking.py`:**
 
 ```python
-    def _acquire_lock(self):
-        """
-        Acquire an exclusive lock on the file.
-        This is cross-platform: works on Windows, Mac, and Linux.
-        """
-        system = platform.system()
+  def _acquire_lock(self):
+    """
+    Acquire an exclusive lock on the file.
+    This is cross-platform: works on Windows, Mac, and Linux.
+    """
+    system = platform.system()
 
-        if system == "Windows":
-            # Windows: Use msvcrt to lock the file
-            # LK_NBLCK means "non-blocking lock" - we'll wait if needed
-            msvcrt.locking(
-                self.file_handle.fileno(),
-                msvcrt.LK_LOCK,  # Exclusive lock, wait if unavailable
-                1  # Lock 1 byte (enough to prevent other access)
-            )
-        else:
-            # Unix/Linux/Mac: Use fcntl to lock the file
-            # LOCK_EX means "exclusive lock"
-            # (Blocks until available)
-            fcntl.flock(self.file_handle.fileno(), fcntl.LOCK_EX)
+    if system == "Windows":
+      # Windows: Use msvcrt to lock the file
+      # LK_NBLCK means "non-blocking lock" - we'll wait if needed
+      msvcrt.locking(
+        self.file_handle.fileno(),
+        msvcrt.LK_LOCK, # Exclusive lock, wait if unavailable
+        1 # Lock 1 byte (enough to prevent other access)
+      )
+    else:
+      # Unix/Linux/Mac: Use fcntl to lock the file
+      # LOCK_EX means "exclusive lock"
+      # (Blocks until available)
+      fcntl.flock(self.file_handle.fileno(), fcntl.LOCK_EX)
 ```
 
 **Deep Dive: Why Two Different Methods?**
@@ -1487,44 +1741,44 @@ Finally, let's add the `__exit__` method, which runs when the `with` block ends:
 **Add to `backend/app/utils/file_locking.py`:**
 
 ```python
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """
-        Called when exiting the 'with' block.
+  def __exit__(self, exc_type, exc_val, exc_tb):
+    """
+    Called when exiting the 'with' block.
 
-        This method:
-        1. Writes the modified data back to the file
-        2. Releases the lock
-        3. Closes the file
+    This method:
+    1. Writes the modified data back to the file
+    2. Releases the lock
+    3. Closes the file
 
-        This runs EVEN IF an exception occurred in the 'with' block.
-        """
-        try:
-            # Step 1: Write the (possibly modified) data back to file
-            self.file_handle.seek(0)  # Go to beginning
-            self.file_handle.truncate()  # Clear old content
-            json_str = json.dumps(self.data, indent=2)
-            self.file_handle.write(json_str)
-            self.file_handle.flush()  # Force write to disk immediately
+    This runs EVEN IF an exception occurred in the 'with' block.
+    """
+    try:
+      # Step 1: Write the (possibly modified) data back to file
+      self.file_handle.seek(0) # Go to beginning
+      self.file_handle.truncate() # Clear old content
+      json_str = json.dumps(self.data, indent=2)
+      self.file_handle.write(json_str)
+      self.file_handle.flush() # Force write to disk immediately
 
-        finally:
-            # Step 2 & 3: Release lock and close file
-            # The 'finally' ensures this happens even if step 1 failed
-            if self.file_handle:
-                self._release_lock()
-                self.file_handle.close()
+    finally:
+      # Step 2 & 3: Release lock and close file
+      # The 'finally' ensures this happens even if step 1 failed
+      if self.file_handle:
+        self._release_lock()
+        self.file_handle.close()
 
-    def _release_lock(self):
-        """Release the exclusive lock on the file."""
-        system = platform.system()
+  def _release_lock(self):
+    """Release the exclusive lock on the file."""
+    system = platform.system()
 
-        if system == "Windows":
-            msvcrt.locking(
-                self.file_handle.fileno(),
-                msvcrt.LK_UNLCK,  # Unlock
-                1
-            )
-        else:
-            fcntl.flock(self.file_handle.fileno(), fcntl.LOCK_UN)
+    if system == "Windows":
+      msvcrt.locking(
+        self.file_handle.fileno(),
+        msvcrt.LK_UNLCK, # Unlock
+        1
+      )
+    else:
+      fcntl.flock(self.file_handle.fileno(), fcntl.LOCK_UN)
 ```
 
 **Deep Dive: The `finally` Block**
@@ -1558,20 +1812,20 @@ TEMP_FILE = Path("temp_counter_safe.json")
 TEMP_FILE.write_text('{"counter": 0}')
 
 def safe_increment(user_name, iterations):
-    """
-    This function uses our LockedFile utility.
-    The lock prevents race conditions.
-    """
-    for i in range(iterations):
-        # The entire read-modify-write is now atomic!
-        with LockedFile(TEMP_FILE) as data:
-            current = data["counter"]
-            time.sleep(0.001)  # Same delay as before
-            data["counter"] = current + 1
-            new_value = data["counter"]
+  """
+  This function uses our LockedFile utility.
+  The lock prevents race conditions.
+  """
+  for i in range(iterations):
+    # The entire read-modify-write is now atomic!
+    with LockedFile(TEMP_FILE) as data:
+      current = data["counter"]
+      time.sleep(0.001) # Same delay as before
+      data["counter"] = current + 1
+      new_value = data["counter"]
 
-        if i % 10 == 0:
-            print(f"  {user_name} incremented to {new_value}")
+    if i % 10 == 0:
+      print(f" {user_name} incremented to {new_value}")
 
 print("Starting SAFE increment demonstration...")
 print("Two 'users' will each try to increment the counter 50 times.")
@@ -1587,16 +1841,16 @@ thread1.join()
 thread2.join()
 
 with LockedFile(TEMP_FILE) as data:
-    final = data["counter"]
+  final = data["counter"]
 
 print()
 print(f"Expected final counter: 100")
-print(f"Actual final counter:   {final}")
+print(f"Actual final counter:  {final}")
 
 if final == 100:
-    print("✓ SUCCESS! No data loss. The lock worked!")
+  print("✓ SUCCESS! No data loss. The lock worked!")
 else:
-    print(f"❌ Something went wrong: {final}")
+  print(f"❌ Something went wrong: {final}")
 
 TEMP_FILE.unlink()
 ```
@@ -1633,7 +1887,7 @@ I'll continue with the rest of Stage 3 in the next response. This shows the incr
 
 ## Each with the same level of detail and incremental building?
 
-# PDM Tutorial (Definitive Edition) - Stage 4: Professional Frontend State & UX
+## PDM Tutorial (Definitive Edition) - Stage 4: Professional Frontend State & UX
 
 **Goal**: To refactor our frontend to use a professional state management pattern, making it more robust and easier to extend. We will also add UX improvements like toast notifications and client-side search and filtering.
 
@@ -1659,18 +1913,18 @@ The **Service Layer** is an architectural pattern that separates your code into 
 
 ```
 ┌─────────────────────────────────────────┐
-│  API Layer (files.py)                   │  <- Handles HTTP requests/responses
-│  "What data came in? What should go out?"│     Knows about FastAPI, status codes
+│ API Layer (files.py)          │ <- Handles HTTP requests/responses
+│ "What data came in? What should go out?"│   Knows about FastAPI, status codes
 └─────────────────────────────────────────┘
-              ↓ calls
+       ↓ calls
 ┌─────────────────────────────────────────┐
-│  Service Layer (file_service.py)        │  <- Contains business rules
-│  "What are the rules? What's allowed?"  │     Knows nothing about HTTP
+│ Service Layer (file_service.py)    │ <- Contains business rules
+│ "What are the rules? What's allowed?" │   Knows nothing about HTTP
 └─────────────────────────────────────────┘
-              ↓ uses
+       ↓ uses
 ┌─────────────────────────────────────────┐
-│  Utility Layer (file_locking.py)        │  <- Low-level operations
-│  "How do we safely read/write files?"   │     Cross-platform file handling
+│ Utility Layer (file_locking.py)    │ <- Low-level operations
+│ "How do we safely read/write files?"  │   Cross-platform file handling
 └─────────────────────────────────────────┘
 ```
 
@@ -1695,11 +1949,11 @@ Let's create the `FileService` class incrementally.
 
 1. Create the services directory:
 
-   ```bash
-   mkdir backend/app/services
-   touch backend/app/services/__init__.py
-   touch backend/app/services/file_service.py
-   ```
+```bash
+mkdir backend/app/services
+touch backend/app/services/__init__.py
+touch backend/app/services/file_service.py
+```
 
 2. Start with the **basic structure and initialization**:
 
@@ -1719,33 +1973,33 @@ from app.utils.file_locking import LockedFile
 
 
 class FileService:
+  """
+  Manages file operations and locking state for the PDM system.
+
+  This service is responsible for:
+  - Listing files with their lock status
+  - Checking out files (acquiring locks)
+  - Checking in files (releasing locks)
+  - Validating operations according to business rules
+  """
+
+  def __init__(self, repo_path: Path, locks_file: Path):
     """
-    Manages file operations and locking state for the PDM system.
+    Initialize the FileService.
 
-    This service is responsible for:
-    - Listing files with their lock status
-    - Checking out files (acquiring locks)
-    - Checking in files (releasing locks)
-    - Validating operations according to business rules
+    Args:
+      repo_path: Directory containing the CAM files to manage
+      locks_file: JSON file storing the lock state
     """
+    self.repo_path = Path(repo_path)
+    self.locks_file = Path(locks_file)
 
-    def __init__(self, repo_path: Path, locks_file: Path):
-        """
-        Initialize the FileService.
+    # Ensure the repo directory exists
+    self.repo_path.mkdir(parents=True, exist_ok=True)
 
-        Args:
-            repo_path: Directory containing the CAM files to manage
-            locks_file: JSON file storing the lock state
-        """
-        self.repo_path = Path(repo_path)
-        self.locks_file = Path(locks_file)
-
-        # Ensure the repo directory exists
-        self.repo_path.mkdir(parents=True, exist_ok=True)
-
-        # Initialize locks file if it doesn't exist
-        if not self.locks_file.exists():
-            self.locks_file.write_text('{"locks": {}}')
+    # Initialize locks file if it doesn't exist
+    if not self.locks_file.exists():
+      self.locks_file.write_text('{"locks": {}}')
 ```
 
 **What's happening here?**
@@ -1764,50 +2018,50 @@ Now let's add the method to list all files with their current status.
 **Add to `backend/app/services/file_service.py`:**
 
 ```python
-    def get_files_with_status(self) -> List[Dict[str, Any]]:
-        """
-        Get a list of all files in the repository with their lock status.
+  def get_files_with_status(self) -> List[Dict[str, Any]]:
+    """
+    Get a list of all files in the repository with their lock status.
 
-        Returns:
-            List of dictionaries, each containing:
-            - name: filename
-            - status: "available" or "checked_out"
-            - size_bytes: file size in bytes
-            - locked_by: username if checked out, None if available
-            - locked_at: ISO timestamp when locked, None if available
-        """
-        # Step 1: Load the current lock state
-        with LockedFile(self.locks_file) as locks_data:
-            locks = locks_data.get("locks", {})
+    Returns:
+      List of dictionaries, each containing:
+      - name: filename
+      - status: "available" or "checked_out"
+      - size_bytes: file size in bytes
+      - locked_by: username if checked out, None if available
+      - locked_at: ISO timestamp when locked, None if available
+    """
+    # Step 1: Load the current lock state
+    with LockedFile(self.locks_file) as locks_data:
+      locks = locks_data.get("locks", {})
 
-        # Step 2: Find all .mcam files in the repo
-        files = []
-        for filepath in self.repo_path.glob("*.mcam"):
-            filename = filepath.name
+    # Step 2: Find all .mcam files in the repo
+    files = []
+    for filepath in self.repo_path.glob("*.mcam"):
+      filename = filepath.name
 
-            # Step 3: Check if this file is locked
-            lock_info = locks.get(filename)
+      # Step 3: Check if this file is locked
+      lock_info = locks.get(filename)
 
-            # Step 4: Build the file info dictionary
-            file_info = {
-                "name": filename,
-                "size_bytes": filepath.stat().st_size,
-            }
+      # Step 4: Build the file info dictionary
+      file_info = {
+        "name": filename,
+        "size_bytes": filepath.stat().st_size,
+      }
 
-            if lock_info:
-                # File is locked
-                file_info["status"] = "checked_out"
-                file_info["locked_by"] = lock_info.get("user")
-                file_info["locked_at"] = lock_info.get("timestamp")
-            else:
-                # File is available
-                file_info["status"] = "available"
-                file_info["locked_by"] = None
-                file_info["locked_at"] = None
+      if lock_info:
+        # File is locked
+        file_info["status"] = "checked_out"
+        file_info["locked_by"] = lock_info.get("user")
+        file_info["locked_at"] = lock_info.get("timestamp")
+      else:
+        # File is available
+        file_info["status"] = "available"
+        file_info["locked_by"] = None
+        file_info["locked_at"] = None
 
-            files.append(file_info)
+      files.append(file_info)
 
-        return files
+    return files
 ```
 
 **Deep Dive: The `glob` Method**
@@ -1833,67 +2087,67 @@ This is the heart of our system - the checkout operation. We'll build it step by
 **Add to `backend/app/services/file_service.py`:**
 
 ```python
-    def checkout_file(
-        self,
-        filename: str,
-        user: str,
-        message: str
-    ) -> Dict[str, Any]:
-        """
-        Check out a file, acquiring an exclusive lock.
+  def checkout_file(
+    self,
+    filename: str,
+    user: str,
+    message: str
+  ) -> Dict[str, Any]:
+    """
+    Check out a file, acquiring an exclusive lock.
 
-        Business Rules:
-        1. File must exist in the repository
-        2. File must not already be locked
-        3. User and message are required
+    Business Rules:
+    1. File must exist in the repository
+    2. File must not already be locked
+    3. User and message are required
 
-        Args:
-            filename: Name of the file to check out
-            user: Username requesting the checkout
-            message: Reason for checkout
+    Args:
+      filename: Name of the file to check out
+      user: Username requesting the checkout
+      message: Reason for checkout
 
-        Returns:
-            Dictionary with operation details
+    Returns:
+      Dictionary with operation details
 
-        Raises:
-            FileNotFoundError: If file doesn't exist
-            ValueError: If file is already checked out
-        """
-        # RULE 1: File must exist
-        file_path = self.repo_path / filename
-        if not file_path.exists():
-            raise FileNotFoundError(f"File '{filename}' does not exist in repository")
+    Raises:
+      FileNotFoundError: If file doesn't exist
+      ValueError: If file is already checked out
+    """
+    # RULE 1: File must exist
+    file_path = self.repo_path / filename
+    if not file_path.exists():
+      raise FileNotFoundError(f"File '{filename}' does not exist in repository")
 
-        # RULE 2: File must not be locked (check atomically with lock)
-        with LockedFile(self.locks_file) as locks_data:
-            locks = locks_data.get("locks", {})
+    # RULE 2: File must not be locked (check atomically with lock)
+    with LockedFile(self.locks_file) as locks_data:
+      locks = locks_data.get("locks", {})
 
-            # Check if file is already locked
-            if filename in locks:
-                existing_lock = locks[filename]
-                raise ValueError(
-                    f"File '{filename}' is already checked out by "
-                    f"{existing_lock['user']} at {existing_lock['timestamp']}"
-                )
+      # Check if file is already locked
+      if filename in locks:
+        existing_lock = locks[filename]
+        raise ValueError(
+          f"File '{filename}' is already checked out by "
+          f"{existing_lock['user']} at {existing_lock['timestamp']}"
+        )
 
-            # RULE 3: Acquire the lock
-            timestamp = datetime.utcnow().isoformat()
-            locks[filename] = {
-                "user": user,
-                "message": message,
-                "timestamp": timestamp
-            }
+      # RULE 3: Acquire the lock
+      timestamp = datetime.utcnow().isoformat()
+      locks[filename] = {
+        "user": user,
+        "message": message,
+        "timestamp": timestamp
+      }
 
-            # Update the locks data (will be written when context exits)
-            locks_data["locks"] = locks
+      # Update the locks data (will be written when context exits)
+      locks_data["locks"] = locks
 
-        return {
-            "success": True,
-            "filename": filename,
-            "locked_by": user,
-            "locked_at": timestamp,
-            "message": message
-        }
+    return {
+      "success": True,
+      "filename": filename,
+      "locked_by": user,
+      "locked_at": timestamp,
+      "message": message
+    }
 ```
 
 **Deep Dive: Exception Handling Strategy**
@@ -1904,7 +2158,7 @@ Notice we **raise exceptions** instead of returning error dictionaries. This is 
 
 ```python
 if file_not_found:
-    return {"success": False, "error": "Not found"}
+  return {"success": False, "error": "Not found"}
 return {"success": True, "data": ...}
 ```
 
@@ -1912,7 +2166,7 @@ return {"success": True, "data": ...}
 
 ```python
 if file_not_found:
-    raise FileNotFoundError("File not found")
+  raise FileNotFoundError("File not found")
 return {"success": True, "data": ...}
 ```
 
@@ -1932,56 +2186,56 @@ Now the complementary operation - releasing a lock.
 **Add to `backend/app/services/file_service.py`:**
 
 ```python
-    def checkin_file(self, filename: str, user: str) -> Dict[str, Any]:
-        """
-        Check in a file, releasing its lock.
+  def checkin_file(self, filename: str, user: str) -> Dict[str, Any]:
+    """
+    Check in a file, releasing its lock.
 
-        Business Rules:
-        1. File must exist in the repository
-        2. File must be currently locked
-        3. Only the user who checked it out can check it in
+    Business Rules:
+    1. File must exist in the repository
+    2. File must be currently locked
+    3. Only the user who checked it out can check it in
 
-        Args:
-            filename: Name of the file to check in
-            user: Username requesting the checkin
+    Args:
+      filename: Name of the file to check in
+      user: Username requesting the checkin
 
-        Returns:
-            Dictionary with operation details
+    Returns:
+      Dictionary with operation details
 
-        Raises:
-            FileNotFoundError: If file doesn't exist
-            ValueError: If file is not locked or user doesn't own the lock
-        """
-        # RULE 1: File must exist
-        file_path = self.repo_path / filename
-        if not file_path.exists():
-            raise FileNotFoundError(f"File '{filename}' does not exist in repository")
+    Raises:
+      FileNotFoundError: If file doesn't exist
+      ValueError: If file is not locked or user doesn't own the lock
+    """
+    # RULE 1: File must exist
+    file_path = self.repo_path / filename
+    if not file_path.exists():
+      raise FileNotFoundError(f"File '{filename}' does not exist in repository")
 
-        # RULES 2 & 3: File must be locked by this user
-        with LockedFile(self.locks_file) as locks_data:
-            locks = locks_data.get("locks", {})
+    # RULES 2 & 3: File must be locked by this user
+    with LockedFile(self.locks_file) as locks_data:
+      locks = locks_data.get("locks", {})
 
-            # Check if file is locked at all
-            if filename not in locks:
-                raise ValueError(f"File '{filename}' is not currently checked out")
+      # Check if file is locked at all
+      if filename not in locks:
+        raise ValueError(f"File '{filename}' is not currently checked out")
 
-            # Check if this user owns the lock
-            current_lock = locks[filename]
-            if current_lock["user"] != user:
-                raise ValueError(
-                    f"File '{filename}' is checked out by {current_lock['user']}, "
-                    f"not {user}. Only the user who checked it out can check it in."
-                )
+      # Check if this user owns the lock
+      current_lock = locks[filename]
+      if current_lock["user"] != user:
+        raise ValueError(
+          f"File '{filename}' is checked out by {current_lock['user']}, "
+          f"not {user}. Only the user who checked it out can check it in."
+        )
 
-            # Release the lock
-            del locks[filename]
-            locks_data["locks"] = locks
+      # Release the lock
+      del locks[filename]
+      locks_data["locks"] = locks
 
-        return {
-            "success": True,
-            "filename": filename,
-            "message": f"File checked in by {user}"
-        }
+    return {
+      "success": True,
+      "filename": filename,
+      "message": f"File checked in by {user}"
+    }
 ```
 
 **Deep Dive: Authorization Logic**
@@ -2014,19 +2268,19 @@ Now we connect our Service Layer to FastAPI's API Layer.
 ```python
 @router.get("/files")
 def get_files():
-    service = FileService(...)  # Creating it here!
-    return service.get_files_with_status()
+  service = FileService(...) # Creating it here!
+  return service.get_files_with_status()
 ```
 
 **With DI** (good - reuses configured service):
 
 ```python
 def get_file_service():
-    return FileService(...)
+  return FileService(...)
 
 @router.get("/files")
 def get_files(service: FileService = Depends(get_file_service)):
-    return service.get_files_with_status()
+  return service.get_files_with_status()
 ```
 
 **Benefits:**
@@ -2048,42 +2302,42 @@ Before updating the API, we need schemas for the new checkout/checkin operations
 # Add these new classes to the existing file
 
 class FileCheckoutRequest(BaseModel):
-    """Schema for checking out a file."""
-    filename: str
-    user: str
-    message: str
+  """Schema for checking out a file."""
+  filename: str
+  user: str
+  message: str
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "filename": "PN1001_OP1.mcam",
-                "user": "john",
-                "message": "Modifying toolpath for new part revision"
-            }
-        }
+  class Config:
+    json_schema_extra = {
+      "example": {
+        "filename": "PN1001_OP1.mcam",
+        "user": "john",
+        "message": "Modifying toolpath for new part revision"
+      }
+    }
 
 
 class FileCheckinRequest(BaseModel):
-    """Schema for checking in a file."""
-    filename: str
-    user: str
+  """Schema for checking in a file."""
+  filename: str
+  user: str
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "filename": "PN1001_OP1.mcam",
-                "user": "john"
-            }
-        }
+  class Config:
+    json_schema_extra = {
+      "example": {
+        "filename": "PN1001_OP1.mcam",
+        "user": "john"
+      }
+    }
 
 
 class OperationResponse(BaseModel):
-    """Generic response for file operations."""
-    success: bool
-    message: str
-    filename: str
-    locked_by: Optional[str] = None
-    locked_at: Optional[str] = None
+  """Generic response for file operations."""
+  success: bool
+  message: str
+  filename: str
+  locked_by: Optional[str] = None
+  locked_at: Optional[str] = None
 ```
 
 ---
@@ -2104,134 +2358,134 @@ It delegates all business logic to the FileService.
 from fastapi import APIRouter, HTTPException, status, Depends
 from pathlib import Path
 from app.schemas.files import (
-    FileInfo,
-    FileListResponse,
-    FileCheckoutRequest,
-    FileCheckinRequest,
-    OperationResponse
+  FileInfo,
+  FileListResponse,
+  FileCheckoutRequest,
+  FileCheckinRequest,
+  OperationResponse
 )
 from app.services.file_service import FileService
 
 
 # Router configuration
 router = APIRouter(
-    prefix="/api/files",
-    tags=["Files"],
+  prefix="/api/files",
+  tags=["Files"],
 )
 
 
 # Dependency: Provides the FileService to endpoints
 def get_file_service() -> FileService:
-    """
-    Dependency injection function.
-    Creates and configures the FileService.
-    """
-    repo_path = Path("repo")
-    locks_file = Path("locks.json")
-    return FileService(repo_path, locks_file)
+  """
+  Dependency injection function.
+  Creates and configures the FileService.
+  """
+  repo_path = Path("repo")
+  locks_file = Path("locks.json")
+  return FileService(repo_path, locks_file)
 
 
 @router.get("/", response_model=FileListResponse)
 def list_files(service: FileService = Depends(get_file_service)):
-    """
-    List all files in the repository with their lock status.
+  """
+  List all files in the repository with their lock status.
 
-    This endpoint:
-    1. Uses dependency injection to get the FileService
-    2. Calls the service method to get files
-    3. Returns them in the API response format
-    """
-    files = service.get_files_with_status()
-    return FileListResponse(files=files, total=len(files))
+  This endpoint:
+  1. Uses dependency injection to get the FileService
+  2. Calls the service method to get files
+  3. Returns them in the API response format
+  """
+  files = service.get_files_with_status()
+  return FileListResponse(files=files, total=len(files))
 
 
 @router.get("/{filename}", response_model=FileInfo)
 def get_file(
-    filename: str,
-    service: FileService = Depends(get_file_service)
+  filename: str,
+  service: FileService = Depends(get_file_service)
 ):
-    """
-    Get details for a specific file.
+  """
+  Get details for a specific file.
 
-    Path parameters:
-    - filename: The name of the file (e.g., "PN1001.mcam")
-    """
-    files = service.get_files_with_status()
+  Path parameters:
+  - filename: The name of the file (e.g., "PN1001.mcam")
+  """
+  files = service.get_files_with_status()
 
-    for file in files:
-        if file["name"] == filename:
-            return FileInfo(**file)
+  for file in files:
+    if file["name"] == filename:
+      return FileInfo(**file)
 
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"File '{filename}' not found"
-    )
+  raise HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND,
+    detail=f"File '{filename}' not found"
+  )
 
 
 @router.post("/checkout", response_model=OperationResponse)
 def checkout_file(
-    request: FileCheckoutRequest,
-    service: FileService = Depends(get_file_service)
+  request: FileCheckoutRequest,
+  service: FileService = Depends(get_file_service)
 ):
-    """
-    Check out a file, acquiring an exclusive lock.
+  """
+  Check out a file, acquiring an exclusive lock.
 
-    Request body should contain:
-    - filename: File to check out
-    - user: Username
-    - message: Reason for checkout
-    """
-    try:
-        result = service.checkout_file(
-            filename=request.filename,
-            user=request.user,
-            message=request.message
-        )
-        return OperationResponse(**result, message="File checked out successfully")
+  Request body should contain:
+  - filename: File to check out
+  - user: Username
+  - message: Reason for checkout
+  """
+  try:
+    result = service.checkout_file(
+      filename=request.filename,
+      user=request.user,
+      message=request.message
+    )
+    return OperationResponse(**result, message="File checked out successfully")
 
-    except FileNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except ValueError as e:
-        # File already locked
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e)
-        )
+  except FileNotFoundError as e:
+    raise HTTPException(
+      status_code=status.HTTP_404_NOT_FOUND,
+      detail=str(e)
+    )
+  except ValueError as e:
+    # File already locked
+    raise HTTPException(
+      status_code=status.HTTP_409_CONFLICT,
+      detail=str(e)
+    )
 
 
 @router.post("/checkin", response_model=OperationResponse)
 def checkin_file(
-    request: FileCheckinRequest,
-    service: FileService = Depends(get_file_service)
+  request: FileCheckinRequest,
+  service: FileService = Depends(get_file_service)
 ):
-    """
-    Check in a file, releasing its lock.
+  """
+  Check in a file, releasing its lock.
 
-    Request body should contain:
-    - filename: File to check in
-    - user: Username (must match the user who checked it out)
-    """
-    try:
-        result = service.checkin_file(
-            filename=request.filename,
-            user=request.user
-        )
-        return OperationResponse(**result)
+  Request body should contain:
+  - filename: File to check in
+  - user: Username (must match the user who checked it out)
+  """
+  try:
+    result = service.checkin_file(
+      filename=request.filename,
+      user=request.user
+    )
+    return OperationResponse(**result)
 
-    except FileNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except ValueError as e:
-        # File not locked, or wrong user
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+  except FileNotFoundError as e:
+    raise HTTPException(
+      status_code=status.HTTP_404_NOT_FOUND,
+      detail=str(e)
+    )
+  except ValueError as e:
+    # File not locked, or wrong user
+    raise HTTPException(
+      status_code=status.HTTP_400_BAD_REQUEST,
+      detail=str(e)
+    )
 ```
 
 **Deep Dive: HTTP Status Codes in Detail**
@@ -2258,67 +2512,67 @@ Let's test our backend with real files and `curl`.
 
 1. **Create test files**:
 
-   ```bash
-   mkdir -p backend/repo
-   echo "Test content" > backend/repo/PN1001.mcam
-   echo "Test content" > backend/repo/PN1002.mcam
-   echo "Test content" > backend/repo/PN1003.mcam
-   ```
+```bash
+mkdir -p backend/repo
+echo "Test content" > backend/repo/PN1001.mcam
+echo "Test content" > backend/repo/PN1002.mcam
+echo "Test content" > backend/repo/PN1003.mcam
+```
 
 2. **Start the server**:
 
-   ```bash
-   cd backend
-   source venv/bin/activate  # or .\venv\Scripts\Activate.ps1 on Windows
-   uvicorn app.main:app --reload
-   ```
+```bash
+cd backend
+source venv/bin/activate # or .\venv\Scripts\Activate.ps1 on Windows
+uvicorn app.main:app --reload
+```
 
 3. **Test listing files**:
 
-   ```bash
-   curl http://127.0.0.1:8000/api/files
-   ```
+```bash
+curl http://127.0.0.1:8000/api/files
+```
 
-   You should see JSON with all three files, all showing `"status": "available"`.
+You should see JSON with all three files, all showing `"status": "available"`.
 
 4. **Test checkout** (Mac/Linux):
 
-   ```bash
-   curl -X POST http://127.0.0.1:8000/api/files/checkout \
-     -H "Content-Type: application/json" \
-     -d '{"filename":"PN1001.mcam","user":"alice","message":"Testing checkout"}'
-   ```
+```bash
+curl -X POST http://127.0.0.1:8000/api/files/checkout \
+ -H "Content-Type: application/json" \
+ -d '{"filename":"PN1001.mcam","user":"alice","message":"Testing checkout"}'
+```
 
-   **Windows PowerShell**:
+**Windows PowerShell**:
 
-   ```powershell
-   curl.exe -X POST http://127.0.0.1:8000/api/files/checkout `
-     -H "Content-Type: application/json" `
-     -d '{\"filename\":\"PN1001.mcam\",\"user\":\"alice\",\"message\":\"Testing checkout\"}'
-   ```
+```powershell
+curl.exe -X POST http://127.0.0.1:8000/api/files/checkout `
+ -H "Content-Type: application/json" `
+ -d '{\"filename\":\"PN1001.mcam\",\"user\":\"alice\",\"message\":\"Testing checkout\"}'
+```
 
-   You should see `"success": true`.
+You should see `"success": true`.
 
 5. **Test duplicate checkout** (should fail):
    Run the same curl command again. You should see a **409 Conflict** error with a message about the file already being checked out.
 
 6. **Test checkin**:
 
-   ```bash
-   curl -X POST http://127.0.0.1:8000/api/files/checkin \
-     -H "Content-Type: application/json" \
-     -d '{"filename":"PN1001.mcam","user":"alice"}'
-   ```
+```bash
+curl -X POST http://127.0.0.1:8000/api/files/checkin \
+ -H "Content-Type: application/json" \
+ -d '{"filename":"PN1001.mcam","user":"alice"}'
+```
 
-   You should see `"success": true`.
+You should see `"success": true`.
 
 7. **Verify the lock file**:
 
-   ```bash
-   cat backend/locks.json
-   ```
+```bash
+cat backend/locks.json
+```
 
-   After checkout it should show Alice's lock. After checkin it should be empty: `{"locks": {}}`.
+After checkout it should show Alice's lock. After checkin it should be empty: `{"locks": {}}`.
 
 If all these tests pass, your backend is fully functional!
 
@@ -2451,61 +2705,61 @@ Now let's build the modal dialog system and connect the UI to our new backend en
 **Add to `backend/static/index.html`** right before the closing `</body>` tag:
 
 ```html
-    <!-- Checkout Modal -->
-    <div id="checkout-modal" class="modal-overlay hidden">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Check Out File</h3>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="checkout-filename">File:</label>
-            <input type="text" id="checkout-filename" readonly>
-          </div>
-          <div class="form-group">
-            <label for="checkout-user">Your Name:</label>
-            <input type="text" id="checkout-user" placeholder="Enter your name">
-          </div>
-          <div class="form-group">
-            <label for="checkout-message">Reason for Checkout:</label>
-            <textarea id="checkout-message" placeholder="What are you working on?"></textarea>
-          </div>
-          <div id="checkout-error" class="hidden" style="color: red; margin-top: 0.5rem;"></div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="closeCheckoutModal()">Cancel</button>
-          <button class="btn btn-primary" onclick="confirmCheckout()">Check Out</button>
-        </div>
-      </div>
+  <!-- Checkout Modal -->
+  <div id="checkout-modal" class="modal-overlay hidden">
+   <div class="modal-content">
+    <div class="modal-header">
+     <h3>Check Out File</h3>
     </div>
-
-    <!-- Checkin Modal -->
-    <div id="checkin-modal" class="modal-overlay hidden">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Check In File</h3>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="checkin-filename">File:</label>
-            <input type="text" id="checkin-filename" readonly>
-          </div>
-          <div class="form-group">
-            <label for="checkin-user">Your Name:</label>
-            <input type="text" id="checkin-user" placeholder="Enter your name">
-          </div>
-          <p>Checking in this file will release the lock and make it available to others.</p>
-          <div id="checkin-error" class="hidden" style="color: red; margin-top: 0.5rem;"></div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="closeCheckinModal()">Cancel</button>
-          <button class="btn btn-primary" onclick="confirmCheckin()">Check In</button>
-        </div>
-      </div>
+    <div class="modal-body">
+     <div class="form-group">
+      <label for="checkout-filename">File:</label>
+      <input type="text" id="checkout-filename" readonly>
+     </div>
+     <div class="form-group">
+      <label for="checkout-user">Your Name:</label>
+      <input type="text" id="checkout-user" placeholder="Enter your name">
+     </div>
+     <div class="form-group">
+      <label for="checkout-message">Reason for Checkout:</label>
+      <textarea id="checkout-message" placeholder="What are you working on?"></textarea>
+     </div>
+     <div id="checkout-error" class="hidden" style="color: red; margin-top: 0.5rem;"></div>
     </div>
+    <div class="modal-footer">
+     <button class="btn btn-secondary" onclick="closeCheckoutModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="confirmCheckout()">Check Out</button>
+    </div>
+   </div>
+  </div>
 
-    <script type="module" src="/static/js/app.js"></script>
-  </body>
+  <!-- Checkin Modal -->
+  <div id="checkin-modal" class="modal-overlay hidden">
+   <div class="modal-content">
+    <div class="modal-header">
+     <h3>Check In File</h3>
+    </div>
+    <div class="modal-body">
+     <div class="form-group">
+      <label for="checkin-filename">File:</label>
+      <input type="text" id="checkin-filename" readonly>
+     </div>
+     <div class="form-group">
+      <label for="checkin-user">Your Name:</label>
+      <input type="text" id="checkin-user" placeholder="Enter your name">
+     </div>
+     <p>Checking in this file will release the lock and make it available to others.</p>
+     <div id="checkin-error" class="hidden" style="color: red; margin-top: 0.5rem;"></div>
+    </div>
+    <div class="modal-footer">
+     <button class="btn btn-secondary" onclick="closeCheckinModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="confirmCheckin()">Check In</button>
+    </div>
+   </div>
+  </div>
+
+  <script type="module" src="/static/js/app.js"></script>
+ </body>
 </html>
 ```
 
@@ -2681,8 +2935,8 @@ async function loadAndDisplayFiles() {
 }
 
 /* ============================================
-   CHECKOUT MODAL FUNCTIONS
-   ============================================ */
+  CHECKOUT MODAL FUNCTIONS
+  ============================================ */
 
 /**
  * Opens the checkout modal for a specific file.
@@ -2730,8 +2984,8 @@ async function confirmCheckout() {
 }
 
 /* ============================================
-   CHECKIN MODAL FUNCTIONS
-   ============================================ */
+  CHECKIN MODAL FUNCTIONS
+  ============================================ */
 
 /**
  * Opens the checkin modal for a specific file.
@@ -2776,8 +3030,8 @@ async function confirmCheckin() {
 }
 
 /* ============================================
-   INITIALIZATION
-   ============================================ */
+  INITIALIZATION
+  ============================================ */
 
 // Make modal functions globally available (needed for onclick handlers)
 window.openCheckoutModal = openCheckoutModal;
@@ -2827,42 +3081,43 @@ For this tutorial we use `window.functionName` for simplicity, but in Stage 4 we
 
 1. **Ensure your server is running**:
 
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+```bash
+uvicorn app.main:app --reload
+```
 
 2. **Open your browser** to http://127.0.0.1:8000
 
 3. **Test the checkout flow**:
 
-   - Click "Check Out" on an available file
-   - Fill in your name and a message
-   - Click "Check Out"
-   - The modal should close
-   - The file list should refresh showing the file as "checked out"
+- Click "Check Out" on an available file
+- Fill in your name and a message
+- Click "Check Out"
+- The modal should close
+- The file list should refresh showing the file as "checked out"
 
 4. **Test error handling**:
 
-   - Try to check out the same file again (different browser tab or user)
-   - You should see an error message in the modal
+- Try to check out the same file again (different browser tab or user)
+- You should see an error message in the modal
 
 5. **Test the checkin flow**:
 
-   - Click "Check In" on a checked-out file
-   - Enter the same username
-   - The file should become available again
+- Click "Check In" on a checked-out file
+- Enter the same username
+- The file should become available again
 
 6. **Test authorization**:
 
-   - Check out a file as "alice"
-   - Try to check it in as "bob"
-   - You should see an error message
+- Check out a file as "alice"
+- Try to check it in as "bob"
+- You should see an error message
 
 7. **Watch the network tab**:
-   - Open Developer Tools (F12)
-   - Go to the Network tab
-   - Perform a checkout
-   - You'll see the POST request and response, just like with `curl`!
+
+- Open Developer Tools (F12)
+- Go to the Network tab
+- Perform a checkout
+- You'll see the POST request and response, just like with `curl`!
 
 ---
 
@@ -2892,35 +3147,35 @@ You've built a production-ready file locking system from the ground up. You now 
 ```
 backend/
 ├── app/
-│   ├── api/
-│   │   ├── __init__.py
-│   │   └── files.py (updated with checkout/checkin)
-│   ├── schemas/
-│   │   ├── __init__.py
-│   │   └── files.py (added request/response schemas)
-│   ├── services/
-│   │   ├── __init__.py
-│   │   └── file_service.py (NEW - business logic)
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   └── file_locking.py (NEW - atomic file operations)
-│   ├── __init__.py
-│   ├── main.py
-│   ├── learn_race_condition.py (educational demo)
-│   └── learn_lock_safety.py (educational demo)
+│  ├── api/
+│  │  ├── __init__.py
+│  │  └── files.py (updated with checkout/checkin)
+│  ├── schemas/
+│  │  ├── __init__.py
+│  │  └── files.py (added request/response schemas)
+│  ├── services/
+│  │  ├── __init__.py
+│  │  └── file_service.py (NEW - business logic)
+│  ├── utils/
+│  │  ├── __init__.py
+│  │  └── file_locking.py (NEW - atomic file operations)
+│  ├── __init__.py
+│  ├── main.py
+│  ├── learn_race_condition.py (educational demo)
+│  └── learn_lock_safety.py (educational demo)
 ├── static/
-│   ├── css/
-│   │   ├── components.css (added modal styles)
-│   │   └── (other CSS files)
-│   ├── js/
-│   │   ├── modules/
-│   │   │   └── api-client.js (added POST methods)
-│   │   └── app.js (now fully interactive)
-│   └── index.html (added modals)
+│  ├── css/
+│  │  ├── components.css (added modal styles)
+│  │  └── (other CSS files)
+│  ├── js/
+│  │  ├── modules/
+│  │  │  └── api-client.js (added POST methods)
+│  │  └── app.js (now fully interactive)
+│  └── index.html (added modals)
 ├── repo/
-│   ├── PN1001.mcam
-│   ├── PN1002.mcam
-│   └── PN1003.mcam
+│  ├── PN1001.mcam
+│  ├── PN1002.mcam
+│  └── PN1003.mcam
 ├── locks.json (created at runtime)
 └── (other files)
 ```
@@ -2958,7 +3213,570 @@ backend/
 
 ---
 
-# PDM Tutorial (Complete Edition) - Stage 4: Professional Frontend State Management
+## PDM Tutorial (Definitive Edition) - Stage 4: Frontend State & UX Masterclass
+
+**Goal**: To refactor our fully interactive Stage 3 application to use a professional state management pattern, making it more robust, reactive, and easier to extend. We will keep all functionality while adding new features and UX polish.
+
+**What You'll Learn**:
+
+- **Beginner**: What "state" is and why a central "store" is better than scattered variables.
+- **Intermediate**: The **Observer Pattern**, subscriptions, and computed properties.
+- **Advanced**: **Immutable state**, defensive copies, and debugging techniques for state management.
+- **UX & Accessibility**: Building toast notifications, keyboard-navigable modals with **focus traps**, and adding **ARIA roles**.
+- **Architecture**: The power of a single render function and clear separation of concerns.
+
+---
+
+## 4.1: The "Why" - What is "State" and Why Manage It?
+
+### Beginner: What is State?
+
+**State is anything in your app that can change and affects what the user sees.** In our app, this includes the list of files, the current text in the search bar, and whether a modal is open.
+
+Right now, our state is scattered. This is like trying to manage a project with information on random sticky notes all over your desk. A central **store** is like having a single, authoritative spreadsheet. When you update the spreadsheet, everyone looking at it sees the latest version.
+
+### Intermediate: The Observer Pattern
+
+The store we're building uses a classic software design pattern called the **Observer Pattern**. Think of it like a popular newsletter:
+
+1. **The Subject (Our Store)**: The publisher who holds the information (the state).
+2. **The Observers (Our UI Functions)**: People who subscribe to the newsletter.
+3. **The Change**: The publisher writes a new issue (the state changes).
+4. **Notification**: The publisher automatically sends the new issue to all subscribers.
+5. **Reaction**: Each subscriber reads the newsletter and reacts (our UI re-renders).
+
+This decouples our code. The store doesn't need to know _how_ to update the file list; it just needs to announce that the state has changed.
+
+---
+
+## 4.2: Building Our Application Store
+
+Let's build the central "brain" for our UI.
+
+### Your Turn: Create the Store Module
+
+1. Create a new file: `backend/static/js/modules/store.js`.
+
+2. Add the `Store` class. This class will hold our data, the "actions" to update it, and the logic to notify subscribers.
+
+   **File: `backend/static/js/modules/store.js`**
+
+```javascript
+class Store {
+  constructor() {
+    this._state = {
+      allFiles: [],
+      isLoading: false,
+      error: null,
+      searchTerm: "",
+      statusFilter: "all",
+      sortBy: "name-asc",
+      isCheckoutModalOpen: false,
+      isCheckinModalOpen: false,
+      selectedFile: null,
+    };
+    this._listeners = [];
+  }
+
+  // --- Subscription Logic ---
+  subscribe(listener) {
+    this._listeners.push(listener);
+    listener(this._getPublicState()); // Immediately run with initial state
+  }
+  _getPublicState() {
+    return { ...this._state };
+  }
+  _notify() {
+    // Advanced Tip: For debugging, log every state change here!
+    // console.log("State changed:", this._getPublicState());
+    this._listeners.forEach((cb) => cb(this._getPublicState()));
+  }
+
+  // --- Actions (Safe methods for updating state) ---
+  setLoading(isLoading) {
+    this._state.isLoading = isLoading;
+    if (isLoading) this._state.error = null; // Clear old errors on new load
+    this._notify();
+  }
+  setFiles(files) {
+    this._state.allFiles = files;
+    this._state.isLoading = false;
+    this._notify();
+  }
+  setError(msg) {
+    this._state.error = msg;
+    this._state.isLoading = false;
+    this._notify();
+  }
+  setSearchTerm(term) {
+    this._state.searchTerm = term;
+    this._notify();
+  }
+  setStatusFilter(filter) {
+    this._state.statusFilter = filter;
+    this._notify();
+  }
+  setSortBy(key) {
+    this._state.sortBy = key;
+    this._notify();
+  }
+  openCheckoutModal(file) {
+    this._state.isCheckoutModalOpen = true;
+    this._state.selectedFile = file;
+    this._notify();
+  }
+  closeCheckoutModal() {
+    this._state.isCheckoutModalOpen = false;
+    this._state.selectedFile = null;
+    this._notify();
+  }
+  openCheckinModal(file) {
+    this._state.isCheckinModalOpen = true;
+    this._state.selectedFile = file;
+    this._notify();
+  }
+  closeCheckinModal() {
+    this._state.isCheckinModalOpen = false;
+    this._state.selectedFile = null;
+    this._notify();
+  }
+
+  // --- Computed Properties (Data that is derived from state) ---
+  getDisplayFiles() {
+    const [field, direction] = this._state.sortBy.split("-");
+    return this._state.allFiles
+      .filter(
+        (f) =>
+          this._state.statusFilter === "all" ||
+          f.status === this._state.statusFilter
+      )
+      .filter((f) =>
+        f.name.toLowerCase().includes(this._state.searchTerm.toLowerCase())
+      )
+      .sort((a, b) => {
+        const valA = field === "name" ? a.name.toLowerCase() : a.size_bytes;
+        const valB = field === "name" ? b.name.toLowerCase() : b.size_bytes;
+        if (valA < valB) return direction === "asc" ? -1 : 1;
+        if (valA > valB) return direction === "asc" ? 1 : -1;
+        return 0;
+      });
+  }
+  getSelectedFile() {
+    return this._state.selectedFile;
+  }
+}
+
+export const store = new Store();
+```
+
+---
+
+## 4.3: Polishing the UX - An Accessible Toast System
+
+Let's build a professional, non-blocking notification system that is also accessible to screen readers.
+
+### Your Turn: Build the Toast System
+
+1. Create `backend/static/js/modules/toast.js`.
+
+2. Add the `ToastManager` class, noting the addition of `role="status"` and `aria-live="polite"`.
+
+   **File: `backend/static/js/modules/toast.js`**
+
+```javascript
+class ToastManager {
+  constructor() {
+    const container = document.createElement("div");
+    container.id = "toast-container";
+    document.body.appendChild(container);
+    this.container = container;
+  }
+
+  show(message, type = "info", duration = 3000) {
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+
+    this.container.appendChild(toast);
+    setTimeout(() => toast.classList.add("show"), 10);
+    setTimeout(() => {
+      toast.classList.remove("show");
+      toast.addEventListener("transitionend", () => toast.remove());
+    }, duration);
+  }
+
+  success(message) {
+    this.show(message, "success");
+  }
+  error(message) {
+    this.show(message, "error", 5000);
+  }
+}
+
+export const toast = new ToastManager();
+```
+
+3. Add the required CSS to the bottom of `backend/static/css/components.css`.
+
+```css
+/* === Toast Notifications === */
+#toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.toast {
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  background: var(--bg-primary);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #666;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 300ms ease;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+.toast.toast-success {
+  border-color: var(--color-success-fg);
+}
+.toast.toast-error {
+  border-color: #ef4444;
+}
+```
+
+---
+
+## 4.4: Updating the UI for Reactivity
+
+We need to make a few important changes to our HTML to prepare it for the new store-driven logic.
+
+### Your Turn: Update `index.html`
+
+1. **Add the Search/Filter/Sort HTML** inside the `file-list-card` `<section>`, right after the `<h2>`.
+
+```html
+<div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+  <input
+    id="file-search"
+    placeholder="Search files..."
+    style="flex-grow: 1; padding: 0.5rem; border: 1px solid var(--border-default);"
+  />
+  <select
+    id="status-filter"
+    style="padding: 0.5rem; border: 1px solid var(--border-default);"
+  >
+    <option value="all">All Statuses</option>
+    <option value="available">Available</option>
+    <option value="checked_out">Checked Out</option>
+  </select>
+  <select
+    id="sort-select"
+    style="padding: 0.5rem; border: 1px solid var(--border-default);"
+  >
+    <option value="name-asc">Sort by Name (A-Z)</option>
+    <option value="name-desc">Sort by Name (Z-A)</option>
+    <option value="size_bytes-desc">Sort by Size (Largest)</option>
+    <option value="size_bytes-asc">Sort by Size (Smallest)</option>
+  </select>
+</div>
+```
+
+2. **Update the Modal Buttons** to use `id`s instead of `onclick` attributes and add ARIA roles for accessibility.
+
+- For the **checkout modal**:
+
+```html
+<div
+  id="checkout-modal"
+  class="modal-overlay hidden"
+  role="dialog"
+  aria-modal="true"
+>
+  ...
+  <div class="modal-footer">
+    <button type="button" id="checkout-cancel-btn" class="btn btn-secondary">
+      Cancel
+    </button>
+    <button type="submit" id="checkout-confirm-btn" class="btn btn-primary">
+      Confirm Checkout
+    </button>
+  </div>
+</div>
+```
+
+- Do the same for your **check-in modal**, giving it `role="dialog"` and `aria-modal="true"`, and its buttons `id="checkin-cancel-btn"` and `id="checkin-confirm-btn"`.
+
+---
+
+## 4.5: Refactoring `app.js` to Use the Store
+
+This is the main event. We will now rewrite `app.js` to be fully driven by our store, keeping all functionality.
+
+### Your Turn: Refactor `app.js`
+
+1. Open `backend/static/js/app.js` and **replace its entire content**.
+
+   **File: `backend/static/js/app.js`**
+
+```javascript
+import { store } from "./modules/store.js";
+import { apiClient } from "./modules/api-client.js";
+import { toast } from "./modules/toast.js";
+
+/* ==========================================
+  RENDERING LOGIC
+  ========================================== */
+
+function render(state) {
+  renderFileList(state);
+  renderModals(state);
+}
+
+function renderFileList(state) {
+  const listEl = document.getElementById("file-list");
+  document.getElementById("loading-indicator").style.display = state.isLoading
+    ? "block"
+    : "none";
+  if (state.error) {
+    listEl.innerHTML = `<p style="color:red;">Error: ${state.error}</p>`;
+    return;
+  }
+  if (state.isLoading) {
+    listEl.innerHTML = "";
+    return;
+  }
+
+  const filesToDisplay = store.getDisplayFiles();
+  listEl.innerHTML = "";
+  if (filesToDisplay.length === 0) {
+    listEl.innerHTML = "<p>No files match your criteria.</p>";
+    return;
+  }
+  filesToDisplay.forEach((file) => listEl.appendChild(createFileElement(file)));
+}
+
+function createFileElement(file) {
+  const div = document.createElement("div");
+  div.className = "file-item";
+  const nameSpan = document.createElement("span");
+  nameSpan.className = "file-name";
+  nameSpan.textContent = file.name;
+  const statusSpan = document.createElement("span");
+  statusSpan.className = `file-status status-${file.status}`;
+  statusSpan.textContent = file.status.replace("_", " ");
+  const actionsDiv = document.createElement("div");
+  actionsDiv.style.display = "flex";
+  actionsDiv.style.gap = "0.5rem";
+  const actionBtn = document.createElement("button");
+  actionBtn.className = "btn btn-primary btn-sm";
+  if (file.status === "available") {
+    actionBtn.textContent = "Check Out";
+    actionBtn.onclick = () => store.openCheckoutModal(file);
+  } else {
+    actionBtn.textContent = "Check In";
+    actionBtn.onclick = () => store.openCheckinModal(file);
+  }
+  actionsDiv.appendChild(actionBtn);
+  div.appendChild(nameSpan);
+  div.appendChild(statusSpan);
+  div.appendChild(actionsDiv);
+  return div;
+}
+
+function renderModals(state) {
+  document
+    .getElementById("checkout-modal")
+    .classList.toggle("hidden", !state.isCheckoutModalOpen);
+  document
+    .getElementById("checkin-modal")
+    .classList.toggle("hidden", !state.isCheckinModalOpen);
+
+  if (state.selectedFile) {
+    if (state.isCheckoutModalOpen) {
+      document.getElementById("checkout-filename").textContent =
+        state.selectedFile.name;
+    }
+    if (state.isCheckinModalOpen) {
+      document.getElementById("checkin-filename").textContent =
+        state.selectedFile.name;
+    }
+  }
+}
+
+/* ==========================================
+  API INTERACTIONS & EVENT HANDLERS
+  ========================================== */
+
+async function loadFiles() {
+  store.setLoading(true);
+  try {
+    const data = await apiClient.getFiles();
+    store.setFiles(data.files);
+  } catch (error) {
+    store.setError(error.message);
+  }
+}
+
+async function handleCheckoutConfirm(event) {
+  event.preventDefault();
+  const user = document.getElementById("checkout-user").value;
+  const message = document.getElementById("checkout-message").value;
+  const file = store.getSelectedFile();
+  try {
+    await apiClient.post("/api/files/checkout", {
+      filename: file.name,
+      user,
+      message,
+    });
+    toast.success(`'${file.name}' checked out!`);
+    store.closeCheckoutModal();
+    await loadFiles();
+  } catch (error) {
+    toast.error(`Checkout failed: ${error.message}`);
+  }
+}
+
+async function handleCheckinConfirm(event) {
+  event.preventDefault();
+  const user = document.getElementById("checkin-user").value;
+  const file = store.getSelectedFile();
+  if (!user || !file) return;
+
+  try {
+    await apiClient.post("/api/files/checkin", {
+      filename: file.name,
+      user,
+    });
+    toast.success(`'${file.name}' checked in!`);
+    store.closeCheckinModal();
+    await loadFiles();
+  } catch (error) {
+    toast.error(`Check-in failed: ${error.message}`);
+  }
+}
+
+/* ==========================================
+  INITIALIZATION
+  ========================================== */
+document.addEventListener("DOMContentLoaded", () => {
+  store.subscribe(render);
+
+  document
+    .getElementById("checkout-form")
+    .addEventListener("submit", handleCheckoutConfirm);
+  document
+    .getElementById("checkin-form")
+    .addEventListener("submit", handleCheckinConfirm);
+  document.getElementById("checkout-cancel-btn").onclick = () =>
+    store.closeCheckoutModal();
+  document.getElementById("checkin-cancel-btn").onclick = () =>
+    store.closeCheckinModal();
+  document
+    .getElementById("file-search")
+    .addEventListener("input", (e) => store.setSearchTerm(e.target.value));
+  document
+    .getElementById("status-filter")
+    .addEventListener("change", (e) => store.setStatusFilter(e.target.value));
+  document
+    .getElementById("sort-select")
+    .addEventListener("change", (e) => store.setSortBy(e.target.value));
+
+  loadFiles();
+});
+```
+
+---
+
+## 4.6: Interactive Exercises & Solutions
+
+To solidify your understanding, try these optional exercises before moving on. The solutions are provided for you to check your work.
+
+### Exercises (Your Turn to Build)
+
+1. **Debug State Changes**: Become a "state detective." Uncomment the `console.log` inside the `_notify()` method in `store.js`. Open your browser console and watch the log as you type and change filters. See how each action produces a distinct, predictable state change.
+2. **Debounced Search (Advanced)**: Improve search performance by only updating the state after the user has stopped typing for 300ms. _Hint: Use `setTimeout` and `clearTimeout` in the search input's event listener._
+3. **Focus Trap for Modals (Accessibility)**: Ensure the `Tab` key cycles through elements _inside_ an open modal only, without escaping to the background page. _Hint: Find the first and last focusable elements in the modal and add a `keydown` event listener to manage focus._
+
+### Solutions (Check Your Work)
+
+- **Debounced Search:**
+
+```javascript
+let debounceTimer;
+document.getElementById("file-search").addEventListener("input", (e) => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    store.setSearchTerm(e.target.value);
+  }, 300);
+});
+```
+
+- **Focus Trap:**
+
+```javascript
+function trapFocus(modal) {
+  const focusableEls = modal.querySelectorAll(
+    "button, [href], input, select, textarea"
+  );
+  const firstEl = focusableEls[0],
+    lastEl = focusableEls[focusableEls.length - 1];
+  modal.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    if (e.shiftKey && document.activeElement === firstEl) {
+      lastEl.focus();
+      e.preventDefault();
+    } else if (!e.shiftKey && document.activeElement === lastEl) {
+      firstEl.focus();
+      e.preventDefault();
+    }
+  });
+}
+// Call this in DOMContentLoaded for each modal
+trapFocus(document.getElementById("checkout-modal"));
+trapFocus(document.getElementById("checkin-modal"));
+```
+
+---
+
+## 4.7: Saving Our Progress
+
+This was a major architectural improvement. Let's commit it.
+
+### Your Turn: Commit the Refactor
+
+```bash
+git add .
+git commit -m "refactor(frontend): Implement central state management with search and filter"
+```
+
+---
+
+## 4.8: Stage 4 Complete ✓
+
+You've successfully refactored your frontend to a professional, state-driven architecture while keeping all functionality intact and adding new features.
+
+### Verification Checklist
+
+- [ ] The app uses a central `store.js` for all UI state.
+- [ ] A single `render()` function handles all UI updates.
+- [ ] Toast notifications are fully integrated for both checkout and check-in.
+- [ ] The search, filter, and sort controls work correctly and update the UI instantly.
+- [ ] All checkout/check-in functionality from Stage 3 works perfectly with the new architecture.
+
+Our app is now robust and reactive, but it's completely open. In **Stage 5**, we'll build a complete, secure authentication system from scratch so that users must log in to access the application.
+
+Ready for Stage 5?
+
+## PDM Tutorial (Complete Edition) - Stage 4: Professional Frontend State Management
 
 **Goal**: To refactor our frontend to use a centralized state management pattern, making it more maintainable, reactive, and easier to extend. We'll keep all our Stage 3 functionality (modals, checkout/checkin) while making the architecture cleaner and adding new features like search and filtering.
 
@@ -2980,21 +3798,22 @@ Our Stage 3 code works, but it has growing pains:
 
 1. **Manual UI updates everywhere:**
 
-   ```javascript
-   await apiClient.checkoutFile(...);
-   await loadAndDisplayFiles();  // Have to remember this!
-   ```
+```javascript
+await apiClient.checkoutFile(...);
+await loadAndDisplayFiles(); // Have to remember this!
+```
 
 2. **Scattered state:**
 
-   - `currentFilename` is a global variable
-   - File data is fetched repeatedly
-   - No single source of truth
+- `currentFilename` is a global variable
+- File data is fetched repeatedly
+- No single source of truth
 
 3. **Adding features is messy:**
-   - Want search? Have to thread it through multiple functions
-   - Want filtering? Same problem
-   - Each feature increases complexity
+
+- Want search? Have to thread it through multiple functions
+- Want filtering? Same problem
+- Each feature increases complexity
 
 ### Deep Dive: What is "State" in Frontend Development?
 
@@ -3033,13 +3852,13 @@ Think of it like a newsletter subscription:
 
 ```
 ┌─────────────────────┐
-│   Store (Subject)   │  <- Holds the state
-│   "I have news!"    │
+│  Store (Subject)  │ <- Holds the state
+│  "I have news!"  │
 └─────────────────────┘
-         │
-         ├─ notifies ──> Subscriber 1 (UI Component)
-         ├─ notifies ──> Subscriber 2 (Another Component)
-         └─ notifies ──> Subscriber 3 (Logger, etc.)
+     │
+     ├─ notifies ──> Subscriber 1 (UI Component)
+     ├─ notifies ──> Subscriber 2 (Another Component)
+     └─ notifies ──> Subscriber 3 (Logger, etc.)
 ```
 
 **The flow:**
@@ -3103,11 +3922,11 @@ const counter = new ObservableCounter(0);
 
 // Subscribe various "components"
 counter.subscribe((value) => {
-  console.log(`  [UI Component] Received update: ${value}`);
+  console.log(` [UI Component] Received update: ${value}`);
 });
 
 counter.subscribe((value) => {
-  console.log(`  [Logger] Recording: ${value}`);
+  console.log(` [Logger] Recording: ${value}`);
 });
 
 // Now watch what happens when we change the value
@@ -3223,91 +4042,91 @@ Now let's add methods to **change** the state. These are called **actions**.
 **Add to `store.js` inside the Store class:**
 
 ```javascript
-  /* ==========================================
-     ACTIONS - Methods that modify state
-     ========================================== */
+ /* ==========================================
+   ACTIONS - Methods that modify state
+   ========================================== */
 
-  /**
-   * Set loading state (typically before an API call).
-   */
-  setLoading(isLoading) {
-    this._state.isLoading = isLoading;
-    if (isLoading) {
-      this._state.error = null; // Clear errors when starting new load
-    }
-    this._notify();
+ /**
+  * Set loading state (typically before an API call).
+  */
+ setLoading(isLoading) {
+  this._state.isLoading = isLoading;
+  if (isLoading) {
+   this._state.error = null; // Clear errors when starting new load
   }
+  this._notify();
+ }
 
-  /**
-   * Update the files list (typically after API response).
-   */
-  setFiles(files) {
-    this._state.allFiles = files;
-    this._state.isLoading = false;
-    this._state.error = null;
-    this._notify();
-  }
+ /**
+  * Update the files list (typically after API response).
+  */
+ setFiles(files) {
+  this._state.allFiles = files;
+  this._state.isLoading = false;
+  this._state.error = null;
+  this._notify();
+ }
 
-  /**
-   * Set an error state (typically after API failure).
-   */
-  setError(errorMessage) {
-    this._state.error = errorMessage;
-    this._state.isLoading = false;
-    this._notify();
-  }
+ /**
+  * Set an error state (typically after API failure).
+  */
+ setError(errorMessage) {
+  this._state.error = errorMessage;
+  this._state.isLoading = false;
+  this._notify();
+ }
 
-  /**
-   * Update the search term filter.
-   */
-  setSearchTerm(term) {
-    this._state.searchTerm = term;
-    this._notify();
-  }
+ /**
+  * Update the search term filter.
+  */
+ setSearchTerm(term) {
+  this._state.searchTerm = term;
+  this._notify();
+ }
 
-  /**
-   * Update the status filter.
-   */
-  setStatusFilter(filter) {
-    this._state.statusFilter = filter;
-    this._notify();
-  }
+ /**
+  * Update the status filter.
+  */
+ setStatusFilter(filter) {
+  this._state.statusFilter = filter;
+  this._notify();
+ }
 
-  /**
-   * Open the checkout modal for a specific file.
-   */
-  openCheckoutModal(file) {
-    this._state.isCheckoutModalOpen = true;
-    this._state.selectedFile = file;
-    this._notify();
-  }
+ /**
+  * Open the checkout modal for a specific file.
+  */
+ openCheckoutModal(file) {
+  this._state.isCheckoutModalOpen = true;
+  this._state.selectedFile = file;
+  this._notify();
+ }
 
-  /**
-   * Close the checkout modal.
-   */
-  closeCheckoutModal() {
-    this._state.isCheckoutModalOpen = false;
-    this._state.selectedFile = null;
-    this._notify();
-  }
+ /**
+  * Close the checkout modal.
+  */
+ closeCheckoutModal() {
+  this._state.isCheckoutModalOpen = false;
+  this._state.selectedFile = null;
+  this._notify();
+ }
 
-  /**
-   * Open the checkin modal for a specific file.
-   */
-  openCheckinModal(file) {
-    this._state.isCheckinModalOpen = true;
-    this._state.selectedFile = file;
-    this._notify();
-  }
+ /**
+  * Open the checkin modal for a specific file.
+  */
+ openCheckinModal(file) {
+  this._state.isCheckinModalOpen = true;
+  this._state.selectedFile = file;
+  this._notify();
+ }
 
-  /**
-   * Close the checkin modal.
-   */
-  closeCheckinModal() {
-    this._state.isCheckinModalOpen = false;
-    this._state.selectedFile = null;
-    this._notify();
-  }
+ /**
+  * Close the checkin modal.
+  */
+ closeCheckinModal() {
+  this._state.isCheckinModalOpen = false;
+  this._state.selectedFile = null;
+  this._notify();
+ }
 ```
 
 **Deep Dive: Why Actions Instead of Direct Access?**
@@ -3344,42 +4163,42 @@ Sometimes you need to **derive** data from state without storing it redundantly.
 **Add to `store.js` inside the Store class:**
 
 ```javascript
-  /* ==========================================
-     COMPUTED PROPERTIES - Derived state
-     ========================================== */
+ /* ==========================================
+   COMPUTED PROPERTIES - Derived state
+   ========================================== */
 
-  /**
-   * Get the filtered and searched list of files to display.
-   * This is computed from the state, not stored in it.
-   *
-   * Why? Because it's derived from allFiles + searchTerm + statusFilter.
-   * If we stored it, we'd have to keep it in sync manually.
-   */
-  getDisplayFiles() {
-    let files = this._state.allFiles;
+ /**
+  * Get the filtered and searched list of files to display.
+  * This is computed from the state, not stored in it.
+  *
+  * Why? Because it's derived from allFiles + searchTerm + statusFilter.
+  * If we stored it, we'd have to keep it in sync manually.
+  */
+ getDisplayFiles() {
+  let files = this._state.allFiles;
 
-    // Apply status filter
-    if (this._state.statusFilter !== "all") {
-      files = files.filter(file => file.status === this._state.statusFilter);
-    }
-
-    // Apply search filter
-    if (this._state.searchTerm) {
-      const term = this._state.searchTerm.toLowerCase();
-      files = files.filter(file =>
-        file.name.toLowerCase().includes(term)
-      );
-    }
-
-    return files;
+  // Apply status filter
+  if (this._state.statusFilter !== "all") {
+   files = files.filter(file => file.status === this._state.statusFilter);
   }
 
-  /**
-   * Get the currently selected file (for modals).
-   */
-  getSelectedFile() {
-    return this._state.selectedFile;
+  // Apply search filter
+  if (this._state.searchTerm) {
+   const term = this._state.searchTerm.toLowerCase();
+   files = files.filter(file =>
+    file.name.toLowerCase().includes(term)
+   );
   }
+
+  return files;
+ }
+
+ /**
+  * Get the currently selected file (for modals).
+  */
+ getSelectedFile() {
+  return this._state.selectedFile;
+ }
 ```
 
 **Deep Dive: Why Computed Instead of Stored?**
@@ -3389,9 +4208,9 @@ Imagine we stored filtered files in state:
 ```javascript
 // BAD APPROACH
 this._state = {
-  allFiles: [...],
-  displayFiles: [...],  // Duplicate data!
-  searchTerm: ""
+ allFiles: [...],
+ displayFiles: [...], // Duplicate data!
+ searchTerm: ""
 }
 ```
 
@@ -3407,7 +4226,7 @@ this._state = {
 ```javascript
 // GOOD APPROACH
 getDisplayFiles() {
-  return this._state.allFiles.filter(...);  // Always correct
+ return this._state.allFiles.filter(...); // Always correct
 }
 ```
 
@@ -3436,8 +4255,8 @@ import { store } from "./modules/store.js";
 import { apiClient } from "./modules/api-client.js";
 
 /* ==========================================
-   RENDERING - The UI is a function of state
-   ========================================== */
+  RENDERING - The UI is a function of state
+  ========================================== */
 
 /**
  * The main render function.
@@ -3570,8 +4389,8 @@ function populateCheckinModal(file) {
 }
 
 /* ==========================================
-   API INTERACTIONS
-   ========================================== */
+  API INTERACTIONS
+  ========================================== */
 
 /**
  * Load files from the API and update the store.
@@ -3640,8 +4459,8 @@ async function handleCheckinConfirm() {
 }
 
 /* ==========================================
-   EVENT HANDLERS
-   ========================================== */
+  EVENT HANDLERS
+  ========================================== */
 
 /**
  * Initialize event handlers.
@@ -3684,8 +4503,8 @@ function initEventHandlers() {
 }
 
 /* ==========================================
-   INITIALIZATION
-   ========================================== */
+  INITIALIZATION
+  ========================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
   // Subscribe to store - render will be called on every state change
@@ -3711,14 +4530,14 @@ let currentFilename = null;
 
 // UI updates are manual
 function openModal(filename) {
-  currentFilename = filename;
-  modal.classList.remove("hidden");  // Manual DOM update
+ currentFilename = filename;
+ modal.classList.remove("hidden"); // Manual DOM update
 }
 
 function confirmCheckout() {
-  // ... do checkout ...
-  modal.classList.add("hidden");     // Manual DOM update
-  await loadAndDisplayFiles();        // Manual refresh
+ // ... do checkout ...
+ modal.classList.add("hidden");   // Manual DOM update
+ await loadAndDisplayFiles();    // Manual refresh
 }
 ```
 
@@ -3727,23 +4546,23 @@ function confirmCheckout() {
 ```javascript
 // State is centralized
 store = {
-  selectedFile: null,
-  isModalOpen: false,
-  files: []
+ selectedFile: null,
+ isModalOpen: false,
+ files: []
 }
 
 // UI updates are automatic
 function render(state) {
-  // UI is rebuilt from state
-  modal.classList.toggle("hidden", !state.isModalOpen);
-  renderFiles(state.files);
+ // UI is rebuilt from state
+ modal.classList.toggle("hidden", !state.isModalOpen);
+ renderFiles(state.files);
 }
 
 function confirmCheckout() {
-  // ... do checkout ...
-  store.closeModal();   // Changes state
-  await loadFiles();    // Changes state
-  // render() is called automatically!
+ // ... do checkout ...
+ store.closeModal();  // Changes state
+ await loadFiles();  // Changes state
+ // render() is called automatically!
 }
 ```
 
@@ -3813,47 +4632,48 @@ Let's test everything works:
 
 1. **Start the server**:
 
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+```bash
+uvicorn app.main:app --reload
+```
 
 2. **Open the browser** to http://127.0.0.1:8000
 
 3. **Test search**:
 
-   - Type "PN1001" in the search box
-   - The list should instantly filter to show only matching files
-   - Clear the search - all files return
+- Type "PN1001" in the search box
+- The list should instantly filter to show only matching files
+- Clear the search - all files return
 
 4. **Test status filter**:
 
-   - Select "Available" - only available files show
-   - Select "Checked Out" - only checked-out files show
-   - Select "All" - all files show
+- Select "Available" - only available files show
+- Select "Checked Out" - only checked-out files show
+- Select "All" - all files show
 
 5. **Test checkout flow**:
 
-   - Click "Check Out" on a file
-   - Modal opens with the file name pre-filled
-   - Fill in user and message
-   - Click "Check Out"
-   - Modal closes automatically
-   - File list refreshes showing the file as checked out
+- Click "Check Out" on a file
+- Modal opens with the file name pre-filled
+- Fill in user and message
+- Click "Check Out"
+- Modal closes automatically
+- File list refreshes showing the file as checked out
 
 6. **Test search + filter combination**:
 
-   - Check out "PN1001"
-   - Set filter to "Checked Out"
-   - Type "PN1001" in search
-   - Should show only PN1001
-   - Change filter to "Available"
-   - PN1001 disappears (it's checked out)
+- Check out "PN1001"
+- Set filter to "Checked Out"
+- Type "PN1001" in search
+- Should show only PN1001
+- Change filter to "Available"
+- PN1001 disappears (it's checked out)
 
 7. **Test checkin flow**:
-   - Click "Check In" on a checked-out file
-   - Modal opens with username pre-filled
-   - Confirm
-   - File becomes available again
+
+- Click "Check In" on a checked-out file
+- Modal opens with username pre-filled
+- Confirm
+- File becomes available again
 
 **Open the browser console (F12)** and watch as you interact - you won't see any errors. The store is managing everything cleanly.
 
@@ -3894,15 +4714,15 @@ You've successfully refactored to a professional state management architecture w
 ```
 backend/
 ├── app/
-│   └── (unchanged - backend is solid)
+│  └── (unchanged - backend is solid)
 ├── static/
-│   ├── js/
-│   │   ├── modules/
-│   │   │   ├── api-client.js (unchanged)
-│   │   │   ├── store.js (NEW - state management)
-│   │   │   └── learn_observer.js (educational)
-│   │   └── app.js (refactored to use store)
-│   └── index.html (added search/filter UI)
+│  ├── js/
+│  │  ├── modules/
+│  │  │  ├── api-client.js (unchanged)
+│  │  │  ├── store.js (NEW - state management)
+│  │  │  └── learn_observer.js (educational)
+│  │  └── app.js (refactored to use store)
+│  └── index.html (added search/filter UI)
 └── ...
 ```
 
