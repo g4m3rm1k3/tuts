@@ -2423,6 +2423,457 @@ Here is the fully expanded and unified tutorial for adding authentication and au
 
 ---
 
+This is an absolutely fantastic addition. You've created a professional-grade module on CSS architecture and theming that covers essential, modern frontend practices.
+
+**Yes, this fits perfectly.** It's the ideal next step after building the initial UI in Stage 4 and before adding more complex backend logic like authentication in Stage 5. It addresses the "technical debt" in our CSS and sets us up for a scalable, maintainable, and beautiful application.
+
+I've reviewed it, and it aligns perfectly with the depth and style of our expanded tutorial. I'll integrate it as **Stage 4B**, polishing it slightly to ensure it flows seamlessly. Here is the complete, unified stage.
+
+---
+
+# Stage 4B: CSS Architecture & Theming - A Professional Design System (Expanded & Unified)
+
+## Introduction: The Goal of This Stage
+
+You've built a functional UI, but our `style.css` is becoming a "junk drawer." It's filled with hardcoded color values (`#667eea`), inconsistent spacing (`padding: 1rem` vs `1.5rem`), and repeated styles. This is fragile. If we wanted to change the primary brand color or introduce a dark mode, we'd face a nightmare of searching and replacing, likely introducing new bugs along the way.
+
+This stage is about transforming our CSS from a simple stylesheet into a professional **Design System**. We'll centralize our design decisions—colors, spacing, typography—into a system of **design tokens** that can be reused consistently across the entire application.
+
+By the end of this stage, you will:
+
+- Master CSS Custom Properties (Variables) for dynamic and maintainable styling.
+- Build a scalable, three-tiered design token system (Primitives -\> Semantics -\> Components).
+- Implement a beautiful, accessible light/dark mode with smooth transitions.
+- Respect user's operating system theme preferences.
+- Refactor your existing CSS to use this new, powerful system.
+- Understand professional CSS architecture patterns like ITCSS to keep your styles organized for the long term.
+
+---
+
+### **🧠 Foundational Concepts: A Deeper Look**
+
+- **Time Investment:** 6-8 hours. This is a significant but highly rewarding investment in the quality of your frontend.
+- **Software Engineering Principle: Don't Repeat Yourself (DRY)**. Hardcoding `#667eea` in 10 different places violates this principle. A design token system is the ultimate application of DRY to CSS.
+- **Design Pattern: The Token System**. This is the core pattern used by every major design system (Google's Material Design, Shopify's Polaris, Bootstrap, Tailwind CSS). It abstracts design decisions into named entities, creating a single source of truth. Think of it like this:
+  - **Tier 1 (Primitives):** Raw ingredients (`--color-blue-500: #3b82f6`).
+  - **Tier 2 (Semantics):** Recipes (`--color-interactive: var(--color-blue-500)`).
+  - **Tier 3 (Components):** Finished dishes (`--button-background: var(--color-interactive)`).
+
+---
+
+## 4B.1: CSS Custom Properties (Variables)
+
+The engine that powers modern design systems is **CSS Custom Properties**, commonly known as CSS variables.
+
+### The Problem with Preprocessor Variables (Sass/Less)
+
+Variables in preprocessors like Sass are static. They are compiled into fixed CSS values _before_ the browser ever sees them.
+
+```scss
+// SCSS (gets compiled)
+$primary-color: #667eea;
+.button {
+  background: $primary-color;
+}
+
+// Final CSS (sent to browser)
+.button {
+  background: #667eea;
+}
+```
+
+This means they **cannot be changed at runtime**, which makes them useless for features like live theme switching.
+
+### The Power of Native CSS Variables
+
+Native CSS variables exist in the browser and can be updated dynamically.
+
+```css
+/* Declared in CSS */
+:root {
+  --primary-color: #667eea;
+}
+
+/* Used in a component */
+.button {
+  background: var(--primary-color);
+}
+```
+
+This is revolutionary because:
+
+1.  **They are dynamic**: JavaScript can change their value at any time.
+    ```javascript
+    // Instantly changes the theme of the entire application!
+    document.documentElement.style.setProperty("--primary-color", "red");
+    ```
+2.  **They respect the cascade**: A variable can be overridden within a specific component, just like any other CSS property.
+3.  **They are accessible from JavaScript**: You can both read and write variable values.
+
+### The `:root` Selector and Scope
+
+Variables are typically defined on the `:root` pseudo-class. This is equivalent to the `<html>` element but with higher specificity, making it the perfect place for global variables.
+
+```css
+/* Global scope: Available everywhere */
+:root {
+  --global-spacing: 1rem;
+}
+
+/* Component scope: Only available to .card and its children */
+.card {
+  --card-padding: 1.5rem;
+}
+
+.card-title {
+  /* This works because .card-title is inside .card */
+  padding-bottom: var(--card-padding);
+}
+
+.navbar {
+  /* This will NOT work, because .navbar is not a descendant of .card */
+  padding: var(--card-padding);
+}
+```
+
+---
+
+## 4B.2: Building the Design Token System
+
+We will now create our entire design system as a set of CSS variables. This file will be the single source of truth for all styling.
+
+### Create `tokens.css`
+
+Create a new file at `backend/static/css/tokens.css`. We will fill this with our three tiers of tokens.
+
+#### Tier 1: Primitive Tokens (The Raw Ingredients)
+
+These are the foundational, raw values. They are named generically and never change between themes.
+
+```css
+/* backend/static/css/tokens.css */
+
+:root {
+  /* ==========================================
+     TIER 1: PRIMITIVE TOKENS
+     Raw color, spacing, and sizing values
+     ========================================== */
+
+  /* ----- Colors: Gray Scale (for text and neutral backgrounds) ----- */
+  --color-white: hsl(0, 0%, 100%);
+  --color-gray-50: hsl(240, 5%, 98%);
+  --color-gray-100: hsl(240, 5%, 96%);
+  /* ... more gray shades ... */
+  --color-gray-900: hsl(240, 6%, 10%);
+  --color-black: hsl(0, 0%, 0%);
+
+  /* ----- Colors: Primary (Our main brand color) ----- */
+  --color-primary-50: hsl(245, 90%, 97%);
+  /* ... more primary shades ... */
+  --color-primary-500: hsl(245, 70%, 55%); /* Base */
+  /* ... more primary shades ... */
+  --color-primary-900: hsl(245, 75%, 25%);
+
+  /* (Add scales for --color-success, --color-warning, --color-danger, --color-info here) */
+
+  /* ----- Spacing Scale (based on a 4px grid) ----- */
+  --spacing-1: 0.25rem; /* 4px */
+  --spacing-2: 0.5rem; /* 8px */
+  --spacing-3: 0.75rem; /* 12px */
+  --spacing-4: 1rem; /* 16px */
+  --spacing-6: 1.5rem; /* 24px */
+  --spacing-8: 2rem; /* 32px */
+
+  /* ----- Typography ----- */
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem; /* 16px */
+  --font-size-lg: 1.125rem;
+  /* ... more font sizes ... */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* ----- Other Primitives ----- */
+  --radius-base: 0.375rem; /* 6px */
+  --radius-md: 0.5rem; /* 8px */
+  --shadow-base: 0 4px 8px 0 rgba(0, 0, 0, 0.1);
+  --transition-base: 300ms ease-in-out;
+}
+```
+
+#### Tier 2: Semantic Tokens (The Recipes)
+
+These tokens give meaning to the primitives. They define what a color or size is _for_. **These are the variables we will change for theming.**
+
+```css
+/* Add to tokens.css, inside the :root selector */
+
+/* ==========================================
+     TIER 2: SEMANTIC TOKENS
+     Meaning-based tokens for light mode (default)
+     ========================================== */
+
+/* ----- Text Colors ----- */
+--text-primary: var(--color-gray-900);
+--text-secondary: var(--color-gray-600);
+--text-inverse: var(--color-white);
+
+/* ----- Background Colors ----- */
+--bg-primary: var(--color-white);
+--bg-secondary: var(--color-gray-50);
+--bg-tertiary: var(--color-gray-100);
+
+/* ----- Border Colors ----- */
+--border-default: var(--color-gray-200);
+--border-focus: var(--color-primary-500);
+
+/* ----- Interactive Element Colors ----- */
+--interactive-primary: var(--color-primary-500);
+--interactive-primary-hover: var(--color-primary-600);
+
+/* ----- Status Feedback Colors ----- */
+--status-success-bg: var(--color-success-50);
+--status-success-text: var(--color-success-800);
+--status-warning-bg: var(--color-warning-50);
+--status-warning-text: var(--color-warning-800);
+```
+
+#### Tier 3: Component Tokens (The Finished Dishes)
+
+These tokens are specific to a single component, linking semantic meaning to a component's property.
+
+```css
+/* Add to tokens.css, inside the :root selector */
+
+/* ==========================================
+     TIER 3: COMPONENT TOKENS
+     Component-specific values
+     ========================================== */
+
+/* ----- Button Component ----- */
+--button-padding-y: var(--spacing-3);
+--button-padding-x: var(--spacing-6);
+--button-primary-bg: var(--interactive-primary);
+--button-primary-bg-hover: var(--interactive-primary-hover);
+--button-primary-text: var(--text-inverse);
+
+/* ----- Card Component ----- */
+--card-bg: var(--bg-tertiary);
+--card-padding: var(--spacing-8);
+--card-shadow: var(--shadow-base);
+```
+
+### Import the Tokens
+
+Update `index.html` to load your new `tokens.css` file. It must be loaded **first**, so other stylesheets can use its variables.
+
+```html
+<link rel="stylesheet" href="/static/css/tokens.css" />
+<link rel="stylesheet" href="/static/css/style.css" />
+```
+
+---
+
+## 4B.3: Implementing Dark Mode
+
+With our token system in place, adding a dark theme is incredibly simple. We just need to redefine our **semantic tokens**.
+
+### Define Dark Theme Tokens
+
+Add this to the end of `tokens.css`.
+
+```css
+/* Add to tokens.css */
+
+/*
+ * Dark Theme Definition
+ * Applied when the <html> element has the attribute [data-theme="dark"]
+ */
+[data-theme="dark"] {
+  /* In dark mode, we just swap the semantic tokens.
+     The components using these tokens will update automatically. */
+
+  /* ----- Text Colors ----- */
+  --text-primary: var(--color-gray-100);
+  --text-secondary: var(--color-gray-400);
+  --text-inverse: var(--color-gray-900);
+
+  /* ----- Background Colors ----- */
+  --bg-primary: var(--color-gray-900);
+  --bg-secondary: var(--color-gray-800);
+  --bg-tertiary: var(--color-gray-700);
+
+  /* ----- Border Colors ----- */
+  --border-default: var(--color-gray-700);
+  --border-focus: var(--color-primary-400);
+
+  /* ... (redefine other semantic tokens as needed for dark mode) ... */
+}
+```
+
+### Test It Manually
+
+1.  Run your app (`uvicorn main:app --reload`).
+2.  Open the site in your browser.
+3.  Open DevTools (`F12`), go to the "Elements" tab.
+4.  Find the `<html>` tag at the very top.
+5.  Right-click on it -\> "Add attribute".
+6.  Type `data-theme="dark"` and press Enter.
+
+The entire website should instantly switch to a dark theme\! This demonstrates the power of your new token system.
+
+---
+
+## 4B.4: Building a Theme Switcher
+
+Let's give the user control with a theme toggle button.
+
+### Create `theme.js`
+
+This file will contain a reusable class to manage theme state.
+
+**Create `backend/static/js/theme.js`:**
+
+```javascript
+class ThemeManager {
+  constructor() {
+    this.STORAGE_KEY = "pdm-theme";
+    this.init();
+  }
+
+  init() {
+    const storedTheme = localStorage.getItem(this.STORAGE_KEY);
+    const systemPrefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+
+    // Priority: 1. Stored choice, 2. System preference, 3. Default to light
+    const theme = storedTheme || (systemPrefersDark ? "dark" : "light");
+    this.applyTheme(theme);
+
+    // Listen for system changes if user hasn't made an explicit choice
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", (e) => {
+        if (!localStorage.getItem(this.STORAGE_KEY)) {
+          this.applyTheme(e.matches ? "dark" : "light");
+        }
+      });
+  }
+
+  applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+  }
+
+  toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute("data-theme");
+    const newTheme = currentTheme === "dark" ? "light" : "dark";
+    this.applyTheme(newTheme);
+    localStorage.setItem(this.STORAGE_KEY, newTheme); // Save user's choice
+  }
+}
+
+// Create a global instance
+const themeManager = new ThemeManager();
+```
+
+### Add the UI and Wire It Up
+
+**Update `index.html`:**
+
+- Load the new script in the `<head>`. It must be loaded **before** `app.js` and without `defer` to prevent a flash of the wrong theme.
+  ```html
+  <script src="/static/js/theme.js"></script>
+  <link rel="stylesheet" href="/static/css/tokens.css" />
+  ```
+- Add a toggle button to your `<header>`:
+  ```html
+  <button id="theme-toggle" class="btn" title="Toggle theme">🌙</button>
+  ```
+
+**Update `app.js`:**
+
+- In your `DOMContentLoaded` listener, wire up the button:
+  ```javascript
+  document.getElementById("theme-toggle").addEventListener("click", () => {
+    themeManager.toggleTheme();
+  });
+  ```
+
+Now your theme switcher is fully functional, respecting system preferences and user choices.
+
+---
+
+## 4B.5: Refactoring Your Existing CSS
+
+This is the final step: migrate your `style.css` to use your new design tokens. This process is called **refactoring**.
+
+**Strategy**: Go through `style.css` component by component and replace hardcoded values with `var()` calls.
+
+**Example: Refactoring the Button**
+
+**OLD:**
+
+```css
+.btn-checkout {
+  background: #28a745;
+  color: white;
+}
+```
+
+**NEW:**
+
+```css
+.btn-checkout {
+  /* Use semantic status tokens */
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+  border: 1px solid var(--color-success-200);
+}
+```
+
+**Example: Refactoring an Input**
+
+**OLD:**
+
+```css
+input[type="text"]:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+```
+
+**NEW:**
+
+```css
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: var(--input-focus-shadow);
+}
+```
+
+Go through your entire `style.css` file and replace all hardcoded colors, spacing, font sizes, etc., with the appropriate variables from `tokens.css`.
+
+---
+
+## Stage 4B Complete - A Professional Design System\!
+
+You have successfully refactored your UI to use a scalable, maintainable, and themeable design system.
+
+### Verification Checklist
+
+- [ ] The `tokens.css` file contains your design system variables.
+- [ ] Your `style.css` has been refactored to use `var()` instead of hardcoded values.
+- [ ] Dark mode works correctly when you toggle it with the button or change your OS theme.
+- [ ] The theme preference is saved in `localStorage` and persists after a page reload.
+- [ ] The application is visually consistent and accessible in both light and dark modes.
+
+### What's Next?
+
+With a professional and robust frontend in place, we are now ready to tackle the final stages of building our application. In the next stage, you chose **Stage 11: Production Deployment**, where we'll containerize the application with Docker, migrate to a real PostgreSQL database, and prepare for a live deployment.
+
 # Stage 5: Authentication & Authorization - Securing Your Application (Expanded & Unified)
 
 ## Introduction: The Goal of This Stage

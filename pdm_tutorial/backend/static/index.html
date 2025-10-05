@@ -15,6 +15,25 @@
       <section id="file-list-section">
         <h2>Available Files</h2>
         <button id="refresh-btn" class="btn">Refresh</button>
+        <section>
+          <h2>Checkout File</h2>
+          <form id="checkout-form">
+            <div id="form-group">
+              <label for="filename">Filename:</label>
+              <input type="text" id="filename" name="filename" required />
+            </div>
+            <div class="form-group">
+              <label for="user">Name:</label>
+              <input type="text" id="user" name="user" required />
+            </div>
+            <div class="form-group">
+              <label for="message">Message:</label>
+              <input type="text" id="message" name="message" required />
+            </div>
+            <button type="submit" class="btn">Checkout</button>
+          </form>
+          <div id="checkout-result"></div>
+        </section>
         <div id="file-list">
           <!-- Files will be loaded here by Javascript-->
           <p>Loading Files...</p>

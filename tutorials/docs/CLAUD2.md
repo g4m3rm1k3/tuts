@@ -1,7 +1,3 @@
-Perfect. Let's start building your definitive tutorial. I'll give you Stage 0 right now - the foundation that everything else builds on.
-
----
-
 # Stage 0: Absolute Beginner & Environment Setup
 
 ## Introduction: The Goal of This Stage
@@ -4856,8 +4852,6 @@ In **Stage 4**, we'll modernize the frontend by introducing a **React component*
 
 But first, we have a solid foundation: a working PDM system that prevents file conflicts!
 
----
-
 # Stage 4: Frontend Enhancements - Interactive UI Patterns
 
 ## Introduction: The Goal of This Stage
@@ -6196,6 +6190,3368 @@ In **Stage 5**, we'll add:
 - Protected routes
 
 Your app now looks and feels professional. Next, we make it secure.
+
+---
+
+# Stage 4B: CSS Architecture & Theming - Professional Design Systems
+
+## Introduction: The Goal of This Stage
+
+You've built a functional UI, but the CSS is scattered with hardcoded colors (`#667eea`), magic numbers (`padding: 1.5rem`), and duplicate styles. Want to change your brand color? Search-and-replace across dozens of files. Want dark mode? Rewrite everything.
+
+Professional applications use **design systems** - a centralized set of design decisions (colors, spacing, typography) that cascade throughout the entire app.
+
+In this stage, you'll transform your CSS from amateur to professional-grade.
+
+By the end of this stage, you will:
+
+- Master CSS Custom Properties (Variables) deeply
+- Understand color theory and accessibility
+- Choose and implement a complete color palette
+- Build a scalable design token system
+- Implement light/dark mode with smooth transitions
+- Detect and respect user system preferences
+- Store user theme choices
+- Understand CSS architecture patterns (ITCSS, BEM)
+- Organize CSS for maintainability
+- Build reusable component styles
+- Apply professional design principles
+
+**Time Investment:** 6-8 hours
+
+**This is foundational.** Every professional web app uses these techniques.
+
+---
+
+## 4B.1: Understanding CSS Custom Properties (Variables)
+
+### What Are CSS Variables?
+
+**CSS Custom Properties** (commonly called "CSS variables") are entities defined in CSS that contain specific values to be reused throughout a document.
+
+**Syntax:**
+
+```css
+/* Declaration - must start with -- */
+:root {
+  --primary-color: #667eea;
+}
+
+/* Usage */
+.button {
+  background: var(--primary-color);
+}
+```
+
+### CSS Variables vs Sass/Less Variables
+
+**Sass variables (preprocessor):**
+
+```scss
+// Compiled before browser sees it
+$primary-color: #667eea;
+
+.button {
+  background: $primary-color; // Becomes: background: #667eea;
+}
+
+// ❌ Cannot change at runtime
+// ❌ JavaScript cannot access
+// ❌ Requires build step
+```
+
+**CSS variables (native):**
+
+```css
+:root {
+  --primary-color: #667eea;
+}
+
+.button {
+  background: var(--primary-color); // Stays as var() in CSS
+}
+
+// ✅ Can change at runtime
+// ✅ JavaScript can read/write
+// ✅ No build step needed
+// ✅ Cascade and inherit
+```
+
+### Why CSS Variables are Revolutionary
+
+**1. Dynamic updates:**
+
+```javascript
+// Change color theme instantly!
+document.documentElement.style.setProperty("--primary-color", "#ff6b6b");
+// Every element using var(--primary-color) updates immediately
+```
+
+**2. Cascade and inheritance:**
+
+```css
+:root {
+  --spacing: 1rem;
+}
+
+.container {
+  --spacing: 2rem; /* Override for this component */
+}
+
+.child {
+  padding: var(--spacing); /* Uses nearest parent value */
+}
+```
+
+**3. Computed values:**
+
+```css
+:root {
+  --base-size: 16px;
+  --heading-size: calc(var(--base-size) * 2); /* 32px */
+}
+```
+
+**4. Fallback values:**
+
+```css
+.element {
+  /* If --custom-color undefined, use #333 */
+  color: var(--custom-color, #333);
+}
+```
+
+### The `:root` Selector
+
+**What is `:root`?**
+
+```css
+:root {
+  --primary-color: blue;
+}
+```
+
+- `:root` = The document's root element (`<html>`)
+- Has highest specificity in cascade
+- Variables defined here are **global** (available everywhere)
+
+**Alternative scopes:**
+
+```css
+/* Global - available everywhere */
+:root {
+  --global-color: blue;
+}
+
+/* Component-scoped - only inside .card */
+.card {
+  --card-padding: 2rem;
+}
+
+.card-body {
+  padding: var(--card-padding); /* Works - parent has it */
+}
+
+.navbar {
+  padding: var(--card-padding); /* Doesn't work - no parent with this var */
+}
+```
+
+### Variable Naming Conventions
+
+**Bad naming (implementation-focused):**
+
+```css
+:root {
+  --color-1: #667eea;
+  --color-2: #28a745;
+  --size-big: 2rem;
+}
+
+.button {
+  background: var(--color-1); /* What is color-1? */
+}
+```
+
+**Good naming (semantic):**
+
+```css
+:root {
+  /* What it IS */
+  --primary-color: #667eea;
+  --success-color: #28a745;
+
+  /* What it's FOR */
+  --button-padding: 0.75rem 1.5rem;
+  --border-radius-default: 4px;
+}
+```
+
+**Professional naming (design tokens):**
+
+```css
+:root {
+  /* Primitive tokens - raw values */
+  --color-purple-500: #667eea;
+  --color-green-500: #28a745;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+
+  /* Semantic tokens - meaning */
+  --color-primary: var(--color-purple-500);
+  --color-success: var(--color-green-500);
+
+  /* Component tokens - specific use */
+  --button-bg-primary: var(--color-primary);
+  --button-padding-y: var(--spacing-3);
+  --button-padding-x: var(--spacing-4);
+}
+```
+
+This three-tier system is used by **Material Design, Bootstrap, Tailwind, and every major design system.**
+
+---
+
+## 4B.2: Color Theory & Choosing a Palette
+
+### Understanding Color Systems
+
+**Every color has three properties:**
+
+1. **Hue** - The color itself (red, blue, green)
+2. **Saturation** - Intensity/purity (vivid vs. muted)
+3. **Lightness** - Brightness (light vs. dark)
+
+**HSL color model:**
+
+```css
+/* hsl(hue, saturation, lightness) */
+
+/* Same hue, different lightness = color scale */
+--blue-900: hsl(220, 90%, 20%); /* Very dark blue */
+--blue-500: hsl(220, 90%, 50%); /* Medium blue */
+--blue-100: hsl(220, 90%, 90%); /* Very light blue */
+```
+
+**Why HSL instead of RGB/Hex?**
+
+```css
+/* Hex - hard to modify */
+--blue-dark: #1a2957;
+--blue-light: #e3e8f5;
+/* How do you know these are related? */
+
+/* HSL - easy to understand and modify */
+--blue-dark: hsl(220, 60%, 20%);
+--blue-light: hsl(220, 60%, 95%);
+/* Same hue (220°), same saturation (60%), different lightness */
+```
+
+### Color Scales (The Foundation)
+
+**Professional color palettes use scales:**
+
+```css
+:root {
+  /* Gray scale - 9 shades */
+  --gray-50: hsl(0, 0%, 98%); /* Almost white */
+  --gray-100: hsl(0, 0%, 95%);
+  --gray-200: hsl(0, 0%, 90%);
+  --gray-300: hsl(0, 0%, 83%);
+  --gray-400: hsl(0, 0%, 70%);
+  --gray-500: hsl(0, 0%, 50%); /* Pure gray */
+  --gray-600: hsl(0, 0%, 38%);
+  --gray-700: hsl(0, 0%, 26%);
+  --gray-800: hsl(0, 0%, 15%);
+  --gray-900: hsl(0, 0%, 8%); /* Almost black */
+
+  /* Primary color scale */
+  --primary-50: hsl(245, 70%, 97%);
+  --primary-100: hsl(245, 70%, 92%);
+  --primary-200: hsl(245, 70%, 84%);
+  --primary-300: hsl(245, 70%, 72%);
+  --primary-400: hsl(245, 70%, 60%);
+  --primary-500: hsl(245, 70%, 50%); /* Base color */
+  --primary-600: hsl(245, 70%, 42%);
+  --primary-700: hsl(245, 70%, 34%);
+  --primary-800: hsl(245, 70%, 26%);
+  --primary-900: hsl(245, 70%, 18%);
+}
+```
+
+**The 50-900 numbering:**
+
+- **50** - Lightest (backgrounds)
+- **500** - Base color (buttons, links)
+- **900** - Darkest (text on light backgrounds)
+
+**This is Tailwind's system, adopted industry-wide.**
+
+### Choosing Your Palette
+
+**For the PDM app, we'll use:**
+
+**Primary (Purple/Indigo)** - Professional, trustworthy, tech-focused
+
+```css
+/* Base: HSL(245, 70%, 50%) */
+```
+
+**Success (Green)** - Available files, successful operations
+
+```css
+/* Base: HSL(145, 60%, 45%) */
+```
+
+**Warning (Amber)** - Checked-out files, cautionary actions
+
+```css
+/* Base: HSL(38, 90%, 50%) */
+```
+
+**Danger (Red)** - Errors, destructive actions
+
+```css
+/* Base: HSL(0, 70%, 55%) */
+```
+
+**Info (Blue)** - Information, neutral notifications
+
+```css
+/* Base: HSL(200, 85%, 50%) */
+```
+
+### Accessibility - WCAG Contrast Requirements
+
+**Why contrast matters:**
+
+Low contrast:
+
+```css
+/* Light gray text on white - hard to read! */
+color: #cccccc;
+background: #ffffff;
+/* Contrast ratio: 1.6:1 ❌ FAILS */
+```
+
+High contrast:
+
+```css
+/* Dark gray text on white - readable */
+color: #333333;
+background: #ffffff;
+/* Contrast ratio: 12.6:1 ✅ PASSES AAA */
+```
+
+**WCAG Standards:**
+
+| Level   | Normal Text | Large Text | Use For                   |
+| ------- | ----------- | ---------- | ------------------------- |
+| **AA**  | 4.5:1       | 3:1        | Minimum legal requirement |
+| **AAA** | 7:1         | 4.5:1      | Enhanced (recommended)    |
+
+**Large text** = 18pt+ or 14pt+ bold
+
+**Tools to check contrast:**
+
+- https://contrast-ratio.com/
+- https://webaim.org/resources/contrastchecker/
+- Browser DevTools (Chrome: "Show accessibility information")
+
+**Our palette must ensure:**
+
+- Text on backgrounds meets AA minimum (4.5:1)
+- Interactive elements meet AA for all states
+- Status colors are distinguishable for colorblind users
+
+---
+
+## 4B.3: Building the Design Token System
+
+### The Three-Tier Token System
+
+**Tier 1: Primitive Tokens** (Raw color values)
+
+```css
+:root {
+  /* These never change between themes */
+  /* They're the "atoms" of your design */
+
+  /* Grays - achromatic scale */
+  --color-white: hsl(0, 0%, 100%);
+  --color-gray-50: hsl(240, 5%, 98%);
+  --color-gray-100: hsl(240, 5%, 96%);
+  --color-gray-200: hsl(240, 5%, 90%);
+  --color-gray-300: hsl(240, 4%, 82%);
+  --color-gray-400: hsl(240, 4%, 65%);
+  --color-gray-500: hsl(240, 4%, 46%);
+  --color-gray-600: hsl(240, 5%, 34%);
+  --color-gray-700: hsl(240, 5%, 26%);
+  --color-gray-800: hsl(240, 6%, 15%);
+  --color-gray-900: hsl(240, 6%, 10%);
+  --color-black: hsl(0, 0%, 0%);
+
+  /* Primary - indigo/purple */
+  --color-primary-50: hsl(245, 90%, 97%);
+  --color-primary-100: hsl(245, 85%, 94%);
+  --color-primary-200: hsl(245, 85%, 87%);
+  --color-primary-300: hsl(245, 82%, 77%);
+  --color-primary-400: hsl(245, 75%, 65%);
+  --color-primary-500: hsl(245, 70%, 55%); /* Base */
+  --color-primary-600: hsl(245, 70%, 48%);
+  --color-primary-700: hsl(245, 70%, 40%);
+  --color-primary-800: hsl(245, 70%, 32%);
+  --color-primary-900: hsl(245, 75%, 25%);
+
+  /* Success - green */
+  --color-success-50: hsl(145, 80%, 96%);
+  --color-success-100: hsl(145, 75%, 90%);
+  --color-success-200: hsl(145, 70%, 80%);
+  --color-success-300: hsl(145, 65%, 65%);
+  --color-success-400: hsl(145, 60%, 52%);
+  --color-success-500: hsl(145, 60%, 45%); /* Base */
+  --color-success-600: hsl(145, 65%, 38%);
+  --color-success-700: hsl(145, 70%, 32%);
+  --color-success-800: hsl(145, 75%, 26%);
+  --color-success-900: hsl(145, 80%, 20%);
+
+  /* Warning - amber */
+  --color-warning-50: hsl(38, 100%, 96%);
+  --color-warning-100: hsl(38, 95%, 88%);
+  --color-warning-200: hsl(38, 95%, 75%);
+  --color-warning-300: hsl(38, 92%, 62%);
+  --color-warning-400: hsl(38, 90%, 52%);
+  --color-warning-500: hsl(38, 90%, 50%); /* Base */
+  --color-warning-600: hsl(38, 85%, 45%);
+  --color-warning-700: hsl(38, 80%, 38%);
+  --color-warning-800: hsl(38, 75%, 32%);
+  --color-warning-900: hsl(38, 70%, 26%);
+
+  /* Danger - red */
+  --color-danger-50: hsl(0, 85%, 97%);
+  --color-danger-100: hsl(0, 80%, 94%);
+  --color-danger-200: hsl(0, 80%, 87%);
+  --color-danger-300: hsl(0, 75%, 77%);
+  --color-danger-400: hsl(0, 72%, 67%);
+  --color-danger-500: hsl(0, 70%, 55%); /* Base */
+  --color-danger-600: hsl(0, 70%, 48%);
+  --color-danger-700: hsl(0, 70%, 40%);
+  --color-danger-800: hsl(0, 70%, 32%);
+  --color-danger-900: hsl(0, 75%, 25%);
+
+  /* Info - blue */
+  --color-info-50: hsl(200, 95%, 96%);
+  --color-info-100: hsl(200, 90%, 90%);
+  --color-info-200: hsl(200, 90%, 80%);
+  --color-info-300: hsl(200, 88%, 68%);
+  --color-info-400: hsl(200, 85%, 58%);
+  --color-info-500: hsl(200, 85%, 50%); /* Base */
+  --color-info-600: hsl(200, 85%, 43%);
+  --color-info-700: hsl(200, 85%, 36%);
+  --color-info-800: hsl(200, 85%, 29%);
+  --color-info-900: hsl(200, 90%, 22%);
+}
+```
+
+**Tier 2: Semantic Tokens** (What they mean)
+
+```css
+:root {
+  /* Text colors - semantic names based on use */
+  --text-primary: var(--color-gray-900); /* Main body text */
+  --text-secondary: var(--color-gray-600); /* Less important text */
+  --text-tertiary: var(--color-gray-500); /* Hints, placeholders */
+  --text-disabled: var(--color-gray-400); /* Disabled state */
+  --text-inverse: var(--color-white); /* Text on dark backgrounds */
+
+  /* Background colors */
+  --bg-primary: var(--color-white); /* Main background */
+  --bg-secondary: var(--color-gray-50); /* Subtle backgrounds */
+  --bg-tertiary: var(--color-gray-100); /* Cards, panels */
+  --bg-inverse: var(--color-gray-900); /* Dark sections */
+
+  /* Border colors */
+  --border-default: var(--color-gray-200); /* Default borders */
+  --border-strong: var(--color-gray-300); /* Emphasized borders */
+  --border-subtle: var(--color-gray-100); /* Very light borders */
+
+  /* Interactive colors - these are SEMANTIC */
+  --interactive-primary: var(--color-primary-500);
+  --interactive-primary-hover: var(--color-primary-600);
+  --interactive-primary-active: var(--color-primary-700);
+
+  /* Status colors - also semantic */
+  --status-success: var(--color-success-500);
+  --status-success-bg: var(--color-success-50);
+  --status-success-text: var(--color-success-800);
+
+  --status-warning: var(--color-warning-500);
+  --status-warning-bg: var(--color-warning-50);
+  --status-warning-text: var(--color-warning-800);
+
+  --status-danger: var(--color-danger-500);
+  --status-danger-bg: var(--color-danger-50);
+  --status-danger-text: var(--color-danger-800);
+
+  --status-info: var(--color-info-500);
+  --status-info-bg: var(--color-info-50);
+  --status-info-text: var(--color-info-800);
+}
+```
+
+**Tier 3: Component Tokens** (Specific components)
+
+```css
+:root {
+  /* Button tokens */
+  --button-bg-primary: var(--interactive-primary);
+  --button-bg-primary-hover: var(--interactive-primary-hover);
+  --button-text-primary: var(--text-inverse);
+  --button-padding-y: 0.75rem;
+  --button-padding-x: 1.5rem;
+  --button-border-radius: 4px;
+
+  /* Input tokens */
+  --input-bg: var(--bg-primary);
+  --input-border: var(--border-default);
+  --input-border-focus: var(--interactive-primary);
+  --input-text: var(--text-primary);
+  --input-placeholder: var(--text-tertiary);
+
+  /* Card tokens */
+  --card-bg: var(--bg-tertiary);
+  --card-border: var(--border-subtle);
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --card-padding: 2rem;
+}
+```
+
+### Why Three Tiers?
+
+**Scenario: User wants dark mode**
+
+**Without tiers (nightmare):**
+
+```css
+/* Find and change ALL of these: */
+.button {
+  background: #667eea;
+}
+.header {
+  background: #667eea;
+}
+.link {
+  color: #667eea;
+}
+/* 100+ places! */
+```
+
+**With tiers (easy):**
+
+```css
+/* Light mode */
+:root {
+  --text-primary: var(--color-gray-900); /* Dark text */
+  --bg-primary: var(--color-white); /* Light background */
+}
+
+/* Dark mode - just swap! */
+[data-theme="dark"] {
+  --text-primary: var(--color-gray-100); /* Light text */
+  --bg-primary: var(--color-gray-900); /* Dark background */
+}
+
+/* Components automatically update */
+.text {
+  color: var(--text-primary); /* Switches automatically! */
+}
+```
+
+---
+
+## 4B.4: Implementing the Design System
+
+### Complete Design Tokens File
+
+Create `backend/static/css/tokens.css`:
+
+```css
+/**
+ * Design Tokens
+ * 
+ * This file defines the design system's foundational values.
+ * It uses a three-tier token system:
+ * 
+ * 1. Primitive tokens - Raw values (colors, sizes)
+ * 2. Semantic tokens - Meaning-based (text-primary, bg-secondary)
+ * 3. Component tokens - Component-specific (button-bg, input-border)
+ * 
+ * This structure allows easy theming and consistent design.
+ */
+
+:root {
+  /* ==========================================
+     TIER 1: PRIMITIVE TOKENS
+     Raw color, spacing, and sizing values
+     ========================================== */
+
+  /* ----- Colors: Gray Scale ----- */
+  --color-white: hsl(0, 0%, 100%);
+  --color-gray-50: hsl(240, 5%, 98%);
+  --color-gray-100: hsl(240, 5%, 96%);
+  --color-gray-200: hsl(240, 5%, 90%);
+  --color-gray-300: hsl(240, 4%, 82%);
+  --color-gray-400: hsl(240, 4%, 65%);
+  --color-gray-500: hsl(240, 4%, 46%);
+  --color-gray-600: hsl(240, 5%, 34%);
+  --color-gray-700: hsl(240, 5%, 26%);
+  --color-gray-800: hsl(240, 6%, 15%);
+  --color-gray-900: hsl(240, 6%, 10%);
+  --color-black: hsl(0, 0%, 0%);
+
+  /* ----- Colors: Primary (Indigo/Purple) ----- */
+  --color-primary-50: hsl(245, 90%, 97%);
+  --color-primary-100: hsl(245, 85%, 94%);
+  --color-primary-200: hsl(245, 85%, 87%);
+  --color-primary-300: hsl(245, 82%, 77%);
+  --color-primary-400: hsl(245, 75%, 65%);
+  --color-primary-500: hsl(245, 70%, 55%);
+  --color-primary-600: hsl(245, 70%, 48%);
+  --color-primary-700: hsl(245, 70%, 40%);
+  --color-primary-800: hsl(245, 70%, 32%);
+  --color-primary-900: hsl(245, 75%, 25%);
+
+  /* ----- Colors: Success (Green) ----- */
+  --color-success-50: hsl(145, 80%, 96%);
+  --color-success-100: hsl(145, 75%, 90%);
+  --color-success-200: hsl(145, 70%, 80%);
+  --color-success-300: hsl(145, 65%, 65%);
+  --color-success-400: hsl(145, 60%, 52%);
+  --color-success-500: hsl(145, 60%, 45%);
+  --color-success-600: hsl(145, 65%, 38%);
+  --color-success-700: hsl(145, 70%, 32%);
+  --color-success-800: hsl(145, 75%, 26%);
+  --color-success-900: hsl(145, 80%, 20%);
+
+  /* ----- Colors: Warning (Amber) ----- */
+  --color-warning-50: hsl(38, 100%, 96%);
+  --color-warning-100: hsl(38, 95%, 88%);
+  --color-warning-200: hsl(38, 95%, 75%);
+  --color-warning-300: hsl(38, 92%, 62%);
+  --color-warning-400: hsl(38, 90%, 52%);
+  --color-warning-500: hsl(38, 90%, 50%);
+  --color-warning-600: hsl(38, 85%, 45%);
+  --color-warning-700: hsl(38, 80%, 38%);
+  --color-warning-800: hsl(38, 75%, 32%);
+  --color-warning-900: hsl(38, 70%, 26%);
+
+  /* ----- Colors: Danger (Red) ----- */
+  --color-danger-50: hsl(0, 85%, 97%);
+  --color-danger-100: hsl(0, 80%, 94%);
+  --color-danger-200: hsl(0, 80%, 87%);
+  --color-danger-300: hsl(0, 75%, 77%);
+  --color-danger-400: hsl(0, 72%, 67%);
+  --color-danger-500: hsl(0, 70%, 55%);
+  --color-danger-600: hsl(0, 70%, 48%);
+  --color-danger-700: hsl(0, 70%, 40%);
+  --color-danger-800: hsl(0, 70%, 32%);
+  --color-danger-900: hsl(0, 75%, 25%);
+
+  /* ----- Colors: Info (Blue) ----- */
+  --color-info-50: hsl(200, 95%, 96%);
+  --color-info-100: hsl(200, 90%, 90%);
+  --color-info-200: hsl(200, 90%, 80%);
+  --color-info-300: hsl(200, 88%, 68%);
+  --color-info-400: hsl(200, 85%, 58%);
+  --color-info-500: hsl(200, 85%, 50%);
+  --color-info-600: hsl(200, 85%, 43%);
+  --color-info-700: hsl(200, 85%, 36%);
+  --color-info-800: hsl(200, 85%, 29%);
+  --color-info-900: hsl(200, 90%, 22%);
+
+  /* ----- Spacing Scale -----
+     Based on 0.25rem (4px) increments
+     Follows spacing = base * multiplier pattern */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem; /* 4px */
+  --spacing-2: 0.5rem; /* 8px */
+  --spacing-3: 0.75rem; /* 12px */
+  --spacing-4: 1rem; /* 16px - base */
+  --spacing-5: 1.25rem; /* 20px */
+  --spacing-6: 1.5rem; /* 24px */
+  --spacing-8: 2rem; /* 32px */
+  --spacing-10: 2.5rem; /* 40px */
+  --spacing-12: 3rem; /* 48px */
+  --spacing-16: 4rem; /* 64px */
+  --spacing-20: 5rem; /* 80px */
+
+  /* ----- Border Radius -----
+     Consistent rounding across components */
+  --radius-none: 0;
+  --radius-sm: 0.25rem; /* 4px - tight corners */
+  --radius-base: 0.375rem; /* 6px - default */
+  --radius-md: 0.5rem; /* 8px - cards */
+  --radius-lg: 0.75rem; /* 12px - modals */
+  --radius-xl: 1rem; /* 16px - large cards */
+  --radius-full: 9999px; /* Pills, circles */
+
+  /* ----- Shadows -----
+     Elevation system for depth */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.08);
+  --shadow-base: 0 4px 8px 0 rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 6px 12px 0 rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 10px 20px 0 rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 20px 40px 0 rgba(0, 0, 0, 0.2);
+
+  /* ----- Typography -----
+     Font sizes follow a modular scale */
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem; /* 36px */
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ----- Transitions -----
+     Consistent animation timing */
+  --transition-fast: 150ms ease-in-out;
+  --transition-base: 300ms ease-in-out;
+  --transition-slow: 500ms ease-in-out;
+
+  /* ----- Z-index Scale -----
+     Layering system to prevent z-index wars */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-fixed: 1200;
+  --z-modal-backdrop: 1300;
+  --z-modal: 1400;
+  --z-popover: 1500;
+  --z-tooltip: 1600;
+  --z-toast: 1700;
+
+  /* ==========================================
+     TIER 2: SEMANTIC TOKENS
+     Meaning-based tokens (what, not how)
+     ========================================== */
+
+  /* ----- Text Colors ----- */
+  --text-primary: var(--color-gray-900);
+  --text-secondary: var(--color-gray-600);
+  --text-tertiary: var(--color-gray-500);
+  --text-disabled: var(--color-gray-400);
+  --text-inverse: var(--color-white);
+  --text-link: var(--color-primary-600);
+  --text-link-hover: var(--color-primary-700);
+
+  /* ----- Background Colors ----- */
+  --bg-primary: var(--color-white);
+  --bg-secondary: var(--color-gray-50);
+  --bg-tertiary: var(--color-gray-100);
+  --bg-inverse: var(--color-gray-900);
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+
+  /* ----- Border Colors ----- */
+  --border-default: var(--color-gray-200);
+  --border-strong: var(--color-gray-300);
+  --border-subtle: var(--color-gray-100);
+  --border-focus: var(--color-primary-500);
+
+  /* ----- Interactive States ----- */
+  --interactive-primary: var(--color-primary-500);
+  --interactive-primary-hover: var(--color-primary-600);
+  --interactive-primary-active: var(--color-primary-700);
+  --interactive-primary-disabled: var(--color-gray-300);
+
+  /* ----- Status Colors ----- */
+  --status-success: var(--color-success-500);
+  --status-success-bg: var(--color-success-50);
+  --status-success-border: var(--color-success-200);
+  --status-success-text: var(--color-success-800);
+
+  --status-warning: var(--color-warning-500);
+  --status-warning-bg: var(--color-warning-50);
+  --status-warning-border: var(--color-warning-200);
+  --status-warning-text: var(--color-warning-800);
+
+  --status-danger: var(--color-danger-500);
+  --status-danger-bg: var(--color-danger-50);
+  --status-danger-border: var(--color-danger-200);
+  --status-danger-text: var(--color-danger-800);
+
+  --status-info: var(--color-info-500);
+  --status-info-bg: var(--color-info-50);
+  --status-info-border: var(--color-info-200);
+  --status-info-text: var(--color-info-800);
+
+  /* ==========================================
+     TIER 3: COMPONENT TOKENS
+     Component-specific values
+     ========================================== */
+
+  /* ----- Buttons ----- */
+  --button-font-size: var(--font-size-base);
+  --button-font-weight: var(--font-weight-medium);
+  --button-padding-y: var(--spacing-3);
+  --button-padding-x: var(--spacing-6);
+  --button-border-radius: var(--radius-base);
+  --button-transition: var(--transition-fast);
+
+  /* Primary button */
+  --button-primary-bg: var(--interactive-primary);
+  --button-primary-bg-hover: var(--interactive-primary-hover);
+  --button-primary-bg-active: var(--interactive-primary-active);
+  --button-primary-text: var(--text-inverse);
+
+  /* Secondary button */
+  --button-secondary-bg: var(--color-gray-600);
+  --button-secondary-bg-hover: var(--color-gray-700);
+  --button-secondary-text: var(--text-inverse);
+
+  /* ----- Inputs ----- */
+  --input-bg: var(--bg-primary);
+  --input-border: var(--border-default);
+  --input-border-focus: var(--border-focus);
+  --input-text: var(--text-primary);
+  --input-placeholder: var(--text-tertiary);
+  --input-padding-y: var(--spacing-3);
+  --input-padding-x: var(--spacing-4);
+  --input-border-radius: var(--radius-base);
+  --input-focus-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+
+  /* ----- Cards ----- */
+  --card-bg: var(--bg-tertiary);
+  --card-border: var(--border-subtle);
+  --card-shadow: var(--shadow-base);
+  --card-padding: var(--spacing-8);
+  --card-border-radius: var(--radius-md);
+
+  /* ----- Modals ----- */
+  --modal-bg: var(--bg-primary);
+  --modal-shadow: var(--shadow-xl);
+  --modal-border-radius: var(--radius-lg);
+  --modal-backdrop: var(--bg-overlay);
+}
+```
+
+This is **1000+ lines** when fully documented. I've shown you the pattern - in production, you'd expand this to cover every component.
+
+### Understanding the Structure
+
+**Why so many variables?**
+
+Each serves a purpose:
+
+1. **Primitives** - Never used directly in components
+   - `--color-primary-500` ← Raw value
+2. **Semantics** - Used in components
+   - `--interactive-primary` → `var(--color-primary-500)`
+   - Meaning: "This is the color for primary interactions"
+3. **Components** - Used in specific component CSS
+   - `--button-primary-bg` → `var(--interactive-primary)`
+   - Meaning: "This is specifically for primary button backgrounds"
+
+**Why this indirection?**
+
+```css
+/* Bad - tightly coupled */
+.button {
+  background: var(--color-primary-500);
+}
+
+/* Good - semantic layer */
+.button {
+  background: var(--button-primary-bg);
+}
+```
+
+Now if you decide primary buttons should be green instead of purple:
+
+```css
+/* Just change ONE variable */
+--button-primary-bg: var(--color-success-500);
+
+/* Instead of finding every .button and changing it */
+```
+
+This is **the industry standard** used by Material Design, Bootstrap, Chakra UI, etc.
+
+---
+
+_This is getting very long. Should I continue with:_
+
+**4B.5:** Dark Mode Implementation  
+**4B.6:** Theme Switcher with JavaScript  
+**4B.7:** Refactoring Existing CSS  
+**4B.8:** CSS Architecture (ITCSS/BEM)  
+**4B.9:** Accessibility & Testing
+
+I'll create a complete, in-depth artifact with all sections including developer shortcuts and tools to make the refactoring easier.
+
+<artifact identifier="stage-4b-complete" type="text/markdown" title="Stage 4B: Complete CSS Architecture & Theming Guide">
+# Stage 4B: CSS Architecture & Theming - Professional Design Systems (Complete)
+
+## Table of Contents
+
+- 4B.1: Understanding CSS Custom Properties ✓ (from previous)
+- 4B.2: Color Theory & Choosing a Palette ✓ (from previous)
+- 4B.3: Building the Design Token System ✓ (from previous)
+- 4B.4: Implementing the Design System ✓ (from previous)
+- **4B.5: Dark Mode Implementation**
+- **4B.6: Theme Switcher with JavaScript**
+- **4B.7: Refactoring Existing CSS (The Big Migration)**
+- **4B.8: CSS Architecture Patterns**
+- **4B.9: Developer Tools & Shortcuts**
+- **4B.10: Accessibility & Testing**
+
+---
+
+## 4B.5: Dark Mode Implementation
+
+### Understanding Dark Mode
+
+**Dark mode** isn't just inverting colors. It requires careful thought about:
+
+- Reduced eye strain (less blue light)
+- Contrast ratios (still need WCAG compliance)
+- Colors appear differently on dark backgrounds
+- Depth perception (shadows work differently)
+
+### Dark Mode Color Theory
+
+**On white background:**
+
+```
+Light colors = recede (backgrounds)
+Dark colors = advance (text)
+```
+
+**On dark background:**
+
+```
+Dark colors = recede (backgrounds)
+Light colors = advance (text)
+BUT: Pure white (#fff) is too harsh!
+```
+
+**Best practices:**
+
+- Background: Not pure black, use `#121212` or `hsl(240, 6%, 10%)`
+- Text: Not pure white, use `#e0e0e0` or `hsl(240, 5%, 90%)`
+- Reduce saturation: Colors should be slightly muted
+- Increase elevation: Use shadows/borders for depth
+
+### Dark Theme Tokens
+
+Add to `backend/static/css/tokens.css`:
+
+```css
+/**
+ * Dark Theme
+ * 
+ * Applied when [data-theme="dark"] is set on <html> element.
+ * 
+ * Strategy: Only override SEMANTIC tokens, not primitives.
+ * This ensures both themes use the same color palette,
+ * maintaining brand consistency.
+ */
+
+[data-theme="dark"] {
+  /* ==========================================
+     TIER 2: SEMANTIC TOKENS (Dark Mode)
+     Only these change - primitives stay the same
+     ========================================== */
+
+  /* ----- Text Colors ----- 
+     Inverted hierarchy: light text on dark background */
+  --text-primary: var(--color-gray-100); /* Was gray-900 */
+  --text-secondary: var(--color-gray-400); /* Was gray-600 */
+  --text-tertiary: var(--color-gray-500); /* Same - middle gray */
+  --text-disabled: var(--color-gray-600); /* Was gray-400 */
+  --text-inverse: var(--color-gray-900); /* Was white */
+
+  /* Links - slightly brighter in dark mode for contrast */
+  --text-link: var(--color-primary-400); /* Was primary-600 */
+  --text-link-hover: var(--color-primary-300); /* Was primary-700 */
+
+  /* ----- Background Colors ----- 
+     Dark backgrounds, subtle variations for depth */
+  --bg-primary: var(--color-gray-900); /* Main background */
+  --bg-secondary: var(--color-gray-800); /* Slightly elevated */
+  --bg-tertiary: var(--color-gray-700); /* Cards, panels */
+  --bg-inverse: var(--color-gray-50); /* Light sections */
+  --bg-overlay: rgba(0, 0, 0, 0.7); /* Darker overlay */
+
+  /* ----- Border Colors ----- 
+     Lighter borders for visibility on dark */
+  --border-default: var(--color-gray-700); /* Was gray-200 */
+  --border-strong: var(--color-gray-600); /* Was gray-300 */
+  --border-subtle: var(--color-gray-800); /* Was gray-100 */
+  --border-focus: var(--color-primary-400); /* Brighter for visibility */
+
+  /* ----- Interactive States ----- 
+     Slightly lighter for better contrast */
+  --interactive-primary: var(--color-primary-500); /* Same base */
+  --interactive-primary-hover: var(--color-primary-400); /* Lighter on hover */
+  --interactive-primary-active: var(--color-primary-300); /* Even lighter */
+  --interactive-primary-disabled: var(--color-gray-700);
+
+  /* ----- Status Colors ----- 
+     Adjusted for dark background visibility */
+
+  /* Success - Green */
+  --status-success: var(--color-success-400); /* Lighter green */
+  --status-success-bg: hsl(145, 40%, 15%); /* Darkened background */
+  --status-success-border: var(--color-success-700);
+  --status-success-text: var(--color-success-200);
+
+  /* Warning - Amber */
+  --status-warning: var(--color-warning-400);
+  --status-warning-bg: hsl(38, 50%, 15%);
+  --status-warning-border: var(--color-warning-700);
+  --status-warning-text: var(--color-warning-200);
+
+  /* Danger - Red */
+  --status-danger: var(--color-danger-400);
+  --status-danger-bg: hsl(0, 50%, 15%);
+  --status-danger-border: var(--color-danger-700);
+  --status-danger-text: var(--color-danger-200);
+
+  /* Info - Blue */
+  --status-info: var(--color-info-400);
+  --status-info-bg: hsl(200, 50%, 15%);
+  --status-info-border: var(--color-info-700);
+  --status-info-text: var(--color-info-200);
+
+  /* ==========================================
+     TIER 3: COMPONENT TOKENS (Dark Mode Adjustments)
+     Only override if component needs dark-specific changes
+     ========================================== */
+
+  /* ----- Inputs ----- 
+     Dark mode inputs need different focus treatment */
+  --input-bg: var(--color-gray-800);
+  --input-border: var(--color-gray-600);
+  --input-border-focus: var(--color-primary-400);
+  --input-text: var(--text-primary);
+  --input-placeholder: var(--text-tertiary);
+  --input-focus-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3); /* Brighter glow */
+
+  /* ----- Cards ----- 
+     Elevated surfaces in dark mode */
+  --card-bg: var(--bg-tertiary);
+  --card-border: var(--border-subtle);
+  --card-shadow: var(--shadow-lg); /* Stronger shadows for depth */
+
+  /* ----- Modals ----- */
+  --modal-bg: var(--color-gray-800);
+  --modal-shadow: var(--shadow-xl);
+  --modal-backdrop: rgba(0, 0, 0, 0.8); /* Darker backdrop */
+
+  /* ----- Shadows (Dark Mode Specific) ----- 
+     In dark mode, shadows need to be lighter/subtler
+     because we're creating depth with light, not darkness */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.4);
+  --shadow-base: 0 4px 8px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 6px 12px 0 rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 10px 20px 0 rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 20px 40px 0 rgba(0, 0, 0, 0.8);
+}
+```
+
+### Dark Mode Specific Considerations
+
+**1. Color Saturation Adjustment**
+
+Colors appear more vibrant on dark backgrounds. Reduce saturation slightly:
+
+```css
+/* Light mode - full saturation */
+:root {
+  --color-primary-500: hsl(245, 70%, 55%);
+}
+
+/* Dark mode - slightly reduced */
+[data-theme="dark"] {
+  /* Override primitive for dark mode */
+  --color-primary-500: hsl(245, 60%, 55%); /* 70% → 60% saturation */
+}
+```
+
+**2. Avoid Pure Black and Pure White**
+
+```css
+/* ❌ BAD - too harsh */
+[data-theme="dark"] {
+  --bg-primary: #000000;
+  --text-primary: #ffffff;
+}
+
+/* ✅ GOOD - softer on eyes */
+[data-theme="dark"] {
+  --bg-primary: hsl(240, 6%, 10%); /* Almost black, slight color */
+  --text-primary: hsl(240, 5%, 90%); /* Almost white, not glaring */
+}
+```
+
+**3. Depth with Elevation, Not Just Shadows**
+
+```css
+/* Dark mode elevation system */
+[data-theme="dark"] {
+  /* Base surface */
+  --surface-0: var(--color-gray-900); /* 10% lightness */
+
+  /* Each level is slightly lighter */
+  --surface-1: var(--color-gray-850); /* 12% lightness */
+  --surface-2: var(--color-gray-800); /* 15% lightness */
+  --surface-3: var(--color-gray-750); /* 18% lightness */
+}
+
+/* Applied to components */
+.page {
+  background: var(--surface-0);
+}
+.card {
+  background: var(--surface-1);
+}
+.card-elevated {
+  background: var(--surface-2);
+}
+```
+
+---
+
+## 4B.6: Theme Switcher with JavaScript
+
+### Detecting System Preference
+
+**Modern browsers expose user's OS theme preference:**
+
+```javascript
+// Detect if user prefers dark mode
+const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+console.log(prefersDark); // true or false
+```
+
+**Listen for changes:**
+
+```javascript
+// User changes system theme while app is open
+window
+  .matchMedia("(prefers-color-scheme: dark)")
+  .addEventListener("change", (e) => {
+    const newColorScheme = e.matches ? "dark" : "light";
+    console.log(`System theme changed to: ${newColorScheme}`);
+  });
+```
+
+### Theme Management System
+
+Create `backend/static/js/theme.js`:
+
+```javascript
+/**
+ * Theme Management System
+ *
+ * Handles:
+ * - Detecting system preference
+ * - Storing user choice in localStorage
+ * - Applying theme to document
+ * - Smooth transitions between themes
+ * - Respecting user's explicit choice over system preference
+ *
+ * Usage:
+ *   import ThemeManager from './theme.js';
+ *   const theme = new ThemeManager();
+ *   theme.setTheme('dark');
+ */
+
+class ThemeManager {
+  constructor() {
+    this.STORAGE_KEY = "pdm-theme-preference";
+    this.THEME_ATTRIBUTE = "data-theme";
+
+    // Available themes
+    this.themes = {
+      LIGHT: "light",
+      DARK: "dark",
+      AUTO: "auto",
+    };
+
+    // Initialize theme on creation
+    this.init();
+  }
+
+  /**
+   * Initialize theme system
+   *
+   * Priority:
+   * 1. User's explicit choice (localStorage)
+   * 2. System preference (prefers-color-scheme)
+   * 3. Default to light
+   */
+  init() {
+    console.log("ThemeManager: Initializing...");
+
+    // Get stored preference
+    const stored = this.getStoredPreference();
+
+    if (stored && stored !== this.themes.AUTO) {
+      // User has explicit preference - use it
+      this.applyTheme(stored);
+      console.log(`ThemeManager: Applying stored preference: ${stored}`);
+    } else {
+      // No preference or set to AUTO - use system
+      const systemTheme = this.getSystemPreference();
+      this.applyTheme(systemTheme);
+      console.log(`ThemeManager: Applying system preference: ${systemTheme}`);
+    }
+
+    // Listen for system theme changes
+    this.watchSystemPreference();
+  }
+
+  /**
+   * Get theme from localStorage
+   */
+  getStoredPreference() {
+    try {
+      return localStorage.getItem(this.STORAGE_KEY);
+    } catch (e) {
+      console.warn("ThemeManager: localStorage unavailable", e);
+      return null;
+    }
+  }
+
+  /**
+   * Save theme to localStorage
+   */
+  setStoredPreference(theme) {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, theme);
+      console.log(`ThemeManager: Saved preference: ${theme}`);
+    } catch (e) {
+      console.warn("ThemeManager: Failed to save preference", e);
+    }
+  }
+
+  /**
+   * Get system theme preference
+   */
+  getSystemPreference() {
+    // Check if browser supports prefers-color-scheme
+    if (window.matchMedia) {
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      return prefersDark ? this.themes.DARK : this.themes.LIGHT;
+    }
+
+    // Fallback to light if not supported
+    return this.themes.LIGHT;
+  }
+
+  /**
+   * Watch for system preference changes
+   */
+  watchSystemPreference() {
+    if (!window.matchMedia) return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    // Modern browsers
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", (e) => {
+        console.log("ThemeManager: System preference changed");
+
+        // Only auto-switch if user hasn't set explicit preference
+        const stored = this.getStoredPreference();
+        if (!stored || stored === this.themes.AUTO) {
+          const newTheme = e.matches ? this.themes.DARK : this.themes.LIGHT;
+          this.applyTheme(newTheme);
+        }
+      });
+    }
+    // Legacy browsers
+    else if (mediaQuery.addListener) {
+      mediaQuery.addListener((e) => {
+        const stored = this.getStoredPreference();
+        if (!stored || stored === this.themes.AUTO) {
+          const newTheme = e.matches ? this.themes.DARK : this.themes.LIGHT;
+          this.applyTheme(newTheme);
+        }
+      });
+    }
+  }
+
+  /**
+   * Apply theme to document
+   *
+   * This is the core function that actually changes the theme.
+   * It sets the data-theme attribute on <html> which triggers
+   * our CSS variables to switch.
+   */
+  applyTheme(theme) {
+    // Validate theme
+    if (!Object.values(this.themes).includes(theme)) {
+      console.warn(`ThemeManager: Invalid theme "${theme}", using light`);
+      theme = this.themes.LIGHT;
+    }
+
+    // Resolve AUTO to actual theme
+    if (theme === this.themes.AUTO) {
+      theme = this.getSystemPreference();
+    }
+
+    // Get html element
+    const root = document.documentElement;
+
+    // Add transition class (prevents flash on initial load)
+    root.classList.add("theme-transition");
+
+    // Set theme attribute
+    root.setAttribute(this.THEME_ATTRIBUTE, theme);
+
+    // Emit custom event for other components to react
+    window.dispatchEvent(
+      new CustomEvent("themechange", {
+        detail: { theme },
+      })
+    );
+
+    // Remove transition class after animation completes
+    setTimeout(() => {
+      root.classList.remove("theme-transition");
+    }, 300);
+
+    console.log(`ThemeManager: Applied theme: ${theme}`);
+  }
+
+  /**
+   * Set theme (public API)
+   *
+   * @param {string} theme - 'light', 'dark', or 'auto'
+   */
+  setTheme(theme) {
+    console.log(`ThemeManager: Setting theme to ${theme}`);
+
+    // Save preference
+    this.setStoredPreference(theme);
+
+    // Apply theme
+    this.applyTheme(theme);
+  }
+
+  /**
+   * Get current active theme
+   */
+  getCurrentTheme() {
+    const root = document.documentElement;
+    return root.getAttribute(this.THEME_ATTRIBUTE) || this.themes.LIGHT;
+  }
+
+  /**
+   * Toggle between light and dark
+   */
+  toggle() {
+    const current = this.getCurrentTheme();
+    const next =
+      current === this.themes.LIGHT ? this.themes.DARK : this.themes.LIGHT;
+    this.setTheme(next);
+  }
+}
+
+// Create singleton instance
+const themeManager = new ThemeManager();
+
+// Export for use in other modules
+export default themeManager;
+
+// Also attach to window for non-module usage
+window.themeManager = themeManager;
+```
+
+### Add Smooth Transitions
+
+Add to `backend/static/css/style.css`:
+
+```css
+/**
+ * Theme Transition
+ * 
+ * When theme changes, smoothly transition colors.
+ * Only applied during theme switch (via JS), not on page load.
+ */
+
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color var(--transition-base), border-color var(--transition-base),
+    color var(--transition-base), fill var(--transition-base),
+    stroke var(--transition-base) !important;
+  transition-delay: 0s !important;
+}
+
+/**
+ * Prevent transition flash on page load
+ * 
+ * Without this, page load would show a brief flash of the
+ * transition animation as variables are set.
+ */
+html:not(.theme-transition) * {
+  transition: none !important;
+}
+```
+
+### Theme Switcher UI Component
+
+Add to `backend/static/index.html` header:
+
+```html
+<header>
+  <div class="header-content">
+    <div>
+      <h1>PDM System</h1>
+      <p>Parts Data Management</p>
+    </div>
+    <div class="header-actions">
+      <!-- Theme Switcher -->
+      <button
+        id="theme-toggle"
+        class="btn btn-icon"
+        aria-label="Toggle theme"
+        title="Toggle light/dark mode"
+      >
+        <span class="theme-icon theme-icon-light">☀️</span>
+        <span class="theme-icon theme-icon-dark">🌙</span>
+      </button>
+
+      <span id="connection-status" class="status-disconnected">
+        🔴 Disconnected
+      </span>
+
+      <button
+        id="admin-panel-btn"
+        class="btn btn-secondary"
+        style="display: none;"
+      >
+        Admin Panel
+      </button>
+      <button id="logout-btn" class="btn btn-secondary">Logout</button>
+    </div>
+  </div>
+</header>
+```
+
+### Theme Toggle Button Styles
+
+Add to `style.css`:
+
+```css
+/* ============================================
+   THEME TOGGLE BUTTON
+   ============================================ */
+
+.btn-icon {
+  /* Icon-only button - square shape */
+  padding: var(--spacing-2);
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-icon:hover {
+  background: var(--bg-secondary);
+  transform: none; /* Override default button transform */
+}
+
+/* Theme icons */
+.theme-icon {
+  position: absolute;
+  font-size: 1.25rem;
+  transition: transform var(--transition-base), opacity var(--transition-base);
+}
+
+/* Light theme - show moon icon */
+:root .theme-icon-light {
+  transform: translateY(0) rotate(0deg);
+  opacity: 0;
+}
+
+:root .theme-icon-dark {
+  transform: translateY(0) rotate(0deg);
+  opacity: 1;
+}
+
+/* Dark theme - show sun icon */
+[data-theme="dark"] .theme-icon-light {
+  transform: translateY(0) rotate(180deg);
+  opacity: 1;
+}
+
+[data-theme="dark"] .theme-icon-dark {
+  transform: translateY(40px) rotate(180deg);
+  opacity: 0;
+}
+```
+
+### Wire Up Theme Toggle
+
+Update `backend/static/js/app.js`:
+
+```javascript
+// Import theme manager (if using modules)
+// import themeManager from './theme.js';
+
+// Or access from window if not using modules
+// const themeManager = window.themeManager;
+
+document.addEventListener("DOMContentLoaded", function () {
+  console.log("DOM fully loaded");
+
+  // Theme toggle button
+  const themeToggle = document.getElementById("theme-toggle");
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      window.themeManager.toggle();
+    });
+  }
+
+  // Listen for theme changes (optional - for analytics, etc.)
+  window.addEventListener("themechange", (e) => {
+    console.log("Theme changed to:", e.detail.theme);
+
+    // Could send analytics event here
+    // analytics.track('theme_changed', { theme: e.detail.theme });
+  });
+
+  // ... rest of your initialization code ...
+});
+```
+
+### Load Theme Manager First
+
+Update `index.html` to load theme.js BEFORE app.js:
+
+```html
+<!-- Load theme manager first to prevent flash -->
+<script src="/static/js/theme.js"></script>
+
+<!-- Then load main app -->
+<script src="/static/js/app.js"></script>
+```
+
+**CRITICAL:** Theme.js must load BEFORE the page renders to prevent a "flash of unstyled content" (FOUC).
+
+---
+
+## 4B.7: Refactoring Existing CSS (The Big Migration)
+
+### The Refactoring Strategy
+
+**Don't rewrite everything at once!** Use incremental refactoring:
+
+1. **Add new token system** ✓ (done)
+2. **Refactor one component at a time**
+3. **Test after each component**
+4. **Delete old CSS once verified**
+
+### Before You Start: Create a Backup
+
+```bash
+cd backend/static/css
+cp style.css style.css.backup
+```
+
+### Developer Shortcut: Find & Replace Patterns
+
+**VS Code Multi-Cursor Magic:**
+
+1. Select a hardcoded color: `#667eea`
+2. Press `Cmd+D` (Mac) or `Ctrl+D` (Windows) repeatedly
+   - Selects next occurrence
+3. Type replacement: `var(--interactive-primary)`
+4. All instances replaced!
+
+**Regex Find & Replace:**
+
+Find: `#667eea`
+Replace: `var(--interactive-primary)`
+
+**But be careful!** Not all instances should use the same variable.
+
+### Refactoring Component by Component
+
+#### 1. Reset & Global Styles
+
+**OLD:**
+
+```css
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f5f5f5;
+}
+```
+
+**NEW:**
+
+```css
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+  line-height: var(--line-height-base);
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+```
+
+#### 2. Header
+
+**OLD:**
+
+```css
+header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+header p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+```
+
+**NEW:**
+
+```css
+header {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-500) 0%,
+    var(--color-primary-700) 100%
+  );
+  color: var(--text-inverse);
+  padding: var(--spacing-8);
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+header h1 {
+  font-size: var(--font-size-4xl);
+  margin-bottom: var(--spacing-2);
+  font-weight: var(--font-weight-bold);
+}
+
+header p {
+  font-size: var(--font-size-lg);
+  opacity: 0.9;
+}
+```
+
+#### 3. Buttons (Most Important!)
+
+**OLD:**
+
+```css
+.btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: #6c757d;
+}
+
+.btn-checkout {
+  background: #28a745;
+}
+
+.btn-checkin {
+  background: #ffc107;
+  color: #333;
+}
+
+.btn-danger {
+  background: #dc3545;
+}
+```
+
+**NEW:**
+
+```css
+/* ============================================
+   BUTTONS
+   Component tokens make these maintainable
+   ============================================ */
+
+.btn {
+  /* Use component tokens for all properties */
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  border: none;
+  padding: var(--button-padding-y) var(--button-padding-x);
+  border-radius: var(--button-border-radius);
+  font-size: var(--button-font-size);
+  font-weight: var(--button-font-weight);
+  cursor: pointer;
+  transition: var(--button-transition);
+
+  /* Reset for consistency */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.btn:hover {
+  background: var(--button-primary-bg-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px hsla(245, 70%, 55%, 0.4);
+}
+
+.btn:active {
+  background: var(--button-primary-bg-active);
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  background: var(--interactive-primary-disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Button variants - use semantic tokens */
+.btn-secondary {
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+}
+
+.btn-secondary:hover {
+  background: var(--button-secondary-bg-hover);
+}
+
+.btn-checkout {
+  background: var(--status-success);
+  color: var(--text-inverse);
+}
+
+.btn-checkout:hover {
+  background: var(--color-success-600);
+}
+
+.btn-checkin {
+  background: var(--status-warning);
+  color: var(--color-gray-900); /* Dark text on amber */
+}
+
+.btn-checkin:hover {
+  background: var(--color-warning-600);
+}
+
+.btn-danger {
+  background: var(--status-danger);
+  color: var(--text-inverse);
+}
+
+.btn-danger:hover {
+  background: var(--color-danger-600);
+}
+```
+
+#### 4. Forms
+
+**OLD:**
+
+```css
+input[type="text"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+```
+
+**NEW:**
+
+```css
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  width: 100%;
+  padding: var(--input-padding-y) var(--input-padding-x);
+  border: 1px solid var(--input-border);
+  border-radius: var(--input-border-radius);
+  font-size: var(--font-size-base);
+  background: var(--input-bg);
+  color: var(--input-text);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder);
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--input-border-focus);
+  box-shadow: var(--input-focus-shadow);
+}
+```
+
+#### 5. Cards & Sections
+
+**OLD:**
+
+```css
+section {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+```
+
+**NEW:**
+
+```css
+section {
+  background: var(--card-bg);
+  padding: var(--card-padding);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--card-border);
+  margin-bottom: var(--spacing-8);
+}
+```
+
+#### 6. File List Items
+
+**OLD:**
+
+```css
+.file-item {
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.file-item:hover {
+  background-color: #f9f9f9;
+  border-color: #667eea;
+  transform: translateX(5px);
+}
+
+.file-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.status-available {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-checked_out {
+  background-color: #fff3cd;
+  color: #856404;
+}
+```
+
+**NEW:**
+
+```css
+.file-item {
+  padding: var(--spacing-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-base);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all var(--transition-base);
+  background: var(--bg-primary);
+}
+
+.file-item:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--interactive-primary);
+  transform: translateX(5px);
+}
+
+.file-name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.file-status {
+  padding: var(--spacing-1) var(--spacing-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.status-available {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+  border: 1px solid var(--status-success-border);
+}
+
+.status-checked_out {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  border: 1px solid var(--status-warning-border);
+}
+```
+
+#### 7. Modals
+
+**OLD:**
+
+```css
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+```
+
+**NEW:**
+
+```css
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--modal-backdrop);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: var(--z-modal-backdrop);
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  background: var(--modal-bg);
+  border-radius: var(--modal-border-radius);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--modal-shadow);
+  border: 1px solid var(--border-default);
+}
+
+.modal-header {
+  padding: var(--spacing-6);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-2xl);
+}
+
+.modal-body {
+  padding: var(--spacing-6);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: var(--font-size-3xl);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-base);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.modal-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+```
+
+### Developer Shortcut: VS Code Snippets
+
+Create `.vscode/css.code-snippets` in your project:
+
+```json
+{
+  "Color Variable": {
+    "prefix": "cvar",
+    "body": ["var(--color-$1)"],
+    "description": "Insert color variable"
+  },
+  "Spacing Variable": {
+    "prefix": "svar",
+    "body": ["var(--spacing-$1)"]
+  },
+  "Component Token": {
+    "prefix": "tvar",
+    "body": ["var(--$1-$2)"]
+  }
+}
+```
+
+Now type `cvar` + Tab → `var(--color-|)` (cursor at |)
+
+### Automated Refactoring Script
+
+For bulk replacements, create `refactor-css.js`:
+
+```javascript
+/**
+ * CSS Refactoring Script
+ *
+ * Automatically replaces hardcoded values with CSS variables.
+ *
+ * Usage:
+ *   node refactor-css.js style.css
+ */
+
+const fs = require("fs");
+
+const replacements = {
+  // Colors
+  "#667eea": "var(--color-primary-500)",
+  "#764ba2": "var(--color-primary-700)",
+  "#28a745": "var(--status-success)",
+  "#ffc107": "var(--status-warning)",
+  "#dc3545": "var(--status-danger)",
+  "#6c757d": "var(--color-gray-600)",
+  "#333": "var(--text-primary)",
+  "#666": "var(--text-secondary)",
+  "#999": "var(--text-tertiary)",
+  white: "var(--color-white)",
+  "#f5f5f5": "var(--bg-secondary)",
+  "#e0e0e0": "var(--border-default)",
+
+  // Spacing (be careful with these!)
+  "padding: 1rem": "padding: var(--spacing-4)",
+  "padding: 2rem": "padding: var(--spacing-8)",
+  "margin: 1rem": "margin: var(--spacing-4)",
+  "gap: 1rem": "gap: var(--spacing-4)",
+
+  // Border radius
+  "border-radius: 4px": "border-radius: var(--radius-base)",
+  "border-radius: 8px": "border-radius: var(--radius-md)",
+
+  // Transitions
+  "transition: all 0.3s ease": "transition: all var(--transition-base)",
+};
+
+function refactorCSS(filePath) {
+  let content = fs.readFileSync(filePath, "utf8");
+
+  Object.entries(replacements).forEach(([old, new_]) => {
+    const regex = new RegExp(old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+    content = content.replace(regex, new_);
+  });
+
+  // Write back
+  fs.writeFileSync(filePath, content);
+  console.log(`Refactored: ${filePath}`);
+}
+
+const filePath = process.argv[2];
+if (!filePath) {
+  console.log("Usage: node refactor-css.js <css-file>");
+  process.exit(1);
+}
+
+refactorCSS(filePath);
+```
+
+**Run it:**
+
+```bash
+node refactor-css.js backend/static/css/style.css
+```
+
+**⚠️ WARNING:** Always review changes! Automated refactoring can make mistakes.
+
+---
+
+## 4B.8: CSS Architecture Patterns
+
+### Why Architecture Matters
+
+**Without structure:**
+
+```css
+/* style.css - 5000 lines */
+.btn {
+  ...;
+}
+.card {
+  ...;
+}
+.modal {
+  ...;
+}
+/* Everything in one file, no organization */
+```
+
+**With structure:**
+
+```
+css/
+├── tokens.css          (Design system)
+├── reset.css           (Browser normalization)
+├── layout.css          (Page structure)
+├── components/
+│   ├── buttons.css
+│   ├── forms.css
+│   ├── modals.css
+│   └── cards.css
+└── utilities.css       (Helper classes)
+```
+
+### ITCSS (Inverted Triangle CSS)
+
+**The industry-standard CSS architecture:**
+
+```
+   Wide reach, low specificity (affects everything)
+   ↓
+┌────────────────────────────┐
+│  1. Settings (variables)   │  ← Tokens, no output
+├────────────────────────────┤
+│  2. Tools (mixins)         │  ← Functions, no output
+├────────────────────────────┤
+│  3. Generic (resets)       │  ← Normalize, box-sizing
+├────────────────────────────┤
+│  4. Elements (HTML tags)   │  ← h1, p, a (no classes)
+├────────────────────────────┤
+│  5. Objects (layout)       │  ← .container, .grid
+├────────────────────────────┤
+│  6. Components             │  ← .btn, .card, .modal
+├────────────────────────────┤
+│  7. Utilities              │  ← .text-center, .mt-4
+└────────────────────────────┘
+   ↑
+   Narrow reach, high specificity (very specific)
+```
+
+**Key principle:** Specificity increases as you go down.
+
+### Implementing ITCSS
+
+**1. Settings (tokens.css)** ✓ Already done!
+
+**2. Generic (reset.css)**
+
+Create `backend/static/css/reset.css`:
+
+```css
+/**
+ * Modern CSS Reset
+ * Based on: https://github.com/Andy-set-studio/modern-css-reset
+ */
+
+/* Box sizing rules */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Remove default margin */
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+/* Remove list styles on ul, ol elements with a list role */
+ul[role="list"],
+ol[role="list"] {
+  list-style: none;
+}
+
+/* Set core root defaults */
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
+/* Set core body defaults */
+body {
+  min-height: 100vh;
+  text-rendering: optimizeSpeed;
+  line-height: 1.5;
+}
+
+/* A elements that don't have a class get default styles */
+a:not([class]) {
+  text-decoration-skip-ink: auto;
+}
+
+/* Make images easier to work with */
+img,
+picture {
+  max-width: 100%;
+  display: block;
+}
+
+/* Inherit fonts for inputs and buttons */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+/* Remove all animations and transitions for people who prefer not to see them */
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+```
+
+**3. Elements (base.css)**
+
+Create `backend/static/css/base.css`:
+
+```css
+/**
+ * Base Element Styles
+ * 
+ * Styles for HTML elements (no classes).
+ * These establish the default look.
+ */
+
+html {
+  font-size: 16px; /* Base for rem calculations */
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+  line-height: var(--line-height-base);
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--text-primary);
+}
+
+h1 {
+  font-size: var(--font-size-4xl);
+  margin-bottom: var(--spacing-4);
+}
+h2 {
+  font-size: var(--font-size-3xl);
+  margin-bottom: var(--spacing-4);
+}
+h3 {
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--spacing-3);
+}
+h4 {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--spacing-3);
+}
+h5 {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--spacing-2);
+}
+h6 {
+  font-size: var(--font-size-base);
+  margin-bottom: var(--spacing-2);
+}
+
+/* Paragraphs */
+p {
+  margin-bottom: var(--spacing-4);
+}
+
+/* Links */
+a {
+  color: var(--text-link);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--text-link-hover);
+  text-decoration: underline;
+}
+
+/* Code */
+code {
+  font-family: "Courier New", monospace;
+  background: var(--bg-tertiary);
+  padding: 0.125rem 0.25rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875em;
+}
+
+pre {
+  background: var(--bg-tertiary);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-base);
+  overflow-x: auto;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+```
+
+**4. Objects (layout.css)**
+
+Create `backend/static/css/layout.css`:
+
+```css
+/**
+ * Layout Objects
+ * 
+ * Reusable layout patterns (no cosmetic styles).
+ */
+
+/* Container - centers content with max-width */
+.container {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+}
+
+/* Stack - vertical spacing */
+.stack > * + * {
+  margin-top: var(--spacing-4);
+}
+
+.stack-sm > * + * {
+  margin-top: var(--spacing-2);
+}
+.stack-lg > * + * {
+  margin-top: var(--spacing-8);
+}
+
+/* Cluster - horizontal grouping */
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+  align-items: center;
+}
+
+/* Grid - responsive grid layout */
+.grid {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* Flex utilities */
+.flex {
+  display: flex;
+}
+.flex-column {
+  flex-direction: column;
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+.items-center {
+  align-items: center;
+}
+.justify-center {
+  justify-content: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-1 {
+  gap: var(--spacing-1);
+}
+.gap-2 {
+  gap: var(--spacing-2);
+}
+.gap-3 {
+  gap: var(--spacing-3);
+}
+.gap-4 {
+  gap: var(--spacing-4);
+}
+```
+
+**5. Components**
+
+Split into separate files:
+
+`components/buttons.css`:
+
+```css
+/**
+ * Button Component
+ */
+
+.btn {
+  /* All button styles from earlier */
+}
+
+.btn-primary {
+  /* ... */
+}
+.btn-secondary {
+  /* ... */
+}
+/* etc */
+```
+
+`components/forms.css`:
+
+```css
+/**
+ * Form Components
+ */
+
+.form-group {
+  /* ... */
+}
+input[type="text"] {
+  /* ... */
+}
+/* etc */
+```
+
+**6. Utilities (utilities.css)**
+
+```css
+/**
+ * Utility Classes
+ * 
+ * Single-purpose classes that do one thing.
+ * Use sparingly - prefer components.
+ */
+
+/* Spacing */
+.mt-1 {
+  margin-top: var(--spacing-1);
+}
+.mt-2 {
+  margin-top: var(--spacing-2);
+}
+.mt-3 {
+  margin-top: var(--spacing-3);
+}
+.mt-4 {
+  margin-top: var(--spacing-4);
+}
+.mb-1 {
+  margin-bottom: var(--spacing-1);
+}
+.mb-2 {
+  margin-bottom: var(--spacing-2);
+}
+/* ... etc for all sides and sizes ... */
+
+/* Text alignment */
+.text-left {
+  text-align: left;
+}
+.text-center {
+  text-align: center;
+}
+.text-right {
+  text-align: right;
+}
+
+/* Text colors */
+.text-primary {
+  color: var(--text-primary);
+}
+.text-secondary {
+  color: var(--text-secondary);
+}
+.text-success {
+  color: var(--status-success);
+}
+.text-warning {
+  color: var(--status-warning);
+}
+.text-danger {
+  color: var(--status-danger);
+}
+
+/* Display */
+.hidden {
+  display: none;
+}
+.block {
+  display: block;
+}
+.inline-block {
+  display: inline-block;
+}
+
+/* Width */
+.w-full {
+  width: 100%;
+}
+.w-half {
+  width: 50%;
+}
+```
+
+### Import Order in index.html
+
+**CRITICAL:** Load in ITCSS order:
+
+```html
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDM - Parts Data Management</title>
+
+  <!-- 1. Settings (variables) -->
+  <link rel="stylesheet" href="/static/css/tokens.css" />
+
+  <!-- 2. Generic (resets) -->
+  <link rel="stylesheet" href="/static/css/reset.css" />
+
+  <!-- 3. Elements (base styles) -->
+  <link rel="stylesheet" href="/static/css/base.css" />
+
+  <!-- 4. Objects (layout) -->
+  <link rel="stylesheet" href="/static/css/layout.css" />
+
+  <!-- 5. Components -->
+  <link rel="stylesheet" href="/static/css/components/buttons.css" />
+  <link rel="stylesheet" href="/static/css/components/forms.css" />
+  <link rel="stylesheet" href="/static/css/components/modals.css" />
+  <link rel="stylesheet" href="/static/css/components/cards.css" />
+
+  <!-- 6. Main styles (old style.css, gradually migrate) -->
+  <link rel="stylesheet" href="/static/css/style.css" />
+
+  <!-- 7. Utilities (last - highest specificity) -->
+  <link rel="stylesheet" href="/static/css/utilities.css" />
+</head>
+```
+
+**Or use @import in a single main.css:**
+
+Create `backend/static/css/main.css`:
+
+```css
+/* Main stylesheet - imports all others */
+
+@import "tokens.css";
+@import "reset.css";
+@import "base.css";
+@import "layout.css";
+@import "components/buttons.css";
+@import "components/forms.css";
+@import "components/modals.css";
+@import "components/cards.css";
+@import "style.css";
+@import "utilities.css";
+```
+
+Then in HTML:
+
+```html
+<link rel="stylesheet" href="/static/css/main.css" />
+```
+
+### BEM Naming Convention (Optional but Recommended)
+
+**BEM = Block Element Modifier**
+
+```css
+/* Block - standalone component */
+.card {
+}
+
+/* Element - part of block (use __) */
+.card__header {
+}
+.card__body {
+}
+.card__footer {
+}
+
+/* Modifier - variation (use --) */
+.card--elevated {
+}
+.card--compact {
+}
+
+/* Combined */
+.card__header--large {
+}
+```
+
+**Example refactor:**
+
+**Before:**
+
+```html
+<div class="file-item">
+  <span class="file-name">test.mcam</span>
+  <span class="file-status">available</span>
+</div>
+```
+
+**After (BEM):**
+
+```html
+<div class="file-item">
+  <span class="file-item__name">test.mcam</span>
+  <span class="file-item__status file-item__status--available">available</span>
+</div>
+```
+
+**Why BEM?**
+
+- Clear component boundaries
+- Avoids specificity issues
+- Self-documenting HTML
+- Easy to understand hierarchy
+
+---
+
+## 4B.9: Developer Tools & Shortcuts
+
+### Browser DevTools for Theming
+
+**Chrome DevTools CSS Variables Panel:**
+
+1. Open DevTools (F12)
+2. Elements tab
+3. Click `:root` in DOM tree
+4. Styles panel shows all CSS variables
+5. Click color square next to `--color-primary-500`
+6. Color picker appears - change color
+7. **Entire site updates instantly!**
+
+**Test dark mode without button:**
+
+```javascript
+// Console command
+document.documentElement.setAttribute("data-theme", "dark");
+
+// Toggle
+const current = document.documentElement.getAttribute("data-theme");
+document.documentElement.setAttribute(
+  "data-theme",
+  current === "dark" ? "light" : "dark"
+);
+```
+
+### VS Code Extensions
+
+**Essential extensions:**
+
+1. **CSS Peek** - Jump to CSS definition
+   - Cmd+Click on class name → opens CSS file
+2. **Color Highlight** - Shows color previews
+
+   - `--color-primary-500: hsl(245, 70%, 55%);` ← Shows actual color
+
+3. **IntelliSense for CSS Variables**
+
+   - Auto-complete CSS variables as you type
+
+4. **CSS Variable Autocomplete**
+   - Suggests CSS variables from your stylesheets
+
+**Install:**
+
+```bash
+code --install-extension pranaygp.vscode-css-peek
+code --install-extension naumovs.color-highlight
+```
+
+### Color Palette Generator Tools
+
+**Don't manually create 9 shades!** Use tools:
+
+**1. Coolors.co Palette Generator**
+
+```
+https://coolors.co/
+- Generate full palettes
+- Export as CSS
+- Check accessibility
+```
+
+**2. HSL Color Picker with Scales**
+
+```javascript
+// Generate scale programmatically
+function generateScale(hue, saturation) {
+  const lightnesses = [97, 94, 87, 77, 65, 55, 48, 40, 32, 25];
+
+  lightnesses.forEach((l, i) => {
+    const index = (i + 1) * 100;
+    console.log(
+      `--color-primary-${index}: hsl(${hue}, ${saturation}%, ${l}%);`
+    );
+  });
+}
+
+generateScale(245, 70); // Your primary color
+```
+
+**3. Material Design Color Tool**
+
+```
+https://material.io/resources/color/
+- Shows text contrast
+- WCAG compliance
+- Multiple formats
+```
+
+### CSS Variable Playground
+
+Create `backend/static/css-playground.html`:
+
+```html
+<!DOCTYPE DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSS Variable Playground</title>
+    <link rel="stylesheet" href="/static/css/tokens.css" />
+    <style>
+      body {
+        padding: 2rem;
+        font-family: system-ui;
+      }
+      .swatch {
+        display: inline-block;
+        width: 100px;
+        height: 100px;
+        border-radius: 8px;
+        margin: 0.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .label {
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+        text-align: center;
+      }
+      .controls {
+        margin: 2rem 0;
+      }
+      input[type="range"] {
+        width: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CSS Variable Playground</h1>
+
+    <div class="controls">
+      <label>
+        Hue: <input type="range" id="hue" min="0" max="360" value="245" />
+        <span id="hue-value">245</span>° </label
+      ><br />
+
+      <label>
+        Saturation:
+        <input type="range" id="sat" min="0" max="100" value="70" />
+        <span id="sat-value">70</span>%
+      </label>
+    </div>
+
+    <div id="swatches"></div>
+
+    <script>
+      const lightnesses = [97, 94, 87, 77, 65, 55, 48, 40, 32, 25];
+
+      function generateSwatches(hue, sat) {
+        const container = document.getElementById("swatches");
+        container.innerHTML = "";
+
+        lightnesses.forEach((l, i) => {
+          const index = (i + 1) * 100;
+          const color = `hsl(${hue}, ${sat}%, ${l}%)`;
+
+          const div = document.createElement("div");
+          div.innerHTML = `
+                    <div class="swatch" style="background: ${color}"></div>
+                    <div class="label">${index}<br>${color}</div>
+                `;
+          container.appendChild(div);
+        });
+      }
+
+      const hueInput = document.getElementById("hue");
+      const satInput = document.getElementById("sat");
+      const hueValue = document.getElementById("hue-value");
+      const satValue = document.getElementById("sat-value");
+
+      function update() {
+        const hue = hueInput.value;
+        const sat = satInput.value;
+        hueValue.textContent = hue;
+        satValue.textContent = sat;
+        generateSwatches(hue, sat);
+      }
+
+      hueInput.addEventListener("input", update);
+      satInput.addEventListener("input", update);
+
+      update();
+    </script>
+  </body>
+</html>
+```
+
+**Visit:** `http://localhost:8000/css-playground.html`
+
+Experiment with colors visually!
+
+### Contrast Checker Tool
+
+Add to playground:
+
+```html
+<div class="contrast-check">
+  <h2>Contrast Checker</h2>
+  <div
+    style="background: var(--color-primary-500); color: white; padding: 2rem;"
+  >
+    Text on Primary Background
+    <div id="contrast-ratio"></div>
+  </div>
+</div>
+
+<script>
+  function calculateContrast(color1, color2) {
+    // Get luminance (simplified)
+    function getLuminance(rgb) {
+      const [r, g, b] = rgb.map((val) => {
+        val = val / 255;
+        return val <= 0.03928
+          ? val / 12.92
+          : Math.pow((val + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+
+    const l1 = getLuminance(color1);
+    const l2 = getLuminance(color2);
+    const lighter = Math.max(l1, l2);
+    const darker = Math.min(l1, l2);
+
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  // Example usage
+  const ratio = calculateContrast([102, 126, 234], [255, 255, 255]);
+  document.getElementById(
+    "contrast-ratio"
+  ).textContent = `Contrast: ${ratio.toFixed(2)}:1`;
+</script>
+```
+
+### Git Workflow for CSS Refactoring
+
+**CRITICAL:** Don't refactor everything in one commit!
+
+```bash
+# Create feature branch
+git checkout -b css-refactor
+
+# Commit 1: Add token system
+git add backend/static/css/tokens.css
+git commit -m "Add CSS design token system"
+
+# Commit 2: Add dark mode
+git add backend/static/css/tokens.css
+git commit -m "Add dark theme tokens"
+
+# Commit 3: Refactor buttons
+git add backend/static/css/components/buttons.css
+git commit -m "Refactor buttons to use design tokens"
+
+# Commit 4: Refactor forms
+git add backend/static/css/components/forms.css
+git commit -m "Refactor forms to use design tokens"
+
+# Test at each stage!
+# If something breaks, you can git revert the specific commit
+
+# When done:
+git checkout main
+git merge css-refactor
+```
+
+**Why small commits?**
+
+- Easy to find bugs (which commit broke it?)
+- Easy to revert (undo just that change)
+- Clear history (see what changed when)
+
+---
+
+## 4B.10: Accessibility & Testing
+
+### Testing Color Contrast
+
+**Required ratios:**
+
+```
+Normal text (< 18pt):      4.5:1 (AA), 7:1 (AAA)
+Large text (18pt+ or 14pt+ bold): 3:1 (AA), 4.5:1 (AAA)
+UI components:            3:1 (AA)
+```
+
+**Tools:**
+
+**1. Chrome DevTools:**
+
+- Inspect element
+- Color picker shows contrast ratio
+- ✅ or ❌ indicator for WCAG compliance
+
+**2. WebAIM Contrast Checker:**
+
+```
+https://webaim.org/resources/contrastchecker/
+```
+
+**3. Automated testing:**
+
+```javascript
+// Add to your test suite
+describe("Color Contrast", () => {
+  it("should meet WCAG AA for all text", () => {
+    const styles = window.getComputedStyle(document.documentElement);
+    const textColor = styles.getPropertyValue("--text-primary");
+    const bgColor = styles.getPropertyValue("--bg-primary");
+
+    const ratio = calculateContrast(textColor, bgColor);
+    expect(ratio).toBeGreaterThan(4.5);
+  });
+});
+```
+
+### Testing Dark Mode
+
+**Manual test checklist:**
+
+```
+Light Mode:
+[ ] Text readable on all backgrounds
+[ ] Buttons have sufficient contrast
+[ ] Focus states visible
+[ ] Status colors distinguishable
+[ ] No pure white (#fff) causing glare
+
+Dark Mode:
+[ ] Text readable on all backgrounds
+[ ] Buttons have sufficient contrast
+[ ] Focus states visible (brighter in dark)
+[ ] Status colors distinguishable
+[ ] No pure black (#000)
+[ ] Shadows provide depth
+[ ] Images don't look washed out
+
+Both Modes:
+[ ] Theme toggle works
+[ ] Preference saved to localStorage
+[ ] Smooth transition (no flash)
+[ ] System preference detected
+[ ] All interactive states work
+```
+
+### Colorblind Testing
+
+**8% of men are colorblind!**
+
+**Common types:**
+
+- **Deuteranopia** - Red-green (most common)
+- **Protanopia** - Red-green
+- **Tritanopia** - Blue-yellow
+- **Achromatopsia** - Total colorblindness (rare)
+
+**Testing tools:**
+
+**1. Browser extension:**
+
+```
+Chrome: "Colorblindly"
+Firefox: "Colorblinding"
+```
+
+**2. Design in grayscale first:**
+
+```css
+/* Test mode - add to body */
+body {
+  filter: grayscale(100%);
+}
+```
+
+If UI works in grayscale, colors are supplementary (good!).
+
+**3. Never rely on color alone:**
+
+```html
+<!-- ❌ BAD - color is only indicator -->
+<span class="status-available">●</span>
+
+<!-- ✅ GOOD - icon + color + text -->
+<span class="status-available"> ✓ Available </span>
+```
+
+### Reduced Motion
+
+**20-35% of users have motion sensitivity!**
+
+**Respect prefers-reduced-motion:**
+
+```css
+/* Default - animations enabled */
+.modal {
+  animation: slideIn 300ms ease-out;
+}
+
+/* User prefers reduced motion - disable */
+@media (prefers-reduced-motion: reduce) {
+  .modal {
+    animation: none;
+  }
+
+  /* Or very subtle */
+  .modal {
+    animation: fadeIn 100ms linear;
+  }
+}
+```
+
+**Test:**
+
+```
+Mac: System Preferences → Accessibility → Display → Reduce motion
+Windows: Settings → Ease of Access → Display → Show animations
+```
+
+### Focus Indicators
+
+**Never remove focus outlines!**
+
+```css
+/* ❌ TERRIBLE - breaks keyboard navigation */
+*:focus {
+  outline: none;
+}
+
+/* ✅ GOOD - custom focus that's visible */
+*:focus {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* ✅ BETTER - only for keyboard focus */
+*:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+```
+
+**`:focus-visible`** = Only shows outline when using keyboard (not mouse clicks).
+
+### Performance Testing
+
+**Measure CSS impact:**
+
+```javascript
+// Measure render performance
+performance.mark("render-start");
+
+// ... DOM changes ...
+
+performance.mark("render-end");
+performance.measure("render", "render-start", "render-end");
+
+const measure = performance.getEntriesByName("render")[0];
+console.log(`Render took: ${measure.duration}ms`);
+```
+
+**CSS file size:**
+
+```bash
+# Before
+ls -lh backend/static/css/style.css
+# 45KB
+
+# After (multiple files)
+ls -lh backend/static/css/*.css
+# tokens.css: 12KB
+# style.css: 18KB
+# Total: 30KB (smaller + cacheable)
+```
+
+**Minification (production):**
+
+```bash
+# Install cssnano
+npm install -g cssnano-cli
+
+# Minify
+cssnano backend/static/css/main.css backend/static/css/main.min.css
+
+# Before: 45KB
+# After: 12KB (73% smaller!)
+```
+
+---
+
+## Summary: What You've Built
+
+You now have:
+
+✅ **Complete Design Token System**
+
+- 3-tier token architecture
+- Full color palette (9 shades × 5 colors)
+- Spacing, typography, shadows, all tokenized
+
+✅ **Dark Mode**
+
+- Properly implemented dark theme
+- Respects system preference
+- User toggle with localStorage
+- Smooth transitions
+
+✅ **Professional CSS Architecture**
+
+- ITCSS methodology
+- Organized into layers
+- Modular component files
+- Maintainable at scale
+
+✅ **Accessibility**
+
+- WCAG AA compliant contrast
+- Colorblind-friendly
+- Reduced motion support
+- Keyboard navigation
+
+✅ **Developer Experience**
+
+- VS Code snippets
+- Browser DevTools integration
+- Color playground
+- Automated refactoring scripts
+
+---
+
+## Next Steps
+
+**Immediate:**
+
+1. Refactor remaining components (one at a time!)
+2. Test both themes thoroughly
+3. Get user feedback on dark mode
+4. Measure performance improvements
+
+**Future Enhancements:**
+
+1. Add more theme variations (high contrast, colorblind modes)
+2. Implement theme preview (before applying)
+3. Add custom color picker (let users customize)
+4. Create design system documentation site
+
+---
+
+## Verification Checklist
+
+- [ ] Design tokens file created and loaded
+- [ ] Dark mode tokens defined
+- [ ] Theme switcher working
+- [ ] Preference saved to localStorage
+- [ ] System preference detected
+- [ ] All components refactored to use tokens
+- [ ] No hardcoded colors in CSS
+- [ ] WCAG AA contrast in both modes
+- [ ] Smooth theme transitions
+- [ ] CSS organized with ITCSS
+- [ ] Components in separate files
+- [ ] Accessibility tested
+- [ ] Performance measured
+
+---
+
+**This is professional-grade CSS architecture.** You can now:
+
+- Change entire color scheme in seconds
+- Add new themes easily
+- Scale to hundreds of components
+- Maintain consistency across the app
+- Meet accessibility requirements
+- Ship dark mode without breaking anything
+
+**Copy all of this into Stage 4B in your MkDocs.**
+
+Ready to continue with Phase 2 Stage 14?
+</artifact>
+
+This is the complete, in-depth guide with all sections. It includes:
+
+1. **Theory** - Understanding CSS variables, color systems, WCAG
+2. **Implementation** - Complete design token system
+3. **Dark mode** - Proper dark theme with all considerations
+4. **JavaScript** - Theme management system
+5. **Refactoring** - Step-by-step migration guide
+6. **Architecture** - ITCSS and file organization
+7. **Tools** - VS Code extensions, color generators, playgrounds
+8. **Accessibility** - Contrast, colorblind, reduced motion
+9. **Developer shortcuts** - Scripts, snippets, automated refactoring
+
+**Total: ~8,500 words of professional CSS knowledge.**
+
+When you're ready, we can continue with **Stage 14: Background Tasks with Celery**!
 
 ---
 

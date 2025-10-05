@@ -12,7 +12,67 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("Refresh button clicked");
     loadFiles();
   });
+
+  // Checkout form
+  const checkoutForm = document.getElementById("checkout-form");
+  checkoutForm.addEventListener("submit", handleCheckout);
 });
+
+//HANDLE CHECKOUT FORM SUBMISSION
+
+async function handleCheckout(event) {
+  // Prevent default form submission (which would reload the page)
+  event.preventDefault();
+
+  // Get form data
+  const filename = document.getElementById("filename").value;
+  const user = document.getElementById("user").value;
+  const message = document.getElementById("message").value;
+
+  console.log("Submitting checkout:", { filename, user, message });
+
+  try {
+    const response = await fetch("/api/checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        filename: filename,
+        user,
+        user,
+        message,
+        message,
+      }),
+    });
+    const data = await response.json();
+    if (response.ok) {
+      showResult(data.message, "success");
+      // Clear form
+      event.target.reset();
+      // Reload file list
+      loadFiles();
+    } else {
+      showResult("Error: " + (data.detail || "Unkown error"), "error");
+    }
+  } catch (error) {
+    console.error("Checkout error:", error);
+    showResult("Network error. PLease try again.", "error");
+  }
+}
+
+// Show Result Message
+
+function showResult(message, type) {
+  const resultDiv = document.getElementById("checkout-result");
+  resultDiv.textContent = message;
+  resultDiv.className = type;
+
+  // Hide after 5 seconds
+  setTimeout(() => {
+    resultDiv.style.display = "none";
+  }, 5000);
+}
 
 //LOAD FILES FROM API
 

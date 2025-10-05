@@ -1,9 +1,20 @@
+import os
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import logging
 import asyncio
+
+# Get absolute path to the directory containin this file
+BASE_DIR = Path(__file__).resolve().parent
+
+# Path to repository folder
+REPO_PATH = BASE_DIR / 'repo'
+
+# Path to locs file (we'll create this soon)
+LOCKS_FILE = BASE_DIR / 'locks.json'
 
 # Configure logging
 logging.basicConfig(
