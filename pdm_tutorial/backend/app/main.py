@@ -165,16 +165,10 @@ def save_locks(locks: dict):
     Returns:
         _type_: _description_
     """
-    try:
-        with LockedFile(LOCKS_FILE, 'w') as f:
-            json.dump(locks, f, indent=4)
-        logger.info(f"Saved {len(locks)} locks from file")
-    except Exception as e:
-        logger.error(f"Error saving locks: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to save lock data"
-        )
+
+    with LockedFile(LOCKS_FILE, 'w') as f:
+        json.dump(locks, f, indent=4)
+    logger.info(f"Saved {len(locks)} locks from file")
 
 
 def is_locked(filename: str) -> bool:

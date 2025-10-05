@@ -4887,3 +4887,514 @@ Your tutorial has now covered the entire lifecycle of building and deploying a p
 - **Kubernetes Deployment:** Move beyond Docker Compose to a full container orchestration system like Kubernetes for automated scaling, self-healing, and zero-downtime deployments.
 
 You have built a truly impressive and complete application. The foundation you have now is strong enough to build almost any web service upon. Congratulations\!
+
+Nice—I’ll make this a full, standalone **Appendix: Utilities** you can drop into your docs (searchable in MkDocs). I’ll go deep: concepts (what a “handle” or “lock” actually is), practical commands for Windows and Unix/macOS, workflows for debugging the common errors you saw, advanced tips (strace/procmon), and library recommendations (filelock / portalocker) for refactors. Top-level sections are numbered with Roman numerals as requested.
+
+---
+
+## Appendix: Utilities (for debugging locks, processes & networking)
+
+> Add this as an appendix to your MkDocs site. It's organized to be both a reference and a step-by-step troubleshooting guide.
+
+---
+
+## I. Overview — Why these tools matter
+
+When developing server apps (Uvicorn, FastAPI, background workers), two classes of problems are common and deceptively hard to debug:
+
+1. **File access / lock problems** — `PermissionError: [Errno 13] Permission denied`, file is “in use”, can't write to locks file, or locks not released. Root causes: another process or editor has file handle open, antivirus, filesystem sync services (OneDrive, Dropbox), or your process crashed without releasing locks.
+
+2. **Networking / port binding / process collisions** — server won't start because port is taken, or requests go to unexpected process. Root causes: stale process left listening, wrong PID, or Windows file sharing semantics.
+
+This appendix teaches you how to inspect which process is touching a file or port, how to safely recover, and how to instrument/trace processes to find the underlying bug.
+
+---
+
+## II. Key concepts (must-read before using tools)
+
+### A. File descriptor vs handle
+
+- **File descriptor (fd)**: small integer assigned by the OS in POSIX systems (Linux/macOS). Tools like `lsof` show fd numbers.
+- **Handle**: Windows notion; a pointer-like opaque object returned by CreateFile / open. Tools like Sysinternals _Handle.exe_ report handles.
+
+### B. Advisory vs mandatory locking
+
+- **Advisory locks** (Unix `fcntl`/`flock`): processes agree to cooperate. If process A `flock`s a file and process B ignores `flock` and writes directly, B will still write — advisory locks do not prevent write at kernel level.
+- **Mandatory locks**: platform-specific, rare. On some systems configured FS, a mandatory lock prevents other processes from accessing file data (not commonly used).
+- **Windows locking** is closer to mandatory — depending how a file is opened (share flags), other processes may be blocked from opening it.
+
+**Takeaway:** On Unix, `fcntl`/`flock` will only protect cooperating code. For cross-process enforcement on Windows, you must understand share modes.
+
+### C. File open vs locked
+
+- A file may be _open_ (handle exists) but not _locked_. `lsof` and `handle` show opens; `flock`/`fcntl` show locks only if code uses them. Editors and OS services may open files for reading and still block writes depending on share flags.
+
+### D. Atomic file writes & durability
+
+- To avoid partial writes and races, prefer: write to a temporary file, `fsync()` it, then `os.replace()` (atomic rename on same filesystem). This prevents torn writes and leaves either old or new file.
+- Example: `tmp = path.with_suffix('.tmp'); write tmp; tmp.flush(); os.fsync(tmp.fileno()); tmp.close(); os.replace(tmp, path)`
+
+---
+
+## III. Diagnostics & tools — Windows (detailed)
+
+### 1. Sysinternals (Microsoft) — must-have
+
+Download: [https://learn.microsoft.com/en-us/sysinternals/](https://learn.microsoft.com/en-us/sysinternals/)
+
+#### a) `Handle.exe` (CLI)
+
+- Use to **find which process has a handle** for a given filename.
+- Example:
+
+```powershell
+# run from an admin PowerShell or cmd
+.\handle.exe locks.json
+```
+
+- Typical output (abbreviated):
+
+```
+python.exe          pid: 8140  type: File   10: C:\project\locks.json
+Code.exe            pid: 5123  type: File   18: C:\project\locks.json
+```
+
+**Use:** identify editor (VSCode), antivirus, or lingering script.
+
+**Note:** Running as Administrator may show more handles; non-admins may not see some process handles.
+
+#### b) Process Explorer (GUI)
+
+- Start `procexp.exe`, press `Ctrl+F`, search for `locks.json` or file name.
+- Shows process tree, command line, loaded modules, and threads.
+- You can right-click a handle and **Close Handle** — _dangerous_: closing handles can crash the process. Prefer gracefully stopping the process.
+
+#### c) Process Monitor (Procmon)
+
+- `procmon.exe` traces file system, registry, and process events. Use filters to watch accesses to `locks.json`.
+- Useful when you need to see exactly who is opening/reading/writing the file in real time.
+- **Gotcha:** Procmon generates a huge log — always set filters (Process Name, Path) before reproducing the issue.
+
+#### d) Resource Monitor
+
+- Built-in to Windows: run `resmon`, go to **CPU > Associated Handles** and search for the filename.
+- Good when you don't want to download Sysinternals.
+
+### 2. Native Windows commands
+
+- Find which process is listening on a port (e.g., 8000):
+
+```powershell
+# in cmd
+netstat -ano | findstr :8000
+# shows local address, state, PID
+
+# in PowerShell (modern)
+Get-NetTCPConnection -LocalPort 8000 | Format-List
+
+# then get process info
+tasklist /FI "PID eq 1234"
+# or
+Get-Process -Id 1234
+```
+
+- Kill process:
+
+```powershell
+Stop-Process -Id 1234  # graceful by default in PowerShell
+# or force:
+Stop-Process -Id 1234 -Force
+# cmd:
+taskkill /PID 1234 /F
+```
+
+**Recommendation:** Try to gracefully stop the app (Ctrl+C in console, or use proper service stop) before killing.
+
+---
+
+## IV. Diagnostics & tools — Linux and macOS (detailed)
+
+### 1. `lsof` — list open files
+
+- Show who has a specific file open:
+
+```bash
+sudo lsof locks.json
+# or full path
+sudo lsof /home/user/project/locks.json
+```
+
+- Interpreting a line:
+
+```
+COMMAND   PID USER   FD   TYPE DEVICE SIZE/OFF    NODE NAME
+python3  9134 bob    4u   REG  8,1    12345  203948 /home/bob/project/locks.json
+```
+
+- `FD`: file descriptor number (4), suffix `u` = read/write, `r` = read, `w` = write, `u` = read/write.
+
+- Show which processes are listening on TCP port 8000:
+
+```bash
+sudo lsof -iTCP:8000 -sTCP:LISTEN
+```
+
+- Show processes that opened any files in a directory (expensive):
+
+```bash
+sudo lsof +D /path/to/repo
+```
+
+### 2. `fuser` — show PIDs using a file
+
+```bash
+fuser locks.json
+# returns PIDs e.g. locks.json: 9134 9140
+# kill them:
+fuser -k locks.json
+```
+
+### 3. Ports: `ss` and `netstat`
+
+- Modern Linux:
+
+```bash
+ss -ltnp | grep :8000
+# or
+sudo ss -ltnp '( sport = :8000 )'
+```
+
+- Older or portable:
+
+```bash
+sudo netstat -tulpn | grep :8000
+```
+
+- On macOS:
+
+```bash
+lsof -iTCP -sTCP:LISTEN -n -P
+# or
+netstat -vanp tcp | grep LISTEN
+```
+
+### 4. `ps` and `grep`
+
+- Find your process:
+
+```bash
+ps aux | grep uvicorn
+```
+
+### 5. `strace` (Linux) / `dtruss`/`dtrace` (macOS)
+
+- Trace syscalls to see which files are opened/read/written.
+- Example (Linux):
+
+```bash
+# trace file-related syscalls for PID 1234
+sudo strace -e trace=file -p 1234
+# or start a process and log to file:
+strace -o trace.txt -e trace=file python app/main.py
+```
+
+- Use for investigating why a process believes it can't open or why it writes incorrectly.
+
+### 6. `inotifywait` (for Linux only)
+
+- Watch file events in real time (from inotify-tools):
+
+```bash
+inotifywait -m locks.json
+# prints events like OPEN, MODIFY, CLOSE
+```
+
+---
+
+## V. Network & connection troubleshooting tools (brief but practical)
+
+- `curl` — make HTTP requests, test endpoints:
+
+```bash
+curl -v http://127.0.0.1:8000/api/files
+```
+
+- `telnet` or `nc` (netcat) — open raw TCP connection to port:
+
+```bash
+nc -v localhost 8000
+```
+
+- `tcpdump` (Linux/macOS) — capture packets:
+
+```bash
+sudo tcpdump -i lo port 8000 -w trace.pcap
+# then open trace.pcap in Wireshark
+```
+
+- `ss`/`netstat` covered above for listening ports.
+
+---
+
+## VI. Common workflows (step-by-step)
+
+### A. “Permission denied” when writing `locks.json` (fast checklist)
+
+1. Reproduce the error in logs.
+2. Check who has the file open:
+
+   - Windows: `handle.exe locks.json` or Process Explorer → search
+   - Linux/macOS: `sudo lsof locks.json`
+
+3. If the file is opened by your process:
+
+   - Attach `strace`/`procmon` to see where it’s stuck or not closing the file.
+   - Look for un-handled exceptions preventing `__exit__` cleanup.
+
+4. If the file is opened by an editor (VSCode, Notepad++) or OneDrive:
+
+   - Close the file in the editor or configure watch settings to exclude the repo.
+   - For OneDrive/Dropbox, add an exclusion for the project folder.
+
+5. If antivirus:
+
+   - Temporarily disable or add exception for your project folder.
+
+6. If a zombie/stale process:
+
+   - Stop the process gracefully; if not possible, kill PID (`kill pid` or `taskkill /F /PID pid`).
+
+7. Restart your server.
+
+### B. Port already in use (e.g., uvicorn fails to bind)
+
+1. Check listening PIDs:
+
+   - Linux: `sudo ss -ltnp | grep :8000` or `sudo lsof -i :8000`
+   - Windows: `netstat -ano | findstr :8000`
+
+2. Identify process and inspect command line:
+
+   - Linux: `ps -fp <pid>`
+   - Windows: `tasklist /FI "PID eq <pid>"` or `Get-Process -Id <pid>` in PowerShell
+
+3. Stop the process or use a different port.
+4. Use graceful restart or system tools (systemctl).
+
+### C. Reproducible “locking race” debugging
+
+1. Add logging around open/close in your lock context manager (timestamp, PID).
+2. Reproduce with multiple concurrent clients.
+3. Use `inotifywait`/Procmon to see the sequence of events.
+4. If you detect file replaced while open, switch to atomic replace pattern (write tmp + os.replace).
+
+---
+
+## VII. Practical examples: commands & sample output
+
+**Linux: find who opened locks.json**
+
+```bash
+sudo lsof /home/gamer/pdm_tutorial/backend/locks.json
+# Output:
+# COMMAND   PID USER   FD   TYPE DEVICE SIZE/OFF    NODE NAME
+# python3  9134 gamer   4u   REG  8,1    12345  203948 /home/gamer/.../locks.json
+```
+
+**Windows: find process holding port 8000**
+
+```powershell
+# find port in use
+netstat -ano | findstr :8000
+
+# output
+TCP    0.0.0.0:8000    0.0.0.0:0    LISTENING    68492
+
+# find process
+tasklist /FI "PID eq 68492"
+```
+
+**Kill process safely (Linux)**
+
+```bash
+sudo kill 68492        # SIGTERM
+# if it doesn't stop:
+sudo kill -9 68492     # SIGKILL (force)
+```
+
+**Trace all file accesses of a process (Linux)**
+
+```bash
+sudo strace -p 9134 -e trace=open,openat,read,write -s 200
+```
+
+---
+
+## VIII. Advanced tools & techniques
+
+### A. Procmon / strace — when to use which?
+
+- Use **Procmon** (Windows) for high-volume, fine-grained events (file open/close, registry, process create).
+- Use **strace** / **dtrace** for syscall-level tracing on Unix/macOS. Great to see actual `open()`/`fopen()` calls and flags.
+
+### B. When to close handles / kill processes
+
+- Prefer graceful termination (close application, stop service, `SIGTERM`).
+- If process hung and unsafe, `kill -9` / `taskkill /F` — warnings: may corrupt in-memory state / leave incomplete writes.
+- If a handle was closed forcibly (Process Explorer) expect the process may crash.
+
+### C. Debugging filelocks in Python
+
+- Add robust logging inside your `LockedFile.__enter__` and `__exit__`:
+
+```python
+logger.info("Acquiring lock", extra={'pid': os.getpid()})
+...
+logger.info("Releasing lock", extra={'pid': os.getpid()})
+```
+
+- Use `try/except/finally` around file operations to ensure release if any exception occurs.
+
+---
+
+## IX. Cross-platform file-locking libraries (recommended)
+
+You asked earlier about `filelock` and whether to use it — yes, these are simpler and safer than rolling your own.
+
+### 1. `filelock` (python-filelock)
+
+- `pip install filelock`
+- Very simple API:
+
+```python
+from filelock import FileLock
+
+lock = FileLock("locks.json.lock", timeout=5)  # path to lockfile
+with lock:
+    # safe to read/write locks.json
+    with open("locks.json", "r+") as f:
+        data = json.load(f)
+        # update and write back
+```
+
+- This works cross-platform. Under the hood it creates a `.lock` file and uses OS semantics; simple and battle-tested for small projects.
+
+### 2. `portalocker`
+
+- `pip install portalocker`
+- More control and explicit semantics (compatible with `fcntl`/Windows APIs):
+
+```python
+import portalocker
+
+with open('locks.json', 'r+') as fh:
+    portalocker.lock(fh, portalocker.LOCK_EX)
+    # read/modify/write
+    portalocker.unlock(fh)
+```
+
+- Good for fine-grained control; broadly used in the ecosystem.
+
+### 3. `fasteners` (LinkedIn)
+
+- Offers interprocess locks and reader/writer locks.
+
+**Recommendation:** For most tutorials and small web apps use `filelock` (ease) or `portalocker` (more control). These reduce platform-specific bugs and remove the need to juggle raw `msvcrt`/`fcntl`.
+
+---
+
+## X. Best practices & gotchas (summary)
+
+- **OneDrive / Dropbox / Editors** often open files or sync them → exclude your repo or disable file watchers.
+- **Antivirus** can briefly lock files while scanning; add exceptions for dev folders.
+- **Use atomic writes** (write temp + `os.replace`) to update JSON locks to avoid corruption if process dies mid-write.
+- **Prefer a tested locking library** (`filelock`, `portalocker`) instead of raw `msvcrt`/`fcntl` unless you need special behavior.
+- **On Unix, remember locks are advisory** — every cooperating process must use the same locking primitive for protection to work.
+- **Run diagnostics as admin/sudo** to see all processes.
+- **Graceful shutdown** (SIGTERM) is safer than SIGKILL; ensure you flush & release locks in a signal handler.
+- **If your locks.json is open in VSCode** (or any editor) you may still get a PermissionError if the editor opened file without share flags. Use `handle` / `lsof` to confirm.
+
+---
+
+## XI. Quick cheat-sheet (commands to copy/paste)
+
+### Windows
+
+```powershell
+# Find processes holding locks.json (Sysinternals handle.exe)
+.\handle.exe locks.json
+
+# Find which process listens on port 8000
+netstat -ano | findstr :8000
+tasklist /FI "PID eq <PID>"
+
+# PowerShell alternative
+Get-NetTCPConnection -LocalPort 8000 | Format-List
+Get-Process -Id <PID>
+
+# Kill process
+Stop-Process -Id <PID>    # PowerShell
+taskkill /PID <PID> /F    # cmd
+```
+
+### Linux / macOS
+
+```bash
+# Who opened locks.json?
+sudo lsof /path/to/locks.json
+
+# Kill the processes (prefer gentle)
+ps aux | grep uvicorn
+kill <PID>        # SIGTERM
+kill -9 <PID>     # SIGKILL (force)
+
+# Who is listening on port 8000?
+sudo ss -ltnp | grep :8000
+# or
+sudo lsof -i :8000
+
+# Trace file syscalls (to debug locking/open)
+sudo strace -e trace=open,openat -p <PID>
+```
+
+---
+
+## XII. Example labs you can include in your docs (recommended)
+
+1. **Lab: Reproduce and find a file handle**
+
+   - Start a Python script that opens `locks.json` for reading and sleeps (so handle stays open).
+   - Run `lsof locks.json` (Linux) or `handle.exe locks.json` (Windows) to see the PID.
+   - Kill the process and confirm the handle disappears.
+
+2. **Lab: Port collision**
+
+   - Start a simple HTTP server on 8000 (`python -m http.server 8000`).
+   - Try to start uvicorn on the same port; inspect with `ss`/`netstat`; stop the server and restart uvicorn.
+
+3. **Lab: Procmon/strace for file write**
+
+   - Use Procmon/strace to watch the sequence of open/write/close while your app writes `locks.json`. See the `open`, `write`, `fsync`, `close` semantics.
+
+---
+
+## XIII. Further reading & references
+
+- Sysinternals: [https://learn.microsoft.com/en-us/sysinternals/](https://learn.microsoft.com/en-us/sysinternals/)
+- `lsof` man page: `man lsof`
+- `ss` vs `netstat` (Linux)
+- Python `filelock` project: [https://pypi.org/project/filelock/](https://pypi.org/project/filelock/)
+- `portalocker` project: [https://pypi.org/project/portalocker/](https://pypi.org/project/portalocker/)
+- Atomic writes: [https://lwn.net/Articles/540265/](https://lwn.net/Articles/540265/)
+
+---
+
+### Final notes — how to integrate into your MkDocs
+
+- Place this file in `docs/appendix-utilities.md` and add it to nav (or keep it as a searchable appendix).
+- Include short cross-links from Stage 3/4 where you instruct readers to run `lsof`/`handle` — that makes the tutorial self-healing and teaches debugging.
+- Consider adding the labs under `labs/` with code snippets and expected outputs for learners to follow.
+
+---
+
+If you like, I’ll convert this to MkDocs-ready Markdown with anchors and a small table of contents, or produce a short lab (step-by-step) that your learners can run to reproduce a real file-locking bug and then fix it using the tools above. Which would you prefer next?
