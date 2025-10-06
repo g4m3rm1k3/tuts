@@ -1,0 +1,34 @@
+/* Make main content wider */
+.md-content {
+  max-width: 95vw; /* or 100% for full width */
+}
+
+/* Optional: make text areas span full width */
+textarea {
+  width: 100%;
+}
+
+body > div.md-container > main > div > div.md-content > article {
+  max-width: 1200px !important;
+}
+
+body > div.md-container > main > div {
+  width: 95vw !important;
+  max-width: 95vw !important;
+}
+
+body > div.body > div.md-container > main > div {
+  width: 95vw !important;
+  max-width: 95vw !important;
+}
+
+md-content__inner md-typeset {
+  overflow-x: scroll !important;
+  box-sizing: border-box !important;
+  max-width: 90% !important;
+  margin: 0 auto;
+  padding: 0 auto;
+}
+.md-main__inner .md-grid {
+  max-width: 95vw !important;
+}
