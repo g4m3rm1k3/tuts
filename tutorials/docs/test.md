@@ -1,194 +1,184 @@
-## **Section 1.3 (Part 2): FastAPI Application Initialization – Tutorial Version**
+## **Section 1.5 `files.py` – File Management API Endpoints**
 
 **Goal:**
-Understand how to properly structure a **FastAPI backend**, why we use an **application factory**, middleware, startup/shutdown events, and separation of concerns. We’ll include **CS/software engineering insights** and **Python best practices**.
+Understand how to define **API routes in FastAPI**, return **typed responses**, and structure a backend for maintainability. This file is intentionally **thin**, focusing on **route definitions only**, leaving business logic for later (services/ stage).
 
 ---
 
-### **SECTION 1: Application Factory Pattern**
+### **SECTION 1: Router Setup**
 
 ```python
-def create_application() -> FastAPI:
-```
+from fastapi import APIRouter
 
-- **Purpose:** Encapsulates **app creation logic** in a function rather than at module level
-- Returns a **FastAPI instance**
-- This pattern is widely used in **Flask**, **FastAPI**, and **other Python frameworks**
-
-#### **Benefits**
-
-1. **Multiple instances** → useful for testing:
-
-   - You can spin up a separate app instance for **unit tests** without interfering with your main app.
-
-2. **Centralized configuration** → app settings come from `settings` object
-3. **Startup/shutdown hooks** → easy to attach lifecycle events
-
-**Software Engineering Insight:**
-
-- Using an application factory follows **modular design principles**
-- Promotes **decoupling** and **testability**, critical in professional backend systems
-
----
-
-### **SECTION 2: Middleware Configuration**
-
-```python
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:8000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+router = APIRouter(
+    prefix="/api/files",
+    tags=["files"],
 )
 ```
 
-#### **Why middleware?**
+**Key Points:**
 
-- Middleware intercepts requests/responses **before and after hitting routes**
-- Common uses: **CORS, authentication, logging, error handling**
+1. **`APIRouter`**:
 
-#### **CORS Explained (Cross-Origin Resource Sharing)**
+   - Modular way to define endpoints separate from the main app.
+   - Promotes **separation of concerns**, making code **scalable and testable**.
 
-- Browsers enforce the **Same-Origin Policy**: JavaScript can’t call APIs on a different domain by default
-- CORS headers **tell the browser which origins are allowed**
-- In production, only allow your **frontend domain** for security
+2. **`prefix="/api/files"`**:
 
-**CS Concept:**
+   - All routes in this router will be prefixed automatically.
+   - E.g., `GET /api/files/` instead of repeating the path in every endpoint.
 
-- Middleware demonstrates **intercepting layers** → a classic **pipeline pattern** in software engineering
-- Allows cross-cutting concerns without polluting business logic
+3. **`tags=["files"]`**:
 
----
-
-### **SECTION 3: Startup and Shutdown Events**
-
-```python
-@app.on_event("startup")
-async def startup_event():
-    print(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
-```
-
-- **Startup events**: run once **when the server starts**
-- Good for:
-
-  - Connecting to databases
-  - Loading caches
-  - Logging server info
-
-```python
-@app.on_event("shutdown")
-async def shutdown_event():
-    print("Shutting down gracefully...")
-```
-
-- **Shutdown events**: run once **when the server stops**
-- Good for:
-
-  - Closing DB connections
-  - Flushing logs
-  - Cleanup tasks
-
-**Python/CS Concept:**
-
-- ASGI allows **async startup/shutdown** → non-blocking operations
-- Mimics **resource management patterns** in OS-level programming
-
----
-
-### **SECTION 4: Root Route (Health Check)**
-
-```python
-@app.get("/")
-def read_root():
-    return {
-        "name": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "status": "operational",
-        "message": "Welcome to the PDM Backend API"
-    }
-```
-
-- Simple **GET endpoint** to check server health and API metadata
-- **Best practice:** every API should have a **root or health check route**
+   - Groups routes in **OpenAPI documentation**.
+   - Improves developer experience for anyone using Swagger UI or Redoc.
 
 **Software Engineering Insight:**
 
-- Useful for **monitoring tools** or load balancers
-- Communicates **version and operational status** → key for CI/CD pipelines
+- Using routers is a **common pattern in backend frameworks** (like Flask Blueprints or Django apps) to avoid **monolithic code**.
+- Encourages **modularity and maintainability**, which is key in real-world software projects.
 
 ---
 
-### **SECTION 5: Create App Instance**
+### **SECTION 2: Hardcoded Data (Temporary)**
 
 ```python
-app = create_application()
+MOCK_FILES = [
+    {"name": "PN1001_OP1.mcam", "status": "available", "size_bytes": 1234567, "locked_by": None},
+    {"name": "PN1002_OP1.mcam", "status": "checked_out", "size_bytes": 2345678, "locked_by": "john"},
+    {"name": "PN1003_OP1.mcam", "status": "available", "size_bytes": 987654, "locked_by": None}
+]
 ```
 
-- Calls the **factory** to create a **singleton FastAPI instance**
-- Other modules import `app` for **routing, middleware, and testing**
+**Key Points:**
 
-**CS Concept:**
+1. **Temporary hardcoded data** is useful for:
 
-- Follows **dependency injection principles**: app configuration is **externalized** and **passed in**, improving flexibility
+   - **Prototyping endpoints** before implementing actual services
+   - Ensuring **API contracts** are working and returning correct types
+
+2. **`locked_by` as `None`** → consistent with `Optional[str]` in Pydantic schemas
+
+**CS Insight:**
+
+- Using mock data is a **standard practice in Test-Driven Development (TDD)**: write your tests/routes before connecting to the database.
+- Separates **API behavior** from **business logic**, making incremental development smoother.
 
 ---
 
-### **SECTION 6: Development Server Entry Point**
+### **SECTION 3: GET Endpoints**
+
+#### **Get all files**
 
 ```python
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host="127.0.0.1",
-        port=8000,
-        reload=True,
-        log_level="info"
+@router.get("/", response_model=FileListResponse)
+def get_files():
+    return FileListResponse(files=MOCK_FILES, total=len(MOCK_FILES))
+```
+
+**Key Points:**
+
+1. **`@router.get("/")`** → HTTP GET method
+
+2. **`response_model=FileListResponse`**:
+
+   - FastAPI **validates the returned object** against the model
+   - Automatically generates **OpenAPI docs**
+   - Ensures the frontend **always gets the expected structure**
+
+3. **Return object** is **typed**:
+
+   ```python
+   FileListResponse(files=MOCK_FILES, total=len(MOCK_FILES))
+   ```
+
+**Software Engineering Insight:**
+
+- Typed responses **reduce runtime errors** and **improve developer confidence**
+- This aligns with **interface segregation principle**: the endpoint only exposes what it needs to.
+
+---
+
+#### **Get a single file**
+
+```python
+@router.get("/{filename}", response_model=FileInfo)
+def get_file(filename: str):
+    for file in MOCK_FILES:
+        if file["name"] == filename:
+            return FileInfo(**file)
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"File '{filename}' not found"
     )
 ```
 
-#### **Key points**
+**Key Points:**
 
-- `__name__ == "__main__"` → standard Python idiom to run **module as script**
-- `uvicorn.run()` → launches **ASGI server**
-- `reload=True` → **auto-reload** in development (not for production)
-- `log_level="info"` → controls verbosity for debugging
+1. **Path parameter `{filename}`**:
 
-**Best practice:**
+   - Passed as a function argument
+   - FastAPI automatically converts and validates it as a `str`
 
-- **Keep entry point thin** → all **business logic** belongs in `services/` or `routes/`
-- **Separation of concerns** → easier maintenance and testing
+2. **Data validation**:
 
-**JavaScript Parallel:**
+   - `FileInfo(**file)` → ensures mock data conforms to Pydantic model
 
-- Node/Express apps often use:
+3. **Error handling**:
 
-```javascript
-const app = require("./app");
-app.listen(3000, () => console.log("Server running"));
+   - `HTTPException` with `status_code` and `detail` ensures **RESTful error reporting**
+   - FastAPI automatically serializes this to JSON
+
+**CS Insight:**
+
+- Separating **normal flow** vs **exceptional flow** is a core principle of robust backend design.
+- Consistent **HTTP status codes** improve API usability and make integrations predictable.
+
+---
+
+### **SECTION 4: Placeholder Endpoints**
+
+```python
+@router.post("/checkout")
+def checkout_file():
+    return {"message": "Checkout endpoint - coming in Stage 3"}
+
+@router.post("/checkin")
+def checkin_file():
+    return {"message": "Checkin endpoint - coming in Stage 3"}
 ```
 
-- Same idea: thin entry point, main logic elsewhere
+**Key Points:**
+
+1. These endpoints are **stubs**:
+
+   - Defined now to complete the **API contract**
+   - Implementation comes later in **services/**
+
+2. **Why placeholders?**
+
+   - Allows **frontend development** to start
+   - Enables **integration testing** without full backend logic
+   - Encourages **iterative development** (Agile principle)
 
 ---
 
-### ✅ **Key Takeaways**
+### ✅ **Key Takeaways from `files.py`**
 
-1. **Application Factory Pattern** → promotes modularity, testability, and centralized configuration
-2. **Middleware** → intercept requests/responses for cross-cutting concerns
-3. **Startup/Shutdown hooks** → manage resources reliably
-4. **Root route** → health check & API metadata, best practice for monitoring
-5. **Thin entry point** → separates server bootstrap from business logic
-6. **CS/Software Engineering Concepts:**
-
-   - Modular design & separation of concerns
-   - Pipeline pattern (middleware)
-   - Dependency injection & singleton instance
-   - Resource lifecycle management
+1. **Routers modularize endpoints**, keeping main app clean
+2. **Response models enforce type safety** and **generate docs** automatically
+3. **Path parameters + validation** ensure endpoints are robust and predictable
+4. **Mock data** allows early-stage testing before implementing business logic
+5. **Placeholder endpoints** help maintain a **working API contract** for frontend/backend integration
+6. **Error handling via HTTPException** is crucial for **RESTful API design**
 
 ---
 
-This structure sets you up for **scaling your app**, **testing endpoints**, and integrating **business logic in services and routes**.
+**CS & SE Insight Recap:**
+
+- **Modularity** → `APIRouter` promotes separation of concerns
+- **Type safety** → Pydantic models enforce contracts at runtime
+- **Iterative development** → mock data + stubs enable early testing and frontend integration
+- **Error handling** → clear and predictable API responses
+- **Documentation** → auto-generated OpenAPI docs improve developer experience

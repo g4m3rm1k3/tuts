@@ -2430,6 +2430,283 @@ You should see JSON response with API info.
 
 **File: `backend/app/learn_pydantic.py`**
 
+## **Section 1.4: Pydantic & Data Validation – Tutorial Version**
+
+**Goal:**
+Understand how **Pydantic** uses **Python type hints** to:
+
+1. Validate input and output data
+2. Ensure type safety
+3. Serialize/deserialize JSON
+4. Enforce business rules in a **FastAPI backend**
+
+We’ll go from **basic models** to **nested models and validators**, then tie it to **real-world app usage**.
+
+---
+
+### **SECTION 1: Basic Pydantic Model**
+
+```python
+class UserBasic(BaseModel):
+    username: str
+    age: int
+    email: str
+```
+
+#### **Key Points**
+
+1. **`BaseModel`** → All Pydantic models inherit from this class
+2. **Type hints automatically enforce validation**
+3. **Access fields like regular Python objects**
+
+```python
+user = UserBasic(username="john", age=30, email="john@example.com")
+print(user.username)  ## 'john'
+```
+
+- **CS Insight:** Pydantic **implements declarative data validation** using **Python's type hints**
+- Similar in spirit to **TypeScript interfaces**, but validated at **runtime**
+
+#### **Validation Example**
+
+```python
+try:
+    bad_user = UserBasic(username="john", age="thirty", email="john@example.com")
+except Exception as e:
+    print(f"Validation error: {e}")
+```
+
+- Throws `ValidationError` → Python **enforces types dynamically**, protecting downstream code
+
+---
+
+### **SECTION 2: Optional Fields and Defaults**
+
+```python
+class UserWithDefaults(BaseModel):
+    username: str
+    age: int = 18        ## default if not provided
+    email: Optional[str] = None
+    is_active: bool = True
+```
+
+- `Optional[str]` → can be `str` or `None`
+- Defaults make **some fields optional**, supporting **partial input**
+- **Python Insight:** Type hints + default values are a **declarative form of input constraints**
+
+```python
+user1 = UserWithDefaults(username="alice")  ## age=18, email=None
+user2 = UserWithDefaults(username="bob", age=25, email="bob@example.com")
+```
+
+- Reduces boilerplate, keeps **business logic clean**
+
+---
+
+### **SECTION 3: Field Constraints**
+
+```python
+class UserConstrained(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50, pattern="^[a-zA-Z0-9_]+$")
+    age: int = Field(..., ge=0, le=150)
+    email: str = Field(..., regex=r"^[\w\.-]+@[\w\.-]+\.\w+$")
+```
+
+- `Field(...)` → makes a field **required**
+- Additional arguments → **validation rules**:
+
+  - `min_length`, `max_length`
+  - `pattern` → regex validation
+  - `ge`/`le` → numeric ranges
+
+```python
+try:
+    bad = UserConstrained(username="ab", age=200, email="invalid")
+except Exception as e:
+    print(f"Validation error: {e}")
+```
+
+- Protects against **invalid input early** → avoids downstream errors
+
+**CS Insight:**
+
+- **Declarative validation** is a **design pattern**: define **what data should be**, not how to check it
+- Reduces **imperative boilerplate validation code**
+
+---
+
+### **SECTION 4: Enums for Fixed Choices**
+
+```python
+from enum import Enum
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
+    GUEST = "guest"
+```
+
+- `Enum` → restricts values to a **finite set**
+- `str` inheritance → automatically **serializable to JSON**
+- Prevents **magic strings** and **typos** in code
+
+```python
+class UserWithRole(BaseModel):
+    username: str
+    role: UserRole = UserRole.USER
+
+user = UserWithRole(username="alice", role="admin")
+print(user.role.value)  ## 'admin'
+```
+
+**Software Engineering Insight:**
+
+- Using Enums increases **type safety** and **readability**
+- Analogous to **TypeScript union types**, but validated at runtime
+
+---
+
+### **SECTION 5: Custom Validators**
+
+```python
+class UserWithValidation(BaseModel):
+    username: str
+    password: str
+    password_confirm: str
+
+    @validator('username')
+    def username_alphanumeric(cls, v):
+        if not v.isalnum():
+            raise ValueError('Username must be alphanumeric')
+        return v.lower()
+
+    @root_validator
+    def passwords_match(cls, values):
+        if values.get('password') != values.get('password_confirm'):
+            raise ValueError('Passwords do not match')
+        return values
+```
+
+- `@validator` → per-field validation
+- `@root_validator` → cross-field validation (e.g., passwords match)
+- Automatically runs **after type validation**
+
+**CS Insight:**
+
+- Implements **defensive programming** → ensures data integrity
+- Promotes **separation of concerns**: model handles validation, services handle logic
+
+---
+
+### **SECTION 6: Nested Models**
+
+```python
+class Address(BaseModel):
+    street: str
+    city: str
+    country: str
+
+class UserWithAddress(BaseModel):
+    username: str
+    address: Address
+```
+
+- Nested models → **hierarchical validation**
+- Supports **complex data structures**
+- Access fields naturally:
+
+```python
+user = UserWithAddress(username="alice", address={"street": "123 Main St", "city": "NYC", "country": "USA"})
+print(user.address.city)  ## NYC
+```
+
+**Python Insight:**
+
+- Demonstrates **composition over inheritance**
+- Avoids deep manual validation for nested dicts
+
+---
+
+### **SECTION 7: Serialization**
+
+```python
+class UserComplete(BaseModel):
+    username: str
+    email: str
+    created_at: datetime = Field(default_factory=datetime.now)
+
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat()}
+```
+
+- `.dict()` → convert model to Python dict
+- `.json()` → convert to JSON string
+- `.parse_raw()` → create model from JSON string
+
+```python
+user = UserComplete(username="alice", email="alice@example.com")
+print(user.dict())
+print(user.json())
+json_str = '{"username": "bob", "email": "bob@example.com"}'
+user2 = UserComplete.parse_raw(json_str)
+```
+
+**CS Insight:**
+
+- Serialization/deserialization is **essential for APIs**
+- Pydantic handles this automatically, ensuring **type safety**
+
+---
+
+### **SECTION 8: Real-World Example – File Checkout Request**
+
+```python
+class FileCheckoutRequest(BaseModel):
+    filename: str = Field(..., min_length=1, max_length=255, pattern=r"^[\w\-. ]+\.mcam$")
+    user: str = Field(..., min_length=3, max_length=50)
+    message: str = Field(..., min_length=1, max_length=500)
+
+    @validator('filename')
+    def sanitize_filename(cls, v):
+        if '..' in v or '/' in v or '\\' in v:
+            raise ValueError('Invalid filename: contains path separators')
+        return v
+```
+
+- **Purpose:** Protects against **directory traversal attacks**
+- Validates **input length, pattern, and business rules**
+- Example usage:
+
+```python
+try:
+    request = FileCheckoutRequest(filename="../../etc/passwd", user="hacker", message="test")
+except Exception as e:
+    print(f"Blocked attack: {e}")
+
+valid_request = FileCheckoutRequest(filename="PN1001.mcam", user="john", message="Editing part dimensions")
+print(valid_request.dict())
+```
+
+**Software Engineering Insight:**
+
+- Pydantic enables **secure, declarative input validation**
+- Reduces need for **manual checks in business logic**
+
+---
+
+### ✅ **Key Takeaways**
+
+1. **Pydantic models**: central for **request validation** and **response serialization**
+2. **Type hints** + runtime checks → **data integrity**
+3. **Field constraints** and **validators** prevent invalid or malicious data
+4. **Enums & nested models** → enforce structure and reduce errors
+5. **Serialization** → automatic, safe, and JSON-ready
+6. Real-world apps benefit from **centralized validation** for security and maintainability
+
+---
+
+This section sets you up for **Stage 3** in your app: **API endpoints** that validate requests and enforce business rules **without repeating validation code**.
+
 ```python
 """
 Pydantic: Data validation using Python type hints.
@@ -2693,6 +2970,160 @@ touch backend/app/schemas/__init__.py
 
 **File: `backend/app/schemas/files.py`**
 
+## **Section 1.5: Pydantic Schemas for File Operations – Tutorial Version**
+
+**Goal:**
+Understand how to structure **request and response models** for an API using **Pydantic**, and why **this improves maintainability, security, and clarity** in a FastAPI backend.
+
+---
+
+### **SECTION 1: Response Models**
+
+#### **FileInfo: Representing a Single File**
+
+```python
+class FileInfo(BaseModel):
+    name: str = Field(..., description="Filename")
+    status: str = Field(..., description="available or checked_out")
+    size_bytes: int = Field(..., description="File size in bytes")
+    locked_by: Optional[str] = Field(None, description="Username who locked the file")
+```
+
+**Key Points:**
+
+1. **`BaseModel` inheritance** → all Pydantic models derive validation, serialization, and documentation automatically.
+2. **Field descriptors (`Field`)**:
+
+   - `description` → used in **API docs** (`/docs`)
+   - `...` → required field (ellipsis)
+
+3. **Optional fields (`Optional[str]`)**:
+
+   - Indicates the field may be `None`
+   - Matches real-world scenarios: a file may or may not be locked
+
+```python
+file = FileInfo(name="PN1001_OP1.mcam", status="available", size_bytes=1234567)
+print(file.locked_by)  ## None
+```
+
+**CS Insight:**
+
+- Response models **define the API contract**, separating **internal logic** from **external representation**.
+- Using strongly typed response models reduces **runtime errors** and improves **frontend/backend integration**.
+
+---
+
+#### **Schema Examples for Auto-Docs**
+
+```python
+class Config:
+    schema_extra = {
+        "example": {
+            "name": "PN1001_OP1.mcam",
+            "status": "available",
+            "size_bytes": 1234567,
+            "locked_by": None
+        }
+    }
+```
+
+- `schema_extra` → FastAPI uses this to **auto-generate OpenAPI docs**
+- Example values make **Swagger UI** and **Redoc** interactive and understandable
+
+**Software Engineering Insight:**
+
+- This promotes **self-documenting code** and **reduces cognitive load** for frontend developers consuming your API.
+
+---
+
+#### **FileListResponse: Lists of Files**
+
+```python
+class FileListResponse(BaseModel):
+    files: List[FileInfo]
+    total: int = Field(..., description="Total number of files")
+```
+
+- `List[FileInfo]` → **type hints for collections**
+- Ensures every item in the list **matches the FileInfo model**
+- `total` → provides metadata for **pagination or frontend display**
+
+```python
+response = FileListResponse(files=[file], total=1)
+print(response.dict())
+```
+
+**CS Insight:**
+
+- Validating **collections** ensures consistent **data structures** for APIs
+- Reduces **edge-case bugs** when frontend renders a list of files
+
+---
+
+### **SECTION 2: Request Models**
+
+Request models define **expected payloads** from clients. Using Pydantic ensures **input is valid** before reaching your business logic.
+
+#### **FileCheckoutRequest**
+
+```python
+class FileCheckoutRequest(BaseModel):
+    filename: str = Field(..., min_length=1)
+    user: str = Field(..., min_length=3)
+    message: str = Field(..., min_length=1, max_length=500)
+```
+
+- **Validates string lengths** → prevents empty or malicious input
+- **Enforces API contract** → you know the backend will always receive the required fields
+
+```python
+request = FileCheckoutRequest(filename="PN1001.mcam", user="john", message="Editing part dimensions")
+print(request.dict())
+```
+
+**Security Insight:**
+
+- Declarative validation at model level reduces **manual checks** and prevents **basic injection attacks**
+
+---
+
+#### **FileCheckinRequest**
+
+```python
+class FileCheckinRequest(BaseModel):
+    filename: str
+    user: str
+```
+
+- Simplified request model for **checking files back in**
+- Only the necessary fields are required → **minimal payload**
+- Demonstrates **principle of least privilege** in API design
+
+**Software Engineering Insight:**
+
+- Using separate models for **checkout vs checkin** ensures **clear responsibilities**
+- Changes in one operation do not affect the other → reduces **coupling**
+
+---
+
+### ✅ **Key Takeaways from Section 1.5**
+
+1. **Response models** (`FileInfo`, `FileListResponse`) define **what your API sends**
+2. **Request models** (`FileCheckoutRequest`, `FileCheckinRequest`) define **what your API expects**
+3. **Pydantic ensures input/output integrity** automatically: type validation, length checks, optional fields
+4. **Schema examples** improve **developer experience** (Swagger/OpenAPI)
+5. Clear separation between **internal logic and API contract** → a core **software engineering best practice**
+6. Strong typing + declarative validation = fewer runtime errors, easier debugging, more secure code
+
+---
+
+**CS Insight Recap:**
+
+- Pydantic models enforce **data contracts**, a fundamental concept in **distributed systems and API design**
+- They combine **type safety (Python), declarative validation (software engineering), and runtime checks (CS)**
+- Preparing for **Stage 3** of our PDM app: endpoints that **expect validated inputs** and **return well-structured outputs**
+
 ```python
 """
 Pydantic schemas for file operations.
@@ -2783,6 +3214,191 @@ touch backend/app/api/__init__.py
 ```
 
 **File: `backend/app/api/files.py`**
+
+## **Section 1.5 `files.py` – File Management API Endpoints**
+
+**Goal:**
+Understand how to define **API routes in FastAPI**, return **typed responses**, and structure a backend for maintainability. This file is intentionally **thin**, focusing on **route definitions only**, leaving business logic for later (services/ stage).
+
+---
+
+### **SECTION 1: Router Setup**
+
+```python
+from fastapi import APIRouter
+
+router = APIRouter(
+    prefix="/api/files",
+    tags=["files"],
+)
+```
+
+**Key Points:**
+
+1. **`APIRouter`**:
+
+   - Modular way to define endpoints separate from the main app.
+   - Promotes **separation of concerns**, making code **scalable and testable**.
+
+2. **`prefix="/api/files"`**:
+
+   - All routes in this router will be prefixed automatically.
+   - E.g., `GET /api/files/` instead of repeating the path in every endpoint.
+
+3. **`tags=["files"]`**:
+
+   - Groups routes in **OpenAPI documentation**.
+   - Improves developer experience for anyone using Swagger UI or Redoc.
+
+**Software Engineering Insight:**
+
+- Using routers is a **common pattern in backend frameworks** (like Flask Blueprints or Django apps) to avoid **monolithic code**.
+- Encourages **modularity and maintainability**, which is key in real-world software projects.
+
+---
+
+### **SECTION 2: Hardcoded Data (Temporary)**
+
+```python
+MOCK_FILES = [
+    {"name": "PN1001_OP1.mcam", "status": "available", "size_bytes": 1234567, "locked_by": None},
+    {"name": "PN1002_OP1.mcam", "status": "checked_out", "size_bytes": 2345678, "locked_by": "john"},
+    {"name": "PN1003_OP1.mcam", "status": "available", "size_bytes": 987654, "locked_by": None}
+]
+```
+
+**Key Points:**
+
+1. **Temporary hardcoded data** is useful for:
+
+   - **Prototyping endpoints** before implementing actual services
+   - Ensuring **API contracts** are working and returning correct types
+
+2. **`locked_by` as `None`** → consistent with `Optional[str]` in Pydantic schemas
+
+**CS Insight:**
+
+- Using mock data is a **standard practice in Test-Driven Development (TDD)**: write your tests/routes before connecting to the database.
+- Separates **API behavior** from **business logic**, making incremental development smoother.
+
+---
+
+### **SECTION 3: GET Endpoints**
+
+#### **Get all files**
+
+```python
+@router.get("/", response_model=FileListResponse)
+def get_files():
+    return FileListResponse(files=MOCK_FILES, total=len(MOCK_FILES))
+```
+
+**Key Points:**
+
+1. **`@router.get("/")`** → HTTP GET method
+
+2. **`response_model=FileListResponse`**:
+
+   - FastAPI **validates the returned object** against the model
+   - Automatically generates **OpenAPI docs**
+   - Ensures the frontend **always gets the expected structure**
+
+3. **Return object** is **typed**:
+
+   ```python
+   FileListResponse(files=MOCK_FILES, total=len(MOCK_FILES))
+   ```
+
+**Software Engineering Insight:**
+
+- Typed responses **reduce runtime errors** and **improve developer confidence**
+- This aligns with **interface segregation principle**: the endpoint only exposes what it needs to.
+
+---
+
+#### **Get a single file**
+
+```python
+@router.get("/{filename}", response_model=FileInfo)
+def get_file(filename: str):
+    for file in MOCK_FILES:
+        if file["name"] == filename:
+            return FileInfo(**file)
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"File '{filename}' not found"
+    )
+```
+
+**Key Points:**
+
+1. **Path parameter `{filename}`**:
+
+   - Passed as a function argument
+   - FastAPI automatically converts and validates it as a `str`
+
+2. **Data validation**:
+
+   - `FileInfo(**file)` → ensures mock data conforms to Pydantic model
+
+3. **Error handling**:
+
+   - `HTTPException` with `status_code` and `detail` ensures **RESTful error reporting**
+   - FastAPI automatically serializes this to JSON
+
+**CS Insight:**
+
+- Separating **normal flow** vs **exceptional flow** is a core principle of robust backend design.
+- Consistent **HTTP status codes** improve API usability and make integrations predictable.
+
+---
+
+### **SECTION 4: Placeholder Endpoints**
+
+```python
+@router.post("/checkout")
+def checkout_file():
+    return {"message": "Checkout endpoint - coming in Stage 3"}
+
+@router.post("/checkin")
+def checkin_file():
+    return {"message": "Checkin endpoint - coming in Stage 3"}
+```
+
+**Key Points:**
+
+1. These endpoints are **stubs**:
+
+   - Defined now to complete the **API contract**
+   - Implementation comes later in **services/**
+
+2. **Why placeholders?**
+
+   - Allows **frontend development** to start
+   - Enables **integration testing** without full backend logic
+   - Encourages **iterative development** (Agile principle)
+
+---
+
+### ✅ **Key Takeaways from `files.py`**
+
+1. **Routers modularize endpoints**, keeping main app clean
+2. **Response models enforce type safety** and **generate docs** automatically
+3. **Path parameters + validation** ensure endpoints are robust and predictable
+4. **Mock data** allows early-stage testing before implementing business logic
+5. **Placeholder endpoints** help maintain a **working API contract** for frontend/backend integration
+6. **Error handling via HTTPException** is crucial for **RESTful API design**
+
+---
+
+**CS & SE Insight Recap:**
+
+- **Modularity** → `APIRouter` promotes separation of concerns
+- **Type safety** → Pydantic models enforce contracts at runtime
+- **Iterative development** → mock data + stubs enable early testing and frontend integration
+- **Error handling** → clear and predictable API responses
+- **Documentation** → auto-generated OpenAPI docs improve developer experience
 
 ```python
 """
