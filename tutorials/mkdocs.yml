@@ -1,6 +1,40 @@
 site_name: My Docs
 docs_dir: "docs"
 nav:
+  - Grokking:
+      - SECTION 0: section 0.md
+      - SECTION 1: section 1.md
+      - SECTION 2: section 2.md
+      - SECTION 2R: section 2 refactor.md
+      - SECTION 3: section 3.md
+      - SECTION 4: section 4.md
+      - SECTION 5: section 5.md
+      - SECTION 6: section 6.md
+      - SECTION 7: section 7.md
+      - SECTION 8: section 8.md
+  - Chatting:
+      - Stage0: gptStage0.md
+      - Stage2.1: gptStage2.1.md
+      - Stage2: gptStage2.md
+      - Stage3.1: gptStage3.1.md
+      - Stage4.1: gptStage4.1.md
+      - Stage4.2: gptStage4.2.md
+      - Stage4.3: gptStage4.3.md
+      - Stage4.5: gptStage4.5.md
+      - Stage5.1: gptStage5.1.md
+      - Stage5.2: gptStage5.2.md
+      - Stage5.3: gptStage5.3.md
+      - Stage5.4: gptStage5.4.md
+      - Stage6.1: gptStage6.1.md
+      - Stage6.2: gptStage6.2.md
+      - Stage6.3: gptStage6.3.md
+      - Stage6.4: gptStage6.4.md
+      - Stage6.5: gptStage6.5.md
+      - Stage6.6: gptStage6.6.md
+      - Stage7.0: gptStage7.0.md
+      - Stage7.1: gptStage7.1.md
+      - Stage7.2: gptStage7.2.md
+
   - CLAUD: claud.md
   - ADDitional: addintionalClaud.md
   - AdditionalGem: again.md
