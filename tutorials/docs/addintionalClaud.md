@@ -134,6 +134,292 @@ Create this file to learn typing:
 
 **File: `backend/app/learn_typing.py`**
 
+## 🐍 Deep Dive into Python Typing
+
+Python is dynamically typed: variables can change type at runtime. But sometimes we **want hints** to make code safer, easier to read, and easier to check before running. That’s where the `typing` module comes in.
+
+---
+
+### **Section 0: Introduction to `typing`**
+
+```python
+"""
+Deep dive into Python's typing module.
+
+Type hints don't enforce types at runtime - they are mainly for:
+1. IDE autocomplete and error detection
+2. Static analysis tools like mypy
+3. Documentation
+4. Optional runtime validation with libraries like Pydantic
+"""
+```
+
+**Explanation:**
+
+- These are **docstring comments** explaining the purpose of typing.
+- Python itself won’t stop you from passing a `str` to a function expecting an `int`.
+- Typing helps **humans and tools**: autocomplete, error catching, documentation generation.
+- Later, frameworks like **Pydantic** can enforce types **at runtime**.
+
+---
+
+### **Section 1: Importing Typing and Other Modules**
+
+```python
+from typing import (
+    List, Dict, Tuple, Set,        ## Generic container types
+    Optional, Union,               ## Type combinations
+    Any, TypeVar,                  ## Special types
+    Callable,                      ## Function types
+    Literal,                       ## Exact literal values
+    Protocol                        ## Structural typing (duck typing)
+)
+
+from pathlib import Path           ## Filesystem paths, type-safe
+from datetime import datetime     ## Working with timestamps
+```
+
+**Explanation:**
+
+- `List[str]` means a list of strings.
+- `Optional[str]` = `Union[str, None]`.
+- `TypeVar` allows **generic functions** (functions that work with any type).
+- `Protocol` allows **structural typing**, similar to duck typing but type-safe.
+
+`Path` and `datetime` are **real-world modules** used in file handling and timestamps.
+
+---
+
+### **Section 2: Basic Type Hints**
+
+```python
+def greet(name: str) -> str:
+    """
+    Simple function with type hints.
+
+    :param name: expects a string
+    :return: returns a string
+    """
+    return f"Hello, {name}!"
+```
+
+**Explanation:**
+
+- `name: str` → The parameter `name` must be a string.
+- `-> str` → The function returns a string.
+- Type hints **don’t enforce runtime types** but will give IDE errors if misused.
+- The `f""` string is a **formatted string literal** (f-string) in Python 3.6+.
+
+---
+
+### **Section 3: Collections (`List`, `Dict`, `Tuple`)**
+
+```python
+def process_files(filenames: List[str]) -> Dict[str, int]:
+    """
+    Takes a list of filenames (strings) and returns a dictionary
+    mapping filename to its length.
+    """
+    return {name: len(name) for name in filenames}
+```
+
+**Explanation:**
+
+- `List[str]`: A list where all elements are strings.
+- `Dict[str, int]`: A dictionary with string keys and integer values.
+- The dictionary comprehension `{name: len(name) for name in filenames}` is **Pythonic** for mapping a transformation to a collection.
+
+```python
+def get_coordinates() -> Tuple[float, float]:
+    """Return a tuple of two floats."""
+    return (40.7128, -74.0060)  ## NYC latitude and longitude
+```
+
+**Explanation:**
+
+- `Tuple[float, float]` → Exactly two floats in a tuple.
+- Useful for **fixed-size collections**.
+
+---
+
+### **Section 4: Optional and Union**
+
+```python
+def find_user(user_id: int) -> Optional[Dict[str, str]]:
+    """
+    Might return a dictionary or None.
+    Optional[X] is shorthand for Union[X, None]
+    """
+    if user_id == 1:
+        return {"name": "Alice", "role": "admin"}
+    return None
+```
+
+- `Optional[Dict[str, str]]` = `Dict[str, str]` or `None`.
+- Helps **signal that a function might fail to find something**.
+
+```python
+def process_data(value: Union[int, str, List[int]]) -> str:
+    """Handle multiple possible types with Union"""
+    if isinstance(value, int):
+        return f"Got integer: {value}"
+    elif isinstance(value, str):
+        return f"Got string: {value}"
+    else:
+        return f"Got list of {len(value)} integers"
+```
+
+**Explanation:**
+
+- `Union[int, str, List[int]]` → `value` can be an int, str, or list of ints.
+- Use `isinstance()` to check the type **safely**.
+- Typing helps **document expectations** and allows tools to warn if you forget cases.
+
+---
+
+### **Section 5: Callable (Function Types)**
+
+```python
+def execute_twice(func: Callable[[int], int], value: int) -> int:
+    """
+    Executes a function twice: func(func(value))
+    Callable[[int], int]: function takes int, returns int
+    """
+    return func(func(value))
+
+def double(x: int) -> int:
+    return x * 2
+```
+
+**Explanation:**
+
+- `Callable[[int], int]` → A function that **takes an int and returns an int**.
+- Typing functions allows **higher-order functions** safely.
+- `execute_twice(double, 5)` → returns `20` because `double(5)` = 10, then `double(10)` = 20.
+
+---
+
+### **Section 6: TypeVar (Generics)**
+
+```python
+T = TypeVar('T')  ## Generic type variable
+
+def get_first(items: List[T]) -> Optional[T]:
+    """Return first item from a list, works with any type."""
+    return items[0] if items else None
+```
+
+**Explanation:**
+
+- `T` is a **placeholder type**.
+- Works with `List[int]`, `List[str]`, etc.
+- `Optional[T]` = might return `T` or `None`.
+
+---
+
+### **Section 7: Literal (Exact Values)**
+
+```python
+UserRole = Literal["admin", "user", "guest"]
+
+def check_permission(role: UserRole) -> bool:
+    """Check permission only for valid roles."""
+    return role == "admin"
+```
+
+**Explanation:**
+
+- `Literal["admin", "user", "guest"]` → Only accepts these exact strings.
+- IDE will **autocomplete these values**, preventing typos.
+- Useful for **enums without creating a full Enum class**.
+
+---
+
+### **Section 8: Protocol (Structural Typing)**
+
+```python
+from typing import Protocol
+
+class Readable(Protocol):
+    """Any object with a read() method matches this protocol."""
+    def read(self) -> str: ...
+
+def read_data(source: Readable) -> str:
+    """Accepts anything with a read() method."""
+    return source.read()
+```
+
+**Explanation:**
+
+- Protocol allows **duck typing with type safety**.
+- Any object with a `read()` method will match `Readable`.
+- Works for **files, StringIO, custom classes**, etc.
+
+---
+
+### **Section 9: Real-World Example – File Lock**
+
+```python
+class FileLockData:
+    """Represents a file lock entry."""
+    filename: str
+    user: str
+    timestamp: datetime
+    message: str
+
+def create_lock(filename: str, user: str, message: str) -> Dict[str, Union[str, datetime]]:
+    """
+    Create a dictionary representing a file lock.
+    IDEs and mypy will check types; runtime validation can use Pydantic.
+    """
+    return {
+        "filename": filename,
+        "user": user,
+        "timestamp": datetime.now(),
+        "message": message
+    }
+```
+
+**Explanation:**
+
+- Combines **basic types, collections, and datetime**.
+- Typing allows **IDE hints** before runtime.
+- Pydantic can **enforce these types at runtime**.
+
+---
+
+### **Section 10: Testing Your Understanding**
+
+```python
+if __name__ == "__main__":
+    print(greet("World"))  ## Basic type hint
+
+    files = ["file1.txt", "file2.txt"]
+    print(process_files(files))  ## Collection types
+
+    user = find_user(1)
+    print(f"Found user: {user}")  ## Optional
+
+    print(process_data(42))
+    print(process_data("hello"))
+    print(process_data([1, 2, 3]))  ## Union
+
+    result = execute_twice(double, 5)
+    print(f"Double twice: {result}")  ## Callable
+
+    first_str = get_first(["a", "b", "c"])
+    first_int = get_first([1, 2, 3])
+    print(f"First string: {first_str}, First int: {first_int}")  ## Generic
+```
+
+**Explanation:**
+
+- `__name__ == "__main__"` → Python idiom for **script entry point**.
+- Prints test results for **all sections**, so you can see type hints in action.
+- Helps **connect theory to real output**.
+
+---
+
 ```python
 """
 Deep dive into Python's typing module.
@@ -353,6 +639,259 @@ mypy app/learn_typing.py
 **Never use string concatenation for paths. Use `pathlib.Path`.**
 
 **File: `backend/app/learn_pathlib.py`**
+
+## 🐍 Section 0.5: Path Management with `pathlib` – Tutorial Version
+
+**Goal:**
+Learn how to **handle filesystem paths safely and consistently** across platforms while building applications. You’ll also learn Python concepts like **object-oriented APIs**, **properties**, **methods**, and **real-world app folder structure**.
+
+---
+
+### **SECTION 1: Why `pathlib` exists**
+
+```text
+Old way: os.path, string-based paths
+Problem: error-prone, platform differences, string concatenation issues
+
+Modern way: pathlib
+- Object-oriented API
+- Safe path operations
+- Works on Windows, macOS, Linux
+- Makes code more readable and maintainable
+```
+
+**Tip:** Think of a path like an **object representing a file or folder**, not just a string. This allows **methods and properties**.
+
+---
+
+### **SECTION 2: Creating Paths**
+
+```python
+from pathlib import Path
+
+## Current working directory
+cwd = Path.cwd()
+
+## Home directory
+home = Path.home()
+
+## Explicit path
+manual = Path("/usr/local/bin")
+
+print(f"Current directory: {cwd}")
+print(f"Home directory: {home}")
+```
+
+**Deep dive:**
+
+- `Path.cwd()` → Python figures out your current working directory.
+- `Path.home()` → Always points to the user’s home folder.
+- `Path("/usr/local/bin")` → Hardcoded path (useful for system paths).
+
+**Repetition for learning:**
+Try creating a **relative path** to a folder in your project and print it.
+
+---
+
+### **SECTION 3: Joining Paths Safely**
+
+```python
+project_root = Path.cwd()
+backend = project_root / "backend"
+app = backend / "app"
+main = app / "main.py"
+
+print(f"Main file: {main}")
+```
+
+**Key concepts:**
+
+- The `/` operator replaces `os.path.join()`.
+- Platform-agnostic (works with `/` on macOS/Linux and `\` on Windows).
+- **Readable and chainable**, unlike `os.path.join()` with multiple arguments.
+
+**Mini exercise:**
+Create a path to a `logs` folder inside `app` and print it.
+
+---
+
+### **SECTION 4: Accessing Path Properties**
+
+```python
+example = Path("/home/user/project/backend/app/main.py")
+
+print(example.name)      ## main.py
+print(example.stem)      ## main
+print(example.suffix)    ## .py
+print(example.parent)    ## /home/user/project/backend/app
+print(example.parents[1])## /home/user/project/backend
+print(example.is_absolute()) ## True
+```
+
+**Why it matters:**
+
+- `name` → file name with extension
+- `stem` → name without extension
+- `suffix` → extension
+- `parent` → directory containing the file
+- `parents[n]` → nth-level parent (helps traverse project folders)
+- `is_absolute()` → checks if path is absolute (useful for resolving paths dynamically)
+
+**Tip for apps:** You’ll often traverse **from current file to project root** — this is how large Python projects manage paths.
+
+---
+
+### **SECTION 5: Checking Existence and Type**
+
+```python
+path = Path(".")
+
+if path.exists():
+    print(f"{path} exists")
+
+if path.is_file():
+    print("It's a file")
+elif path.is_dir():
+    print("It's a directory")
+```
+
+**Explanation:**
+
+- `exists()` → checks if the path exists on the filesystem
+- `is_file()` → true if it’s a file
+- `is_dir()` → true if it’s a directory
+
+**Computer science takeaway:** This is **runtime validation**, useful for robust programs and preventing errors like trying to read a folder as a file.
+
+---
+
+### **SECTION 6: Reading and Writing Files**
+
+```python
+test_file = Path("test.txt")
+test_file.write_text("Hello from pathlib!")  ## Write or overwrite
+content = test_file.read_text()               ## Read as string
+print(content)
+
+test_file.write_bytes(b"Binary data")        ## Write bytes
+binary = test_file.read_bytes()              ## Read bytes
+
+test_file.unlink()  ## Delete file
+```
+
+**Notes:**
+
+- `.write_text()` / `.read_text()` are **text-specific**, encoding default is UTF-8
+- `.write_bytes()` / `.read_bytes()` for binary data
+- `.unlink()` deletes the file — equivalent to `os.remove()`
+
+**Mini exercise:**
+Create `notes.txt`, write a few lines, read them back, then delete the file. Observe differences between text and bytes.
+
+---
+
+### **SECTION 7: Iterating Directory Contents**
+
+```python
+for item in Path(".").iterdir():
+    print(f"Found: {item}")
+
+for py_file in Path(".").rglob("*.py"):
+    print(f"Python file: {py_file}")
+```
+
+- `.iterdir()` → iterates **only top-level files/folders**
+- `.rglob()` → recursive glob; finds all matching patterns
+- **App usage:** Useful for searching project files dynamically
+
+---
+
+### **SECTION 8: Creating Directories Safely**
+
+```python
+new_dir = Path("temp/nested/deep")
+new_dir.mkdir(parents=True, exist_ok=True)  ## Create all parents if missing
+```
+
+- `parents=True` → creates missing intermediate directories
+- `exist_ok=True` → prevents error if directory exists
+
+**CS concept:** Avoid race conditions; always check existence or allow “exist_ok” for safety.
+
+---
+
+### **SECTION 9: Resolving Paths**
+
+```python
+relative = Path("../backend/app")
+absolute = relative.resolve()
+
+print(f"Relative: {relative}")
+print(f"Absolute: {absolute}")
+```
+
+- `.resolve()` → converts relative paths to absolute paths
+- Handles `..` and `.` automatically
+
+**Why it matters for apps:** Always resolve paths **before reading/writing**, especially when scripts run from different working directories.
+
+---
+
+### **SECTION 10: Real-World App Example**
+
+```python
+def setup_project_paths():
+    this_file = Path(__file__).resolve()
+    backend_dir = this_file.parent.parent
+
+    return {
+        "backend": backend_dir,
+        "app": backend_dir / "app",
+        "static": backend_dir / "static",
+        "repo": backend_dir / "repo"
+    }
+
+if __name__ == "__main__":
+    paths = setup_project_paths()
+    for name, path in paths.items():
+        print(f"{name}: {path}")
+```
+
+**Key lessons:**
+
+- Use `__file__` to **anchor paths to script location**
+- Navigate dynamically to **project folders**
+- Avoid hardcoding paths → makes the project **portable**
+
+---
+
+### **SECTION 11: Path vs String**
+
+```python
+path = Path("config.txt")
+
+## Works directly
+with open(path, "r") as f:
+    data = f.read()
+
+## Some old libraries require strings
+import json
+with open(str(path), "r") as f:
+    data = json.load(f)
+```
+
+- Modern libraries accept **Path objects directly**
+- Old code may require `str(path)`
+- Python projects increasingly favor `pathlib` for clarity and safety
+
+---
+
+✅ **What this tutorial teaches:**
+
+- Beginner: Creating, joining, and inspecting paths
+- Intermediate: Reading/writing files, iterating directories
+- Advanced: Resolving paths, app folder structures, dynamic project setup
+- Computer science principles: abstraction, OOP design, cross-platform safety, runtime validation
 
 ```python
 """
@@ -669,6 +1208,220 @@ Ready for Stage 1? Reply "Stage 1" and I'll give you the next section.
 
 #### The Evolution of Python Web Servers
 
+## **Section 1.1: Understanding ASGI and FastAPI Performance – Tutorial Version**
+
+**Goal:**
+Understand **why ASGI exists**, why FastAPI is faster for I/O-bound tasks, and the software engineering principles behind async programming.
+
+---
+
+### **SECTION 1: The Problem with WSGI (Synchronous)**
+
+```python
+def wsgi_application(environ, start_response):
+    """
+    WSGI (Web Server Gateway Interface) - The old standard.
+
+    Problem: Synchronous. Each request blocks until complete.
+    If one request takes 5 seconds, it blocks the worker.
+
+    Used by: Flask, Django (traditional), Bottle
+    """
+    status = '200 OK'
+    headers = [('Content-Type', 'text/plain')]
+    start_response(status, headers)
+
+    ## Blocking operation - worker can't handle other requests
+    import time
+    time.sleep(1)  ## Simulating slow database query
+
+    return [b'Hello World']
+```
+
+#### **Deep dive – Software Engineering and CS**
+
+1. **WSGI is synchronous**
+
+   - Each HTTP request **uses one worker**.
+   - While that worker waits (e.g., database call, network), it **cannot process other requests**.
+
+2. **Blocking behavior**
+
+   - `time.sleep(1)` simulates a slow I/O operation.
+   - During this second, the worker is completely idle.
+
+3. **Scalability problem**
+
+   - Real-world apps might have 1000 simultaneous requests.
+   - If you have 4 workers, requests beyond the 4th **queue up**, increasing latency.
+   - Classic concurrency problem in CS: **limited resources + blocking operations = poor throughput**.
+
+4. **CS Concept: Threads vs Event Loops**
+
+   - WSGI servers often rely on **multiple threads or processes** to handle concurrency.
+   - Threads = heavier (memory + context switching).
+   - Processes = safe isolation but expensive.
+
+**Parallel in JavaScript:**
+
+- Node.js uses a **single-threaded event loop**, non-blocking I/O to avoid these bottlenecks.
+- Python async tries to achieve similar concurrency for I/O-bound tasks.
+
+---
+
+### **SECTION 2: ASGI (Asynchronous) – The Modern Standard**
+
+```python
+async def asgi_application(scope, receive, send):
+    """
+    ASGI - Asynchronous Server Gateway Interface
+
+    Benefit: Non-blocking. While waiting for I/O (database, file read),
+    the worker can handle other requests.
+
+    Used by: FastAPI, Starlette, Django 3.0+, Quart
+    """
+    import asyncio
+    await asyncio.sleep(1)  ## Waiting for I/O
+
+    await send({
+        'type': 'http.response.start',
+        'status': 200,
+        'headers': [[b'content-type', b'text/plain']],
+    })
+    await send({
+        'type': 'http.response.body',
+        'body': b'Hello World',
+    })
+```
+
+#### **Deep dive – Python async mechanics**
+
+1. **`async def`**
+
+   - Declares a coroutine — a function that can **pause its execution** at `await` points.
+   - Unlike regular functions, it **does not block the event loop**.
+
+2. **`await`**
+
+   - Pauses the coroutine until the awaited operation completes.
+   - Meanwhile, the **event loop schedules other coroutines**.
+
+3. **`send` / `receive`**
+
+   - Low-level ASGI interface: communicates with the server.
+   - `send()` transmits response events.
+
+4. **Key advantage:**
+
+   - ASGI allows a **single worker to manage thousands of I/O-bound requests efficiently**.
+
+**Parallel in JavaScript:**
+
+- `async` / `await` works similarly in JS/Node.js.
+- Non-blocking I/O is essential for scalable web servers.
+
+---
+
+### **SECTION 3: Real Performance Difference**
+
+```text
+Scenario: 1000 requests, each waits 1 second
+
+WSGI (4 workers):
+- 4 requests handled immediately
+- Remaining 996 requests queue
+- Total time: 250 seconds
+
+ASGI (4 workers):
+- All 1000 requests start immediately
+- Event loop handles waiting requests efficiently
+- Total time: ~1-2 seconds
+```
+
+#### **CS Principles**
+
+1. **Throughput vs Latency**
+
+   - WSGI: High latency under load
+   - ASGI: High throughput and low latency
+
+2. **Concurrency models**
+
+   - WSGI → Process/thread-based concurrency
+   - ASGI → Event-loop-based concurrency (like Node.js)
+
+3. **Software engineering takeaway**
+
+   - Choosing the right concurrency model depends on **application workload**.
+   - I/O-heavy apps benefit from async.
+   - CPU-heavy apps may still need threads or multiprocessing.
+
+---
+
+### **SECTION 4: When to Use `async/await`**
+
+#### **Good use cases (I/O bound)**
+
+```python
+async def good_async():
+    ## Example: Database queries
+    result = await db.fetch_one("SELECT * FROM users")
+
+    ## Example: HTTP requests to external APIs
+    response = await http_client.get("https://api.example.com")
+
+    ## Example: File I/O
+    data = await file.read()
+
+    return result
+```
+
+- Use `async` when operations **wait for external resources**.
+- Non-blocking behavior allows **high concurrency without extra threads**.
+
+#### **Bad use cases (CPU bound)**
+
+```python
+def bad_async():
+    ## Heavy computation
+    result = sum(range(10_000_000))  ## Blocks event loop
+    return result
+```
+
+- Async **does not make CPU-bound tasks faster**.
+- For CPU-heavy operations, use **threads, multiprocessing, or offload to C extensions**.
+
+---
+
+#### **Rule of Thumb – Software Engineering Perspective**
+
+| Operation Type                            | Recommended Function Type |
+| ----------------------------------------- | ------------------------- |
+| I/O-bound (DB, network, file)             | `async def` with `await`  |
+| CPU-bound (math, loops, heavy processing) | Regular `def`             |
+
+- Start with synchronous functions.
+- Profile your app to identify bottlenecks.
+- Use async selectively for **I/O-heavy parts**.
+
+---
+
+#### ✅ **Key Takeaways**
+
+1. **WSGI is synchronous** → blocks requests, limits scalability.
+2. **ASGI is asynchronous** → event loop handles many requests efficiently.
+3. **`async/await`** is Python’s way to write non-blocking code.
+4. **FastAPI** leverages ASGI to provide **high-performance I/O-bound web services**.
+5. **CS concepts reinforced:** concurrency, throughput, latency, event loops, and choosing the right model based on workload.
+6. **Software engineering principles:**
+
+   - Build modular, scalable apps
+   - Profile before optimizing
+   - Avoid unnecessary complexity
+
+---
+
 ```python
 ## backend/app/learn_asgi.py
 """
@@ -786,6 +1539,179 @@ Rule of thumb:
 ### 1.2: HTTP Protocol Deep Dive
 
 **File: `backend/app/learn_http.py`**
+
+## **Section 1.2: HTTP Protocol Deep Dive – Tutorial Version**
+
+**Goal:**
+Understand **how HTTP works**, why RESTful APIs follow conventions, and how this knowledge informs building **robust, maintainable web applications**. Also connects to **software engineering concepts** like idempotency, client-server separation, and API design.
+
+---
+
+### **SECTION 1: HTTP Request Structure**
+
+An HTTP request has **four main parts**:
+
+1. **Request Line** – method, path, and version
+
+```
+GET /api/files HTTP/1.1
+```
+
+- **Method** → what action the client wants (`GET`, `POST`, etc.)
+- **Path** → resource being accessed (`/api/files`)
+- **Version** → HTTP version (`HTTP/1.1` or `HTTP/2`)
+
+**CS Concept:**
+
+- HTTP is a **protocol** defining a contract between client and server.
+- Parsing the request line is the first step in request handling.
+
+---
+
+2. **Headers** – key-value metadata
+
+```
+Host: localhost:8000
+User-Agent: Mozilla/5.0
+Accept: application/json
+Authorization: Bearer <token>
+Content-Type: application/json
+Content-Length: 42
+```
+
+- Provide **context and instructions** for the server
+- Examples:
+
+  - `Accept` → desired response format
+  - `Content-Type` → type of body content
+  - `Authorization` → security token
+
+**Software Engineering Insight:**
+
+- Headers implement **separation of concerns**: metadata vs payload
+- They allow **extensible communication** without changing the body format
+
+---
+
+3. **Blank Line**
+
+- Separates headers from body
+- Mandatory to signal the start of content
+
+4. **Body** (optional)
+
+```
+{"filename": "PN1001.mcam", "user": "john"}
+```
+
+- Contains **payload** for requests that modify data (`POST`, `PUT`, `PATCH`)
+- JSON is the most common format for APIs
+
+**Parallel in JS/Node.js:**
+
+- In Express, `req.body` holds the parsed JSON data
+- FastAPI automatically parses JSON into Python dicts
+
+---
+
+### **SECTION 2: HTTP Methods (Verbs)**
+
+RESTful conventions define **how to manipulate resources**:
+
+| Method | Example        | Safe?  | Idempotent? | Body?         | Purpose                 |
+| ------ | -------------- | ------ | ----------- | ------------- | ----------------------- |
+| GET    | /api/files     | ✅ Yes | ✅ Yes      | ❌ No         | Read resource(s)        |
+| POST   | /api/files     | ❌ No  | ❌ No       | ✅ Yes        | Create resource         |
+| PUT    | /api/files/123 | ❌ No  | ✅ Yes      | ✅ Yes        | Replace resource        |
+| PATCH  | /api/files/123 | ❌ No  | ❌ Maybe    | ✅ Yes        | Modify part of resource |
+| DELETE | /api/files/123 | ❌ No  | ✅ Yes      | ❌ Usually no | Delete resource         |
+
+#### **CS Concepts**
+
+1. **Safe vs Unsafe**
+
+   - Safe → does not modify server state (`GET`)
+   - Unsafe → modifies server state (`POST`, `PUT`, `DELETE`)
+
+2. **Idempotency**
+
+   - Idempotent → repeated calls produce the **same result**
+   - Non-idempotent → each call may produce different effects
+   - Critical in **distributed systems** for retries and fault tolerance
+
+---
+
+### **SECTION 3: HTTP Status Codes**
+
+| Class | Examples                     | Meaning                                                                  |
+| ----- | ---------------------------- | ------------------------------------------------------------------------ |
+| 1xx   | 101                          | Informational (rare in APIs, e.g., WebSocket upgrade)                    |
+| 2xx   | 200, 201, 204                | Success (OK, Created, No Content)                                        |
+| 3xx   | 301, 302, 304                | Redirection (resource moved, cache handling)                             |
+| 4xx   | 400, 401, 403, 404, 409, 422 | Client errors (invalid input, unauthorized, not found, validation error) |
+| 5xx   | 500, 502, 503                | Server errors (exceptions, downtime)                                     |
+
+**Python/FastAPI Note:**
+
+- FastAPI sets most status codes automatically based on **return values or exceptions**.
+- Understanding them helps **debugging, logging, and client design**.
+
+**Parallel in JS/Node.js:**
+
+- Express uses `res.status(404).send('Not Found')`
+- Concepts of 2xx, 4xx, 5xx are identical
+
+---
+
+### **SECTION 4: Content Negotiation**
+
+- Client tells server **what format it wants** using `Accept` header:
+
+```
+Request: Accept: application/json
+Response: Content-Type: application/json
+{"result": "data"}
+```
+
+**FastAPI feature:**
+
+- Detects client preference
+- Automatically converts Python objects (dict, list) to JSON
+- Sets `Content-Type` header
+
+**CS Concept:**
+
+- **Content negotiation** allows APIs to be **flexible and extensible** without changing endpoints
+- Encourages **interoperability** across clients
+
+---
+
+### **SECTION 5: Important Headers in Our App**
+
+| Header                         | Purpose                                          |
+| ------------------------------ | ------------------------------------------------ |
+| Authorization: Bearer <JWT>    | Carries authentication token                     |
+| Content-Type: application/json | Tells server body is JSON                        |
+| Accept: application/json       | Client wants JSON back                           |
+| Content-Length                 | Indicates body size, prevents truncated requests |
+
+**Software Engineering Insight:**
+
+- Proper use of headers is essential for **security, reliability, and protocol compliance**
+- JWT tokens → stateless authentication, aligns with **modern API architecture**
+
+---
+
+### ✅ **Key Takeaways**
+
+1. **HTTP defines a structured contract** between client and server.
+2. **Verbs (GET, POST, PUT, PATCH, DELETE)** convey intent and define side-effects.
+3. **Status codes** communicate outcome of operations.
+4. **Headers and content negotiation** enable metadata-driven, interoperable APIs.
+5. **FastAPI abstracts most boilerplate**, but understanding HTTP is critical for **debugging, client design, and real-world software engineering**.
+6. **CS principles reinforced:** idempotency, separation of concerns, stateless protocols, distributed system considerations.
+
+---
 
 ```python
 """
@@ -951,6 +1877,189 @@ if __name__ == "__main__":
 
 **File: `backend/app/config.py`**
 
+## **Section 1.3: Application Configuration – Tutorial Version**
+
+**Goal:**
+Understand **how to centralize and manage application settings**, why it matters in **software engineering**, and how **Python + Pydantic** helps you enforce types and defaults safely. We’ll also cover **environment variables, config patterns, and path management**.
+
+---
+
+### **Why Centralized Configuration Matters**
+
+In software engineering, **hardcoding values** (like database URLs, file paths, API keys) is a bad idea:
+
+- Makes apps **less flexible** (hard to deploy to multiple environments: dev, staging, prod).
+- Creates **maintenance issues** (if a value changes, you have to search the code).
+- Introduces **security risks** (sensitive info in code repository).
+
+**Solution:** Centralized configuration:
+
+- **One place for all settings**
+- **Override per environment** (e.g., `.env` for dev, environment variables for prod)
+- **Typed values** to catch errors early
+
+This is a common **software engineering best practice** in modern backend systems.
+
+---
+
+### **SECTION 1: Using Pydantic Settings**
+
+```python
+from pydantic_settings import BaseSettings
+from pathlib import Path
+```
+
+- `BaseSettings` → special Pydantic class for **typed, validated settings**
+- `Path` → modern way to manage filesystem paths (object-oriented, cross-platform)
+
+**CS/Engineering note:**
+
+- We’re combining **type safety** (Python typing + Pydantic) with **config abstraction**, making apps **reliable and maintainable**.
+
+---
+
+### **SECTION 2: Define Your Settings Class**
+
+```python
+class Settings(BaseSettings):
+    """
+    Application settings with sensible defaults for development.
+    Override via environment variables or .env file.
+    """
+```
+
+- **Class-based config** → a common pattern in backend engineering
+- `BaseSettings` automatically reads **environment variables** to override defaults
+
+#### **Application-level settings**
+
+```python
+APP_NAME: str = "PDM Backend API"
+APP_VERSION: str = "0.1.0"
+DEBUG: bool = True
+```
+
+- `APP_NAME` → displayed in logs, docs, API metadata
+- `APP_VERSION` → versioning for clients or migrations
+- `DEBUG` → controls whether **detailed errors** and **auto-reload** are enabled
+
+**CS/Engineering principle:**
+
+- Centralized, typed constants reduce **magic values** scattered across the codebase.
+- Enables **consistent, environment-specific behavior**.
+
+---
+
+#### **Path Configuration**
+
+```python
+BASE_DIR: Path = Path(__file__).resolve().parent.parent
+```
+
+- Dynamically computes **project root** based on file location
+- `__file__` → current file path
+- `resolve()` → absolute path
+- `.parent.parent` → go **two levels up** (e.g., from `backend/app/config.py` → `backend/`)
+
+**Why important:**
+
+- Avoids hardcoding paths → portable across machines
+- Ensures all file operations (logs, templates, uploads) use **consistent base directory**
+
+**CS Concept:**
+
+- Relative paths can break in deployment; computing absolute paths dynamically is **defensive programming**.
+
+---
+
+### **SECTION 3: Environment File Support**
+
+```python
+class Config:
+    env_file = ".env"
+    env_file_encoding = "utf-8"
+```
+
+- `.env` → a **plain-text file with environment variables**
+- Example `.env`:
+
+```
+APP_NAME=PDM API Production
+DEBUG=False
+```
+
+- FastAPI / Pydantic automatically reads these at runtime
+- Allows **safe overrides** without changing code
+
+**Software engineering principle:**
+
+- **12-factor apps** recommend storing config in environment variables, not code.
+- Decouples **config from logic**, improves **security and portability**.
+
+---
+
+### **SECTION 4: Singleton Instance**
+
+```python
+settings = Settings()
+```
+
+- Creates **one instance of Settings** used across the entire backend
+- Ensures **consistent configuration** without repeated reads
+- Other modules can import:
+
+```python
+from config import settings
+print(settings.APP_NAME)
+```
+
+**CS Concept – Singleton Pattern:**
+
+- Ensures **only one instance** manages global state/config
+- Avoids duplicated config logic and inconsistent values
+
+---
+
+### ✅ **Key Takeaways**
+
+1. **Centralized configuration** is critical for maintainable, secure, deployable apps.
+2. **Pydantic + BaseSettings** combines:
+
+   - **Type safety** → early error detection
+   - **Validation** → ensures values match expected type
+   - **Environment overrides** → easy dev/staging/prod switching
+
+3. **Path management** ensures **portable, robust filesystem access**
+4. **Singleton instance** guarantees **consistent configuration** across modules
+5. **CS + software engineering concepts reinforced:**
+
+   - Separation of concerns
+   - Environment-aware applications
+   - Singleton pattern for shared state
+   - Defensive programming (computed paths)
+
+---
+
+**Parallel in JavaScript / Node.js:**
+
+- Common pattern: `config.js` with:
+
+```javascript
+const path = require("path");
+
+module.exports = {
+  APP_NAME: process.env.APP_NAME || "PDM Backend API",
+  DEBUG: process.env.DEBUG === "true",
+  BASE_DIR: path.resolve(__dirname, "..", ".."),
+};
+```
+
+- Conceptually identical: type checking is looser, but environment-based config is the same.
+
+---
+
+This section **sets the foundation for building endpoints and services** in FastAPI while keeping **config centralized, typed, and environment-aware**.
+
 ```python
 """
 Application configuration.
@@ -997,6 +2106,201 @@ settings = Settings()
 ---
 
 **File: `backend/app/main.py`**
+
+## **Section 1.3 (Part 2): FastAPI Application Initialization – Tutorial Version**
+
+**Goal:**
+Understand how to properly structure a **FastAPI backend**, why we use an **application factory**, middleware, startup/shutdown events, and separation of concerns. We’ll include **CS/software engineering insights** and **Python best practices**.
+
+---
+
+### **SECTION 1: Application Factory Pattern**
+
+```python
+def create_application() -> FastAPI:
+```
+
+- **Purpose:** Encapsulates **app creation logic** in a function rather than at module level
+- Returns a **FastAPI instance**
+- This pattern is widely used in **Flask**, **FastAPI**, and **other Python frameworks**
+
+#### **Benefits**
+
+1. **Multiple instances** → useful for testing:
+
+   - You can spin up a separate app instance for **unit tests** without interfering with your main app.
+
+2. **Centralized configuration** → app settings come from `settings` object
+3. **Startup/shutdown hooks** → easy to attach lifecycle events
+
+**Software Engineering Insight:**
+
+- Using an application factory follows **modular design principles**
+- Promotes **decoupling** and **testability**, critical in professional backend systems
+
+---
+
+### **SECTION 2: Middleware Configuration**
+
+```python
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:8000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+#### **Why middleware?**
+
+- Middleware intercepts requests/responses **before and after hitting routes**
+- Common uses: **CORS, authentication, logging, error handling**
+
+#### **CORS Explained (Cross-Origin Resource Sharing)**
+
+- Browsers enforce the **Same-Origin Policy**: JavaScript can’t call APIs on a different domain by default
+- CORS headers **tell the browser which origins are allowed**
+- In production, only allow your **frontend domain** for security
+
+**CS Concept:**
+
+- Middleware demonstrates **intercepting layers** → a classic **pipeline pattern** in software engineering
+- Allows cross-cutting concerns without polluting business logic
+
+---
+
+### **SECTION 3: Startup and Shutdown Events**
+
+```python
+@app.on_event("startup")
+async def startup_event():
+    print(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+```
+
+- **Startup events**: run once **when the server starts**
+- Good for:
+
+  - Connecting to databases
+  - Loading caches
+  - Logging server info
+
+```python
+@app.on_event("shutdown")
+async def shutdown_event():
+    print("Shutting down gracefully...")
+```
+
+- **Shutdown events**: run once **when the server stops**
+- Good for:
+
+  - Closing DB connections
+  - Flushing logs
+  - Cleanup tasks
+
+**Python/CS Concept:**
+
+- ASGI allows **async startup/shutdown** → non-blocking operations
+- Mimics **resource management patterns** in OS-level programming
+
+---
+
+### **SECTION 4: Root Route (Health Check)**
+
+```python
+@app.get("/")
+def read_root():
+    return {
+        "name": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "status": "operational",
+        "message": "Welcome to the PDM Backend API"
+    }
+```
+
+- Simple **GET endpoint** to check server health and API metadata
+- **Best practice:** every API should have a **root or health check route**
+
+**Software Engineering Insight:**
+
+- Useful for **monitoring tools** or load balancers
+- Communicates **version and operational status** → key for CI/CD pipelines
+
+---
+
+### **SECTION 5: Create App Instance**
+
+```python
+app = create_application()
+```
+
+- Calls the **factory** to create a **singleton FastAPI instance**
+- Other modules import `app` for **routing, middleware, and testing**
+
+**CS Concept:**
+
+- Follows **dependency injection principles**: app configuration is **externalized** and **passed in**, improving flexibility
+
+---
+
+### **SECTION 6: Development Server Entry Point**
+
+```python
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
+```
+
+#### **Key points**
+
+- `__name__ == "__main__"` → standard Python idiom to run **module as script**
+- `uvicorn.run()` → launches **ASGI server**
+- `reload=True` → **auto-reload** in development (not for production)
+- `log_level="info"` → controls verbosity for debugging
+
+**Best practice:**
+
+- **Keep entry point thin** → all **business logic** belongs in `services/` or `routes/`
+- **Separation of concerns** → easier maintenance and testing
+
+**JavaScript Parallel:**
+
+- Node/Express apps often use:
+
+```javascript
+const app = require("./app");
+app.listen(3000, () => console.log("Server running"));
+```
+
+- Same idea: thin entry point, main logic elsewhere
+
+---
+
+### ✅ **Key Takeaways**
+
+1. **Application Factory Pattern** → promotes modularity, testability, and centralized configuration
+2. **Middleware** → intercept requests/responses for cross-cutting concerns
+3. **Startup/Shutdown hooks** → manage resources reliably
+4. **Root route** → health check & API metadata, best practice for monitoring
+5. **Thin entry point** → separates server bootstrap from business logic
+6. **CS/Software Engineering Concepts:**
+
+   - Modular design & separation of concerns
+   - Pipeline pattern (middleware)
+   - Dependency injection & singleton instance
+   - Resource lifecycle management
+
+---
+
+This structure sets you up for **scaling your app**, **testing endpoints**, and integrating **business logic in services and routes**.
 
 ```python
 """
