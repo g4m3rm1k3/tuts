@@ -4841,6 +4841,282 @@ class FileService:
 
 **Update `backend/app/api/files.py`:**
 
+## Tutorial: File Management API Endpoints (FastAPI)
+
+---
+
+### SECTION 1: Router Setup
+
+```python
+from fastapi import APIRouter, HTTPException, status, Depends
+from app.schemas.files import (
+    FileInfo,
+    FileListResponse,
+    FileCheckoutRequest,
+    FileCheckinRequest
+)
+from app.services.file_service import FileService
+from pathlib import Path
+```
+
+**Explanation:**
+
+- `APIRouter` → lets you group endpoints into a clean, modular API.
+- `HTTPException` → raise errors that FastAPI translates into proper HTTP responses.
+- `status` → constants like `404_NOT_FOUND`, keeps your code readable.
+- `Depends` → dependency injection system, lets FastAPI create services for each request.
+- `schemas.files` → **Pydantic models** that define request/response shapes.
+- `FileService` → our business logic layer from the previous section.
+- `Path` → used for filesystem paths (we’ll configure repository paths later).
+
+---
+
+```python
+router = APIRouter(
+    prefix="/api/files",
+    tags=["files"],
+)
+```
+
+- `prefix="/api/files"` → all routes in this router will start with `/api/files`.
+- `tags=["files"]` → shows up in Swagger/OpenAPI docs for grouping.
+
+👉 This keeps your API organized, especially when you have multiple routers (e.g., `/api/users`, `/api/admin`).
+
+---
+
+### SECTION 2: Dependency Injection
+
+```python
+def get_file_service() -> FileService:
+    """
+    Dependency that provides FileService instance.
+
+    In production, this would be a singleton.
+    For now, we create it per-request (still fast).
+    """
+    from app.config import settings
+
+    repo_path = settings.BASE_DIR / 'repo'
+    locks_file = settings.BASE_DIR / 'locks.json'
+
+    return FileService(repo_path, locks_file)
+```
+
+**Explanation:**
+
+- FastAPI can **inject this function** into endpoints using `Depends()`.
+- Reads `repo_path` and `locks_file` from config (you’d centralize paths in `settings`).
+- Creates a **new `FileService` instance per request**.
+
+**Gotcha:**
+If you want **better performance**, you could make this a **singleton** instead of per-request, but per-request is easier and safe for now.
+
+---
+
+### SECTION 3: GET Endpoints
+
+#### List Files
+
+```python
+@router.get("/", response_model=FileListResponse)
+def get_files(
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Get list of all files with their lock status.
+    """
+    try:
+        files = file_service.get_files_with_status()
+
+        return FileListResponse(
+            files=files,
+            total=len(files)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list files: {str(e)}"
+        )
+```
+
+**Explanation:**
+
+- `@router.get("/")` → endpoint at `GET /api/files/`.
+- `response_model=FileListResponse` → FastAPI validates & documents the response.
+- Injects `file_service` automatically.
+- Returns files + total count.
+
+**Error Handling:**
+
+- Wraps everything in try/except.
+- Returns **500 Internal Server Error** for unexpected problems.
+
+---
+
+#### Get File by Name
+
+```python
+@router.get("/{filename}", response_model=FileInfo)
+def get_file(
+    filename: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Get details for a specific file.
+    """
+    files = file_service.get_files_with_status()
+
+    for file in files:
+        if file['name'] == filename:
+            return FileInfo(**file)
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"File '{filename}' not found"
+    )
+```
+
+**Explanation:**
+
+- `@router.get("/{filename}")` → path parameter like `/api/files/test.mcam`.
+- Loops through results of `get_files_with_status`.
+- Returns **FileInfo** schema if found.
+- Raises **404 Not Found** if missing.
+
+👉 Notice how we don’t call `repository` directly — we stick to `FileService`, keeping layers clean.
+
+---
+
+### SECTION 4: POST Endpoints
+
+#### Checkout File (Lock)
+
+```python
+@router.post("/checkout")
+def checkout_file(
+    request: FileCheckoutRequest,
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Check out a file for editing.
+
+    Acquires an exclusive lock on the file.
+    """
+    try:
+        file_service.checkout_file(
+            filename=request.filename,
+            user=request.user,
+            message=request.message
+        )
+
+        return {
+            "success": True,
+            "message": f"File '{request.filename}' checked out successfully"
+        }
+
+    except ValueError as e:
+        ## Business logic error (file not found, already locked)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e)
+        )
+
+    except Exception as e:
+        ## Unexpected error
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to checkout file: {str(e)}"
+        )
+```
+
+**Explanation:**
+
+- `@router.post("/checkout")` → endpoint at `POST /api/files/checkout`.
+- Takes a **request body** (`FileCheckoutRequest`) with filename, user, message.
+- Calls `checkout_file` in service, which **writes a lock** to JSON.
+
+**Error Mapping:**
+
+- `ValueError` → business error → HTTP `409 Conflict`.
+- Any other exception → `500 Internal Server Error`.
+
+---
+
+#### Checkin File (Unlock)
+
+```python
+@router.post("/checkin")
+def checkin_file(
+    request: FileCheckinRequest,
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Check in a file after editing.
+
+    Releases the lock on the file.
+    """
+    try:
+        file_service.checkin_file(
+            filename=request.filename,
+            user=request.user
+        )
+
+        return {
+            "success": True,
+            "message": f"File '{request.filename}' checked in successfully"
+        }
+
+    except ValueError as e:
+        ## Business logic error
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to checkin file: {str(e)}"
+        )
+```
+
+**Explanation:**
+
+- `@router.post("/checkin")` → endpoint at `POST /api/files/checkin`.
+- Takes `FileCheckinRequest` (filename + user).
+- Calls service → releases lock if owned by user.
+
+**Error Mapping:**
+
+- `ValueError` → business error → `400 Bad Request`.
+- Any other → `500 Internal Server Error`.
+
+---
+
+### Key Takeaways
+
+1. **Separation of concerns**
+
+   - File logic (`FileService`) is independent of API layer.
+   - API just translates service calls into HTTP responses.
+
+2. **Dependency injection with `Depends()`**
+
+   - Makes it easy to swap implementations (e.g., mock service for tests).
+
+3. **Pydantic models**
+
+   - Keep request/response schemas consistent.
+   - Auto-generate Swagger docs at `/docs`.
+
+4. **Error Handling Strategy**
+
+   - Business logic errors → `400` or `409`.
+   - Unexpected errors → `500`.
+   - Always map exceptions to proper HTTP codes.
+
 ```python
 """
 File management API endpoints.
@@ -5026,6 +5302,209 @@ echo "G2 X20 Y20 I5 J5" > repo/PN1003_OP1.mcam
 
 **File: `backend/static/js/modules/modal-manager.js`**
 
+## Step 1 – Declaring the Class
+
+```js
+/**
+ * Modal Manager
+ *
+ * Handles modal dialogs with:
+ * - Backdrop clicks
+ * - Escape key
+ * - Focus trapping
+ */
+
+export class ModalManager {
+  constructor(modalId) {
+    this.modal = document.getElementById(modalId);
+
+    if (!this.modal) {
+      console.error(`Modal not found: ${modalId}`);
+      return;
+    }
+
+    this.setupEventListeners();
+  }
+}
+```
+
+### Explanation
+
+- `export class ModalManager { ... }`
+
+  - Declares a **class** in JavaScript. Using `export` lets us import it later from another file (`import { ModalManager } from './ModalManager.js'`).
+  - Classes are used here to group modal logic into one reusable “blueprint.”
+
+- `constructor(modalId)`
+
+  - Runs **when the class is instantiated**:
+
+    ```js
+    const manager = new ModalManager("loginModal");
+    ```
+
+    - The `modalId` is a string matching the `<div id="loginModal">` in your HTML.
+
+- `this.modal = document.getElementById(modalId);`
+
+  - Grabs the modal DOM element by its ID. This `this.modal` reference is stored for use in all methods.
+
+- The `if (!this.modal)` check
+
+  - Prevents crashes if you pass a wrong or missing ID. Instead of throwing an error, it logs a helpful message.
+
+- `this.setupEventListeners();`
+
+  - Immediately attaches event listeners (defined later).
+  - Important: We only run this if `this.modal` exists. Otherwise, it would error out.
+
+⚠️ **Gotcha:**
+If you use PyInstaller or a bundler like Webpack, sometimes imports inside classes/functions aren’t detected for tree-shaking. But here, `document.getElementById` is safe because it’s runtime, not an import. The “hidden import” issue happens with Python packaging, not here — but it’s good you’re noticing these differences.
+
+---
+
+## Step 2 – Adding Event Listeners
+
+```js
+  setupEventListeners() {
+    // Close on backdrop click
+    this.modal.addEventListener("click", (e) => {
+      if (e.target === this.modal) {
+        this.close();
+      }
+    });
+
+    // Close on X button
+    const closeBtn = this.modal.querySelector(".modal-close");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => this.close());
+    }
+
+    // Close on Escape key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !this.modal.classList.contains("hidden")) {
+        this.close();
+      }
+    });
+  }
+```
+
+### Explanation
+
+- **Backdrop click**
+
+  - `this.modal.addEventListener("click", (e) => {...})`
+  - If you click _outside_ the modal content but still inside the `<div>` backdrop, `e.target` equals `this.modal`. That triggers `this.close()`.
+  - Otherwise, if you click inside (like on a form), it won’t close.
+
+- **Close button**
+
+  - `this.modal.querySelector(".modal-close")` searches _inside_ the modal for a button with `.modal-close`.
+  - If found, we attach another click listener that calls `this.close()`.
+  - Defensive coding: we check `if (closeBtn)` in case the button isn’t present in this modal.
+
+- **Escape key**
+
+  - `document.addEventListener("keydown", ...)` listens globally.
+  - We check `e.key === "Escape"` and also `!this.modal.classList.contains("hidden")`.
+  - That second condition ensures we only close **if the modal is actually open**.
+
+⚠️ **Gotcha:**
+
+- Listening on `document` can affect all modals. If you ever support multiple modals, you may need to track “active” modals and only close the top one.
+
+---
+
+## Step 3 – Opening the Modal
+
+```js
+  open() {
+    this.modal.classList.remove("hidden");
+
+    // Focus first input
+    const firstInput = this.modal.querySelector("input, textarea");
+    if (firstInput) {
+      setTimeout(() => firstInput.focus(), 100);
+    }
+
+    // Prevent body scroll
+    document.body.style.overflow = "hidden";
+  }
+```
+
+### Explanation
+
+- **Show modal**
+
+  - Removes `"hidden"` class. Assumes your CSS has something like:
+
+    ```css
+    .hidden {
+      display: none;
+    }
+    ```
+
+  - By removing it, the modal becomes visible.
+
+- **Focus first input**
+
+  - Good accessibility practice: put keyboard focus on the first `input` or `textarea`.
+  - Uses `setTimeout(..., 100)` because if you call `.focus()` immediately, the browser might not have rendered the modal yet. A short delay ensures it works consistently.
+
+- **Prevent background scroll**
+
+  - Sets `document.body.style.overflow = "hidden"`.
+  - Locks the page behind the modal, so users don’t scroll content they can’t interact with.
+
+---
+
+## Step 4 – Closing the Modal
+
+```js
+  close() {
+    this.modal.classList.add("hidden");
+
+    // Restore body scroll
+    document.body.style.overflow = "";
+
+    // Clear forms
+    const forms = this.modal.querySelectorAll("form");
+    forms.forEach((form) => form.reset());
+  }
+}
+```
+
+### Explanation
+
+- **Hide modal**
+
+  - Adds the `"hidden"` class back. The CSS handles hiding it.
+
+- **Restore scroll**
+
+  - Resetting `document.body.style.overflow` re-enables scrolling.
+
+- **Reset forms**
+
+  - Finds all `<form>` elements inside the modal and calls `.reset()` on each.
+  - This clears input fields so the next time you open the modal, it starts fresh.
+  - Example: if it’s a login modal, the username/password fields will be cleared automatically.
+
+⚠️ **Gotcha:**
+
+- `.reset()` resets to the _default values in the HTML_, not always empty. If you have `value="default@example.com"` in HTML, it’ll reset to that, not blank.
+
+---
+
+## Wrap-up
+
+Now you have a **step-by-step build**:
+
+1. Write the class skeleton + constructor.
+2. Add event listeners one at a time.
+3. Add open logic.
+4. Add close logic.
+
 ```javascript
 /**
  * Modal Manager
@@ -5101,6 +5580,275 @@ export class ModalManager {
 ### 3.7: Add Modals to HTML
 
 **Update `backend/static/index.html` - add before closing `</body>`:**
+
+## Step 1 – Modal Wrapper (the overlay)
+
+```html
+<!-- Checkout Modal -->
+<div id="checkout-modal" class="modal-overlay hidden"></div>
+```
+
+#### Explanation
+
+- `id="checkout-modal"`
+
+  - Unique identifier so our JavaScript (`ModalManager`) knows which modal to open.
+
+- `class="modal-overlay hidden"`
+
+  - `modal-overlay`: this is the _backdrop_ — usually a semi-transparent dark background that sits behind the modal content.
+  - `hidden`: CSS class to keep it invisible until `ModalManager.open()` removes it.
+
+This `div` is the **container for the entire modal**. Everything else goes inside it.
+
+---
+
+## Step 2 – Modal Content Box
+
+```html
+<div id="checkout-modal" class="modal-overlay hidden">
+  <div class="modal-content"></div>
+</div>
+```
+
+#### Explanation
+
+- `modal-content`
+
+  - This is the actual dialog box that sits on top of the overlay.
+  - Typically styled with a white background, padding, and rounded corners.
+  - Everything inside is what the user sees and interacts with.
+
+So we now have:
+
+- Overlay = “dark backdrop”
+- Content = “white card on top”
+
+---
+
+## Step 3 – Modal Header
+
+```html
+<div class="modal-content">
+  <div class="modal-header">
+    <h3>Check Out File</h3>
+    <button class="modal-close" type="button">&times;</button>
+  </div>
+</div>
+```
+
+#### Explanation
+
+- `modal-header`
+
+  - Groups the **title** and the **close button**.
+
+- `<h3>`
+
+  - Displays the modal title (“Check Out File”).
+
+- `<button class="modal-close">`
+
+  - The `&times;` (`×`) is a typographic “close” symbol.
+  - Class name `.modal-close` is important — our `ModalManager` looks for this and wires up the click-to-close behavior.
+  - `type="button"` prevents this button from accidentally submitting a form if it’s inside one.
+
+---
+
+## Step 4 – Modal Body with Text
+
+```html
+<div class="modal-body">
+  <p>You are checking out: <strong id="checkout-filename"></strong></p>
+</div>
+```
+
+#### Explanation
+
+- `modal-body`
+
+  - Holds the actual content.
+
+- The `<p>` text explains what action is being performed.
+- `<strong id="checkout-filename"></strong>`
+
+  - Placeholder where JavaScript can dynamically insert the filename.
+  - Example: `document.getElementById("checkout-filename").textContent = "readme.md";`
+
+---
+
+## Step 5 – Checkout Form
+
+```html
+<form id="checkout-form">
+  <div class="form-group">
+    <label for="checkout-user">Your Name</label>
+    <input
+      type="text"
+      id="checkout-user"
+      name="user"
+      required
+      minlength="3"
+      placeholder="Enter your name"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="checkout-message">Reason for checkout</label>
+    <textarea
+      id="checkout-message"
+      name="message"
+      required
+      minlength="5"
+      placeholder="Why are you editing this file?"
+      rows="3"
+    ></textarea>
+  </div>
+
+  <div class="modal-actions">
+    <button
+      type="button"
+      class="btn btn-secondary"
+      onclick="checkoutModal.close()"
+    >
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary">Confirm Checkout</button>
+  </div>
+</form>
+```
+
+#### Explanation
+
+- **`form id="checkout-form"`**
+
+  - Wraps the inputs and buttons. The `id` lets JavaScript target this form specifically.
+
+- **User field**
+
+  - `<label for="checkout-user">Your Name</label>` links the label to the input via `for` and `id`.
+  - `<input type="text" ... required minlength="3">`
+
+    - Forces at least 3 characters before submission.
+    - `placeholder` is a visual hint.
+
+- **Message field**
+
+  - `<textarea ... required minlength="5">` ensures the user writes a meaningful reason.
+  - `rows="3"` makes it display as 3 lines tall.
+
+- **Actions (buttons)**
+
+  - `Cancel` button: `type="button"` so it doesn’t submit the form.
+
+    - Has `onclick="checkoutModal.close()"`, which calls the JS `ModalManager.close()` instance directly.
+
+  - `Confirm Checkout` button: `type="submit"` so the form can be processed by JavaScript when submitted.
+
+---
+
+## Step 6 – Checkin Modal (Differences)
+
+The checkin modal is almost identical, but let’s highlight the differences:
+
+```html
+<!-- Checkin Modal -->
+<div id="checkin-modal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Check In File</h3>
+      <button class="modal-close" type="button">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <p>You are checking in: <strong id="checkin-filename"></strong></p>
+
+      <form id="checkin-form">
+        <div class="form-group">
+          <label for="checkin-user">Your Name (for confirmation)</label>
+          <input
+            type="text"
+            id="checkin-user"
+            name="user"
+            required
+            minlength="3"
+            placeholder="Enter your name"
+          />
+        </div>
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="checkinModal.close()"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Confirm Check-in
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+```
+
+#### Key differences
+
+- Title is now **“Check In File”**.
+- Placeholder filename goes in `<strong id="checkin-filename">`.
+- Form `id="checkin-form"`.
+- Input only asks for name (no message textarea).
+- Buttons wired to `checkinModal.close()` instead of `checkoutModal.close()`.
+
+---
+
+## Deep Dives & Gotchas
+
+1. **Why two nearly identical modals?**
+
+   - Separation keeps logic clear — you can customize validation rules differently for checkout vs. checkin.
+   - Alternative: make one modal and pass in different titles/fields via JavaScript.
+
+2. **Why reset forms on close (from ModalManager)?**
+
+   - Prevents stale values from showing up if a user reopens the modal.
+
+3. **Accessibility notes:**
+
+   - Always associate `<label>` with its input via `for`/`id`.
+   - `aria-hidden` attributes could be added to `hidden` state for screen readers.
+
+4. **CSS assumptions:**
+
+   - You need styles for `.modal-overlay`, `.modal-content`, `.modal-header`, `.modal-actions`, `.hidden`.
+   - Example:
+
+     ```css
+     .modal-overlay {
+       position: fixed;
+       inset: 0;
+       background: rgba(0, 0, 0, 0.5);
+       display: flex;
+       justify-content: center;
+       align-items: center;
+     }
+     .modal-content {
+       background: white;
+       padding: 1.5rem;
+       border-radius: 0.5rem;
+       width: 400px;
+       max-width: 90%;
+     }
+     .hidden {
+       display: none;
+     }
+     ```
+
+---
+
+✅ With this breakdown, you can add the **Checkout Modal** piece by piece, test it, then duplicate and tweak it for the **Checkin Modal**.
 
 ```html
 <!-- ===================================================================
@@ -5207,6 +5955,873 @@ export class ModalManager {
 ### 3.8: Update Frontend JavaScript
 
 **Update `backend/static/js/app.js`:**
+
+Got it 👍 — instead of dumping a big code block, I’ll restructure **Section 3.8 (Main Application)** into a **code-along tutorial**. We’ll move step by step, introducing _small code pieces_, explaining what they do, _how they work in JavaScript_, and why they matter in application development. Think of it like a guided workshop: type, read, understand, repeat.
+
+---
+
+## 📘 Section 3.8 — Main Application (Code-Along Tutorial)
+
+This section brings everything together. We’ll manage app state, connect the modals, load data, render files, and handle events.
+
+We’ll go in **small increments** so you’re learning JavaScript fundamentals and application patterns — not just copying code.
+
+---
+
+### 🔹 Step 1: Module Imports
+
+```js
+/**
+ * Main Application
+ */
+
+import { themeManager } from "./modules/theme-manager.js";
+import { apiClient } from "./modules/api-client.js";
+import { ModalManager } from "./modules/modal-manager.js";
+```
+
+#### 🔍 Explanation
+
+- `import { ... } from ...` is **ES6 module syntax**.
+- Instead of one giant script, we split logic into modules:
+
+  - **`themeManager`** → Handles light/dark mode.
+  - **`apiClient`** → Wraps our backend HTTP calls.
+  - **`ModalManager`** → Manages opening/closing modals.
+
+➡️ **Why modules?**
+They keep code organized, reusable, and prevent naming conflicts. In a real app, modular design makes scaling easier.
+
+---
+
+### 🔹 Step 2: Application State
+
+```js
+// ============================================================================
+// SECTION 1: Application State
+// ============================================================================
+
+let allFiles = [];
+let currentFilename = null;
+```
+
+#### 🔍 Explanation
+
+- `let allFiles = []` → stores the list of files we fetch from the server.
+- `let currentFilename = null` → keeps track of the file currently being checked out/in.
+
+➡️ **Key JavaScript lesson**:
+
+- `let` means the variable can be reassigned later (vs. `const` which locks reassignment).
+- We use `null` as a placeholder value until something is selected.
+
+---
+
+### 🔹 Step 3: Modal Instances
+
+```js
+// ============================================================================
+// SECTION 2: Modal Instances
+// ============================================================================
+
+const checkoutModal = new ModalManager("checkout-modal");
+const checkinModal = new ModalManager("checkin-modal");
+```
+
+#### 🔍 Explanation
+
+- `new ModalManager("checkout-modal")` → Creates a modal instance tied to the element with `id="checkout-modal"`.
+- Same for `"checkin-modal"`.
+- Each instance manages open/close behavior.
+
+➡️ **Why use classes here?**
+Instead of writing duplicated code for each modal, we encapsulate modal logic in the `ModalManager` class and reuse it.
+
+---
+
+### 🔹 Step 4: Data Loading Function
+
+```js
+// ============================================================================
+// SECTION 3: Data Loading
+// ============================================================================
+
+async function loadFiles() {
+  const loadingEl = document.getElementById("loading-indicator");
+  const fileListEl = document.getElementById("file-list");
+
+  loadingEl.classList.remove("hidden");
+  fileListEl.innerHTML = "";
+
+  try {
+    const data = await apiClient.getFiles();
+    allFiles = data.files;
+
+    loadingEl.classList.add("hidden");
+    displayFiles(allFiles);
+  } catch (error) {
+    loadingEl.classList.add("hidden");
+    fileListEl.innerHTML = `
+      <div style="text-align: center; padding: 2rem; color: var(--status-danger-text);">
+        <p><strong>Error loading files:</strong></p>
+        <p>${error.message}</p>
+        <button class="btn btn-primary" onclick="location.reload()">
+          Retry
+        </button>
+      </div>
+    `;
+  }
+}
+```
+
+#### 🔍 Explanation
+
+- `async function loadFiles()` → lets us use `await` for asynchronous calls.
+- `loadingEl.classList.remove("hidden")` → shows a loading spinner/indicator.
+- `fileListEl.innerHTML = ""` → clears out any previous files.
+- `await apiClient.getFiles()` → fetches files from backend (returns a Promise).
+- On success → `displayFiles(allFiles)`.
+- On error → display a retry message.
+
+➡️ **JavaScript deep dive**:
+
+- `await` pauses execution until the Promise resolves, but doesn’t block the browser.
+- Errors inside `await` must be caught with `try/catch`.
+
+---
+
+✅ So far we’ve:
+
+- Imported modules.
+- Created app state.
+- Connected modals.
+- Written a function to fetch and display files.
+
+---
+
+Perfect 👍 Let’s continue the **code-along tutorial for Section 3.8** — moving to **DOM Rendering**.
+
+We’ll break this into **small chunks**: add some code, then pause to explain how it works and why it’s written this way.
+
+---
+
+## 📘 Section 3.8 — Main Application (Code-Along)
+
+### 🔹 Step 5: Rendering Files (Wrapper Function)
+
+```js
+// ============================================================================
+// SECTION 4: DOM Rendering
+// ============================================================================
+
+function displayFiles(files) {
+  const container = document.getElementById("file-list");
+  container.innerHTML = "";
+```
+
+#### 🔍 Explanation
+
+- `function displayFiles(files)` → defines a **reusable function** that takes an array of file objects and renders them into the DOM.
+- `document.getElementById("file-list")` → finds the `<div id="file-list">` element where our files will appear.
+- `container.innerHTML = ""` → clears any previous content before rendering fresh data.
+
+➡️ **Why clear first?**
+If we don’t, the old file list will remain, and the new one will just append on top → duplicates.
+
+---
+
+### 🔹 Step 6: Empty State Handling
+
+```js
+if (!files || files.length === 0) {
+  container.innerHTML = `
+      <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+        <p>No .mcam files found in repository.</p>
+        <p style="font-size: var(--font-size-sm);">Add files to backend/repo/</p>
+      </div>
+    `;
+  return;
+}
+```
+
+#### 🔍 Explanation
+
+- `if (!files || files.length === 0)` → checks if the `files` array is empty or undefined.
+- If true → replace the container’s content with a **friendly empty state message**.
+- `return;` → exits the function early so we don’t try to loop over `files`.
+
+➡️ **Key pattern**:
+Always handle “nothing to show” cases in UI → improves user experience and prevents runtime errors.
+
+---
+
+### 🔹 Step 7: Looping Through Files
+
+```js
+  files.forEach((file) => {
+    const fileElement = createFileElement(file);
+    container.appendChild(fileElement);
+  });
+}
+```
+
+#### 🔍 Explanation
+
+- `.forEach((file) => { ... })` → loops over every file object.
+- `createFileElement(file)` → builds the HTML for a single file.
+- `container.appendChild(fileElement)` → adds the file’s HTML to the container.
+
+➡️ **Why separate into `createFileElement`?**
+Keeps `displayFiles` clean. It handles **“when and where”** files are displayed, while `createFileElement` handles **“what each file looks like.”**
+
+---
+
+### 🔹 Step 8: Creating a File Element (Start)
+
+```js
+function createFileElement(file) {
+  const div = document.createElement("div");
+  div.className = "file-item";
+```
+
+#### 🔍 Explanation
+
+- `document.createElement("div")` → dynamically creates a `<div>` in memory.
+- `div.className = "file-item"` → applies a CSS class for styling.
+
+➡️ **Why not `innerHTML` here?**
+Using `createElement` is safer — avoids XSS injection risks and gives more flexibility for dynamic child nodes.
+
+---
+
+### 🔹 Step 9: File Info Section
+
+```js
+const infoDiv = document.createElement("div");
+infoDiv.className = "file-info";
+
+const nameSpan = document.createElement("span");
+nameSpan.className = "file-name";
+nameSpan.textContent = file.name;
+
+const statusSpan = document.createElement("span");
+statusSpan.className = `file-status status-${file.status}`;
+statusSpan.textContent = file.status.replace("_", " ").toUpperCase();
+
+infoDiv.appendChild(nameSpan);
+infoDiv.appendChild(statusSpan);
+```
+
+#### 🔍 Explanation
+
+- `infoDiv` → wraps the filename + status.
+- `nameSpan.textContent = file.name` → sets the text to the actual filename.
+- `statusSpan.className = status-${file.status}` → gives dynamic CSS class like `status-available` or `status-locked`.
+- `file.status.replace("_", " ").toUpperCase()` → turns `checked_out` into `CHECKED OUT` (more readable).
+- Finally → `appendChild` adds both spans into `infoDiv`.
+
+➡️ **Lesson:** This shows how to **bind data to DOM elements** dynamically — a key skill in any frontend app.
+
+---
+
+✅ At this point, each file has:
+
+- A wrapper `<div class="file-item">`.
+- Inside it, a file info block with name + status.
+
+---
+
+Got it ✅ — I’ll keep the **teaching focus** front and center: not just what the code does, but why it’s structured this way, what JavaScript concepts it demonstrates, and how it relates to app development best practices.
+
+We’re still in **Section 3.8 → DOM Rendering**, and now we’ll build out the **actions** part of each file row.
+
+---
+
+## 📘 Section 3.8 — DOM Rendering (Part 2)
+
+### 🔹 Step 10: Actions Wrapper
+
+```js
+const actionsDiv = document.createElement("div");
+actionsDiv.className = "file-actions";
+```
+
+#### 🔍 Explanation
+
+- `createElement("div")` → creates a container for buttons and extra metadata (like “locked by”).
+- `actionsDiv.className = "file-actions";` → CSS handles spacing & alignment.
+
+➡️ **Teaching Point**:
+When structuring UI, separate _information display_ (file name/status) from _actions_ (buttons). This separation of concerns makes code and layout cleaner.
+
+---
+
+### 🔹 Step 11: Conditional Rendering – Available File
+
+```js
+if (file.status === "available") {
+  const checkoutBtn = document.createElement("button");
+  checkoutBtn.className = "btn btn-primary btn-sm";
+  checkoutBtn.textContent = "Checkout";
+  checkoutBtn.onclick = () => handleCheckout(file.name);
+  actionsDiv.appendChild(checkoutBtn);
+}
+```
+
+#### 🔍 Explanation
+
+- `if (file.status === "available")` → branching logic: only show “Checkout” if no one has the file locked.
+- `checkoutBtn.textContent = "Checkout";` → sets button label.
+- `checkoutBtn.onclick = () => handleCheckout(file.name);`
+
+  - Here’s **event-driven programming** in action: the UI doesn’t _do_ anything until the user clicks.
+  - The `() => handleCheckout(file.name)` uses an **arrow function** → keeps `file.name` bound to the correct file when the loop runs.
+
+➡️ **Key JS Concept**: Closures in event handlers.
+If we didn’t use arrow functions (or properly scoped functions), we could accidentally bind the wrong file to the click.
+
+---
+
+### 🔹 Step 12: Conditional Rendering – Checked Out File
+
+```js
+  else {
+    const checkinBtn = document.createElement("button");
+    checkinBtn.className = "btn btn-secondary btn-sm";
+    checkinBtn.textContent = "Checkin";
+    checkinBtn.onclick = () => handleCheckin(file.name);
+    actionsDiv.appendChild(checkinBtn);
+```
+
+#### 🔍 Explanation
+
+- If status is **not** `available`, assume it’s checked out.
+- This creates a “Checkin” button with a different CSS class (secondary style).
+- Again, attaches a click handler: `handleCheckin(file.name)`.
+
+➡️ **Lesson**:
+Here, the **UI adapts based on state**. This is a fundamental principle of app development:
+
+- **State → UI.**
+  Whenever state changes (like a file being locked), the UI should reflect that.
+
+---
+
+### 🔹 Step 13: Showing Who Locked It
+
+```js
+    if (file.locked_by) {
+      const lockedBySpan = document.createElement("span");
+      lockedBySpan.style.fontSize = "var(--font-size-sm)";
+      lockedBySpan.style.color = "var(--text-secondary)";
+      lockedBySpan.textContent = `Locked by: ${file.locked_by}`;
+      actionsDiv.appendChild(lockedBySpan);
+    }
+  }
+```
+
+#### 🔍 Explanation
+
+- `if (file.locked_by)` → only show this if backend returned a username.
+- Instead of a button, we’re adding a `<span>` with inline styles for smaller, muted text.
+- `lockedBySpan.textContent = ...` → shows “Locked by: Alice”.
+
+➡️ **Teaching Point**:
+
+- Here you see **progressive enrichment**: not every file has this info, but if it exists, we render it.
+- Also demonstrates **inline styling vs CSS classes**:
+
+  - Inline styles are fine for one-offs.
+  - For consistency, production apps usually prefer CSS classes.
+
+---
+
+### 🔹 Step 14: Final Assembly of File Element
+
+```js
+  div.appendChild(infoDiv);
+  div.appendChild(actionsDiv);
+
+  return div;
+}
+```
+
+#### 🔍 Explanation
+
+- `appendChild(infoDiv)` → add the name & status block.
+- `appendChild(actionsDiv)` → add the buttons block.
+- Finally → `return div;` → now the full file row is ready to be inserted into the page.
+
+➡️ **Lesson Recap**:
+
+- **DOM creation**: `createElement`, `textContent`, `appendChild`.
+- **Dynamic UI**: conditionally render based on `file.status`.
+- **Events**: attach handlers directly in JS, not inline HTML.
+- **Separation of concerns**:
+
+  - `displayFiles` decides _which_ files to render.
+  - `createFileElement` decides _how_ a file looks.
+
+---
+
+✅ At this point, you can run the app and you’ll see:
+
+- Each file shows its name and status.
+- Available → shows **Checkout** button.
+- Locked → shows **Checkin** button and “Locked by …”.
+
+---
+
+Perfect 👍 let’s dive into **Section 5: Event Handlers**.
+This is where our UI buttons (Checkout / Checkin) actually start doing things — turning clicks into app logic.
+I’ll keep it **code-along style**: small code chunks + deep explanation.
+
+---
+
+## 📘 Section 3.8 — Event Handlers (Part 1)
+
+### 🔹 Step 15: Checkout Handler
+
+```js
+function handleCheckout(filename) {
+  currentFilename = filename;
+  document.getElementById("checkout-filename").textContent = filename;
+  checkoutModal.open();
+}
+```
+
+#### 🔍 Explanation
+
+- `function handleCheckout(filename)` → normal JS function, triggered when you click a “Checkout” button.
+- `currentFilename = filename;`
+
+  - We save the selected file’s name in a **global state variable** (defined earlier).
+  - Why? Because when the user fills out the form and submits, we need to know which file they were acting on.
+
+- `document.getElementById("checkout-filename").textContent = filename;`
+
+  - Inside the modal, there’s a `<strong id="checkout-filename">` placeholder.
+  - This line updates that placeholder with the actual filename → gives user visual confirmation.
+
+- `checkoutModal.open();`
+
+  - Calls our `ModalManager` class to actually display the modal.
+  - This handles showing the popup, preventing scroll, and focusing on inputs.
+
+➡️ **Teaching Point**:
+This is the **UI flow pattern**:
+
+1. Store app state (filename).
+2. Update DOM to reflect the state.
+3. Open modal for user interaction.
+
+---
+
+### 🔹 Step 16: Checkin Handler
+
+```js
+function handleCheckin(filename) {
+  currentFilename = filename;
+  document.getElementById("checkin-filename").textContent = filename;
+  checkinModal.open();
+}
+```
+
+#### 🔍 Explanation
+
+- Identical logic, but for **checkin** instead of checkout.
+- Updates `currentFilename`.
+- Displays filename inside the checkin modal.
+- Opens `checkinModal`.
+
+➡️ **Key Idea**:
+Both checkout and checkin follow the **same pattern**, but with different forms.
+This repetition is intentional: it shows how you can reuse code structures with small variations — a common practice in app development.
+
+---
+
+✅ At this stage:
+
+- Clicking “Checkout” opens the checkout modal with the correct file name filled in.
+- Clicking “Checkin” opens the checkin modal with the correct file name.
+
+So far, no API calls — just **state + UI updates**.
+
+---
+
+Perfect! Let’s move to **Step 17: submitCheckout()**, the first function that actually talks to the backend. We'll break it down **line by line**, and explain **how JavaScript handles forms, events, and async calls**.
+
+---
+
+## 📘 Section 3.8 — Event Handlers (Part 2)
+
+### 🔹 Step 17: submitCheckout
+
+```js
+async function submitCheckout(event) {
+  event.preventDefault();
+
+  const formData = new FormData(event.target);
+  const data = {
+    filename: currentFilename,
+    user: formData.get("user"),
+    message: formData.get("message"),
+  };
+
+  try {
+    await apiClient.post("/api/files/checkout", data);
+
+    showNotification("File checked out successfully!", "success");
+    checkoutModal.close();
+    loadFiles();
+  } catch (error) {
+    showNotification(`Checkout failed: ${error.message}`, "error");
+  }
+}
+```
+
+---
+
+#### 🔍 Line-by-Line Breakdown
+
+##### 1️⃣ `async function submitCheckout(event) {`
+
+- Declares a function as **async**, which means we can use `await` inside.
+- Why async? Because sending requests to the backend is **asynchronous** (non-blocking).
+- `event` is the **form submission event** automatically passed by the browser.
+
+---
+
+##### 2️⃣ `event.preventDefault();`
+
+- Forms usually **reload the page** on submit.
+- `preventDefault()` **stops the browser’s default behavior** so we can handle it via JavaScript.
+- Teaching Point: Forms in modern apps almost always use `preventDefault()` with JS submissions.
+
+---
+
+##### 3️⃣ `const formData = new FormData(event.target);`
+
+- `FormData` is a built-in browser API.
+- `event.target` is the `<form>` element that triggered the submit.
+- `FormData` collects all input values from the form automatically.
+- Example: `{ user: "Alice", message: "Fixing a bug" }`
+
+---
+
+##### 4️⃣ Construct the payload
+
+```js
+const data = {
+  filename: currentFilename,
+  user: formData.get("user"),
+  message: formData.get("message"),
+};
+```
+
+- Combines **UI state** (`currentFilename`) and **form data** (`user`, `message`) into a single object.
+- Why not just send formData?
+
+  - Because the backend expects **JSON** (`{ filename, user, message }`), not raw form data.
+
+---
+
+##### 5️⃣ `try { ... } catch (error) { ... }`
+
+- JS **try/catch** block handles errors gracefully.
+- `await apiClient.post(...)` may fail (network down, server error).
+- If it throws, the `catch` block runs instead of crashing the app.
+
+---
+
+##### 6️⃣ `await apiClient.post("/api/files/checkout", data);`
+
+- Sends a **POST request** to the backend API.
+- `apiClient` is a wrapper around `fetch()` (or similar).
+- Teaching Point: `await` pauses execution **only in this function**, not the entire page.
+- This allows the browser to remain responsive while waiting for the server.
+
+---
+
+##### 7️⃣ Success Handling
+
+```js
+showNotification("File checked out successfully!", "success");
+checkoutModal.close();
+loadFiles();
+```
+
+- `showNotification()` → tells the user the operation succeeded.
+- `checkoutModal.close()` → hides the modal, restores body scroll, clears the form.
+- `loadFiles()` → reloads the file list from backend to reflect the new lock status.
+
+---
+
+##### 8️⃣ Error Handling
+
+```js
+catch (error) {
+  showNotification(`Checkout failed: ${error.message}`, "error");
+}
+```
+
+- If the POST fails, the user sees a clear message.
+- This avoids silent failures, which are **common beginner mistakes**.
+
+---
+
+#### ✅ Key Teaching Points
+
+1. **Async/Await**: Modern JS pattern for handling asynchronous tasks like network requests.
+2. **FormData API**: Simplifies reading form inputs without manually querying `input.value`.
+3. **State + DOM Integration**: Combines `currentFilename` (app state) with form values (UI input).
+4. **Error Handling**: Always wrap `await` calls in `try/catch` to avoid unhandled rejections.
+5. **UX Flow**: Success → notify user → close modal → refresh data.
+
+---
+
+Perfect! Let’s do **Step 18: submitCheckin()** the same way. We’ll go **line by line**, highlight similarities and subtle differences from `submitCheckout()`, and explain why those differences exist.
+
+---
+
+## 📘 Section 3.8 — Event Handlers (Part 3)
+
+### 🔹 Step 18: submitCheckin
+
+```js
+async function submitCheckin(event) {
+  event.preventDefault();
+
+  const formData = new FormData(event.target);
+  const data = {
+    filename: currentFilename,
+    user: formData.get("user"),
+  };
+
+  try {
+    await apiClient.post("/api/files/checkin", data);
+
+    showNotification("File checked in successfully!", "success");
+    checkinModal.close();
+    loadFiles();
+  } catch (error) {
+    showNotification(`Checkin failed: ${error.message}`, "error");
+  }
+}
+```
+
+---
+
+#### 🔍 Line-by-Line Breakdown
+
+##### 1️⃣ `async function submitCheckin(event) {`
+
+- Async function because **posting to the backend is asynchronous**.
+- Receives the **form submit event** automatically.
+
+---
+
+##### 2️⃣ `event.preventDefault();`
+
+- Prevents the form from **refreshing the page**, same as in `submitCheckout()`.
+- Essential for **single-page app behavior**.
+
+---
+
+##### 3️⃣ `const formData = new FormData(event.target);`
+
+- Reads all inputs from the check-in form.
+- Teaching Point: `FormData` works with any form, so you don’t have to manually select inputs like `document.getElementById("checkin-user").value`.
+
+---
+
+##### 4️⃣ Construct the payload
+
+```js
+const data = {
+  filename: currentFilename,
+  user: formData.get("user"),
+};
+```
+
+- **Difference from checkout**: no `message` field.
+- Backend only needs **filename** and **user** to release the lock.
+- Shows how **different API endpoints require different payloads**, even if the function structure is almost identical.
+
+---
+
+##### 5️⃣ `try { ... } catch (error) { ... }`
+
+- Same pattern as `submitCheckout()`.
+- Ensures the app **doesn’t crash** if the network request fails.
+
+---
+
+##### 6️⃣ `await apiClient.post("/api/files/checkin", data);`
+
+- Posts the payload to the **check-in endpoint**.
+- `await` pauses this function until the backend responds.
+- Teaching Point: `await` only blocks this function, not the whole app.
+
+---
+
+##### 7️⃣ Success Handling
+
+```js
+showNotification("File checked in successfully!", "success");
+checkinModal.close();
+loadFiles();
+```
+
+- Shows a notification on success.
+- Closes the **check-in modal** instead of checkout modal.
+- Refreshes the file list to reflect the lock release.
+- Teaching Point: You can **reuse the same patterns** for multiple operations by swapping out **modal instances** and **API endpoints**.
+
+---
+
+##### 8️⃣ Error Handling
+
+```js
+catch (error) {
+  showNotification(`Checkin failed: ${error.message}`, "error");
+}
+```
+
+- Same pattern as checkout: user sees a clear message if something goes wrong.
+
+---
+
+#### ✅ Key Teaching Points
+
+1. **Repetition reinforces patterns**: `submitCheckout` and `submitCheckin` share almost the same structure.
+2. **Payload differences**: Always check backend requirements; sending extra fields may be ignored or cause errors.
+3. **Modularity**: By separating checkout vs checkin, the modal manager and apiClient can be reused.
+4. **Event-driven design**: Forms submit → JS intercepts → backend call → UI update. This pattern is **core to modern web apps**.
+5. **Error-first mindset**: Always anticipate failures and provide user feedback.
+
+---
+
+Perfect! Let’s tackle **Step 19: DOMContentLoaded initialization**. This is the final glue that ties all the previous pieces together, and it’s a great opportunity to teach **DOM events, event listeners, and app initialization patterns** in JavaScript.
+
+We’ll break it **line by line**, explaining everything and showing why each piece matters.
+
+---
+
+## 📘 Section 3.8 — Initialization (Step 19)
+
+```js
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("PDM App initialized");
+
+  // Theme toggle
+  document
+    .getElementById("theme-toggle")
+    .addEventListener("click", () => themeManager.toggle());
+
+  // Form submissions
+  document
+    .getElementById("checkout-form")
+    .addEventListener("submit", submitCheckout);
+
+  document
+    .getElementById("checkin-form")
+    .addEventListener("submit", submitCheckin);
+
+  // Load initial data
+  loadFiles();
+});
+```
+
+---
+
+#### 🔍 Line-by-Line Breakdown
+
+##### 1️⃣ `document.addEventListener("DOMContentLoaded", () => {`
+
+- This registers a **callback function** that runs **only after the HTML document has been fully loaded and parsed**.
+- Teaching Point: Unlike `window.onload`, `DOMContentLoaded` fires **before images and other external assets are fully loaded**, so your app feels faster.
+- Ensures **all `getElementById` calls succeed** because the elements exist in the DOM.
+
+---
+
+##### 2️⃣ `console.log("PDM App initialized");`
+
+- Debugging / teaching tool. Shows that your initialization code ran.
+- Helps beginners **verify event listeners are registered**.
+
+---
+
+##### 3️⃣ Theme toggle
+
+```js
+document
+  .getElementById("theme-toggle")
+  .addEventListener("click", () => themeManager.toggle());
+```
+
+- Selects the **theme toggle button** by its `id`.
+- Registers a **click event listener** that calls `themeManager.toggle()`.
+- Teaching Points:
+
+  1. `getElementById` is the most direct way to select elements by ID.
+  2. Event listeners allow **decoupling UI from logic**.
+  3. Arrow functions are used here to maintain **lexical `this`** (though not critical here, it’s a good habit).
+
+---
+
+##### 4️⃣ Form submission handlers
+
+```js
+document
+  .getElementById("checkout-form")
+  .addEventListener("submit", submitCheckout);
+
+document
+  .getElementById("checkin-form")
+  .addEventListener("submit", submitCheckin);
+```
+
+- Each form is selected and an event listener is attached to **intercept submission**.
+- Teaching Points:
+
+  1. This is where `submitCheckout` and `submitCheckin` are **connected to the UI**.
+  2. `addEventListener("submit", ...)` is preferred over `onsubmit=` in HTML because it allows **multiple listeners** and keeps JS separate from HTML.
+  3. The forms will **not refresh the page**, thanks to `event.preventDefault()` inside each handler.
+
+---
+
+##### 5️⃣ Load initial data
+
+```js
+loadFiles();
+```
+
+- Calls the function we discussed earlier to **fetch all files from the backend and render them**.
+
+- Teaching Point: App initialization is a pattern:
+
+  1. Wait for DOM → ensure elements exist.
+  2. Register UI event listeners → enable user interaction.
+  3. Fetch initial data → populate the UI.
+
+- This pattern is **core to almost every JS single-page application (SPA)**.
+
+---
+
+#### ✅ Key Teaching Points
+
+1. **DOMContentLoaded vs window.onload**: `DOMContentLoaded` fires earlier and is ideal for setting up **event listeners**.
+2. **Separation of concerns**: JS initializes the app, attaches events, and then fetches data. HTML remains declarative.
+3. **Reusability**: By using `submitCheckout`, `submitCheckin`, and `loadFiles` as separate functions, the initialization code is **short, readable, and maintainable**.
+4. **Debugging habits**: Using `console.log` at init points helps verify app flow.
+
+---
+
+💡 **Teaching Tip:**
+You can expand this pattern to any SPA: setup state → attach UI events → fetch data → render UI. Everything in this app follows this **modular and event-driven design**, which is a best practice.
+
+---
 
 ```javascript
 /**

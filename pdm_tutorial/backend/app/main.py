@@ -19,7 +19,6 @@ if IS_WINDOWS:
 else:
     import fcntl
 
-VALID_EXTENSIONS = {".mcam", ".vnc"}
 
 # Get absolute path to the directory containin this file
 BASE_DIR = Path(__file__).resolve().parent

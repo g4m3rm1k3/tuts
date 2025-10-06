@@ -1,643 +1,866 @@
-### Tutorial: File Management, Locking, and Repository Services in Python
-
-This tutorial walks through **building a file management system** with **locking**, **repository operations**, and a **combined service** that merges both. Each section builds incrementally with explanations, common pitfalls, and deeper notes.
+Got it 👍 — instead of dumping a big code block, I’ll restructure **Section 3.8 (Main Application)** into a **code-along tutorial**. We’ll move step by step, introducing _small code pieces_, explaining what they do, _how they work in JavaScript_, and why they matter in application development. Think of it like a guided workshop: type, read, understand, repeat.
 
 ---
 
-#### Section I: Lock Management
+## 📘 Section 3.8 — Main Application (Code-Along Tutorial)
 
-We want a system to ensure **only one user can modify a file at a time**, preventing conflicts in multi-user or multi-process environments.
+This section brings everything together. We’ll manage app state, connect the modals, load data, render files, and handle events.
 
-##### Step 1: Class setup
+We’ll go in **small increments** so you’re learning JavaScript fundamentals and application patterns — not just copying code.
 
-```python
-from pathlib import Path
-from typing import Dict, Optional
-import json
-import logging
+---
 
-from app.utils.file_locking import LockedFile
+### 🔹 Step 1: Module Imports
 
-logger = logging.getLogger(__name__)
+```js
+/**
+ * Main Application
+ */
 
-class LockManager:
-    """
-    Manages file lock state.
-
-    Stores locks in a JSON file with atomic read/write operations.
-    """
+import { themeManager } from "./modules/theme-manager.js";
+import { apiClient } from "./modules/api-client.js";
+import { ModalManager } from "./modules/modal-manager.js";
 ```
 
-**Explanation:**
+#### 🔍 Explanation
 
-- `Path` → modern way to handle filesystem paths.
-- `Dict`, `Optional` → type hints, improves readability and static analysis.
-- `json` → storing locks in a human-readable JSON file.
-- `LockedFile` → context manager to safely lock the JSON file during read/write operations. Prevents race conditions.
-- `logger` → structured logging is crucial for debugging concurrent access.
+- `import { ... } from ...` is **ES6 module syntax**.
+- Instead of one giant script, we split logic into modules:
 
-**Gotchas / Notes:**
+  - **`themeManager`** → Handles light/dark mode.
+  - **`apiClient`** → Wraps our backend HTTP calls.
+  - **`ModalManager`** → Manages opening/closing modals.
 
-- **Imports inside class methods** (`from datetime import datetime`) can cause issues with tools like **PyInstaller** because static analysis may not detect them. Consider moving imports to the top.
-- Using JSON as storage is simple but **not suitable for very high-concurrency scenarios**; a database may be better.
+➡️ **Why modules?**
+They keep code organized, reusable, and prevent naming conflicts. In a real app, modular design makes scaling easier.
 
 ---
 
-##### Step 2: Constructor
+### 🔹 Step 2: Application State
 
-```python
-def __init__(self, locks_file: Path):
-    self.locks_file = locks_file
+```js
+// ============================================================================
+// SECTION 1: Application State
+// ============================================================================
 
-    ### Ensure file exists
-    if not self.locks_file.exists():
-        self.locks_file.write_text('{}')
+let allFiles = [];
+let currentFilename = null;
 ```
 
-- Ensures a lock file exists before using it.
-- Writing `'{}'` guarantees `json.load` won’t fail on an empty file.
+#### 🔍 Explanation
 
-**Python Concepts:**
+- `let allFiles = []` → stores the list of files we fetch from the server.
+- `let currentFilename = null` → keeps track of the file currently being checked out/in.
 
-- `write_text` → writes string content to a file; will create the file if it doesn’t exist.
-- Using `Path` methods avoids OS-specific path issues.
+➡️ **Key JavaScript lesson**:
+
+- `let` means the variable can be reassigned later (vs. `const` which locks reassignment).
+- We use `null` as a placeholder value until something is selected.
 
 ---
 
-##### Step 3: Loading locks
+### 🔹 Step 3: Modal Instances
 
-```python
-def load_locks(self) -> Dict[str, dict]:
-    if not self.locks_file.exists():
-        return {}
+```js
+// ============================================================================
+// SECTION 2: Modal Instances
+// ============================================================================
 
-    try:
-        with LockedFile(self.locks_file, 'r') as f:
-            content = f.read()
-            if not content.strip():
-                return {}
-            return json.loads(content)
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse locks file: {e}")
-        return {}
-    except Exception as e:
-        logger.error(f"Failed to load locks: {e}")
-        return {}
+const checkoutModal = new ModalManager("checkout-modal");
+const checkinModal = new ModalManager("checkin-modal");
 ```
 
-**Explanation:**
+#### 🔍 Explanation
 
-- Acquires a **file lock** using `LockedFile`.
-- Reads the JSON content and returns a dictionary mapping filenames → lock info.
-- Handles empty files and JSON parsing errors gracefully.
+- `new ModalManager("checkout-modal")` → Creates a modal instance tied to the element with `id="checkout-modal"`.
+- Same for `"checkin-modal"`.
+- Each instance manages open/close behavior.
 
-**Gotchas:**
-
-- Always handle `JSONDecodeError` to avoid crashing when the file is corrupted.
-- `LockedFile` ensures **atomic read/write**, preventing race conditions if multiple processes access the file.
-
-**Extra Concept:**
-
-- `try/except` blocks are essential in file I/O. Returning an empty dict allows the system to continue instead of failing.
+➡️ **Why use classes here?**
+Instead of writing duplicated code for each modal, we encapsulate modal logic in the `ModalManager` class and reuse it.
 
 ---
 
-##### Step 4: Saving locks
+### 🔹 Step 4: Data Loading Function
 
-```python
-def save_locks(self, locks: dict):
-    try:
-        with LockedFile(self.locks_file, 'w') as f:
-            json.dump(locks, f, indent=2)
-    except Exception as e:
-        logger.error(f"Failed to save locks: {e}")
-        raise
+```js
+// ============================================================================
+// SECTION 3: Data Loading
+// ============================================================================
+
+async function loadFiles() {
+  const loadingEl = document.getElementById("loading-indicator");
+  const fileListEl = document.getElementById("file-list");
+
+  loadingEl.classList.remove("hidden");
+  fileListEl.innerHTML = "";
+
+  try {
+    const data = await apiClient.getFiles();
+    allFiles = data.files;
+
+    loadingEl.classList.add("hidden");
+    displayFiles(allFiles);
+  } catch (error) {
+    loadingEl.classList.add("hidden");
+    fileListEl.innerHTML = `
+      <div style="text-align: center; padding: 2rem; color: var(--status-danger-text);">
+        <p><strong>Error loading files:</strong></p>
+        <p>${error.message}</p>
+        <button class="btn btn-primary" onclick="location.reload()">
+          Retry
+        </button>
+      </div>
+    `;
+  }
+}
 ```
 
-- Opens the file with a lock, writes updated lock data.
-- Raises exception if saving fails — important to prevent **silent lock inconsistencies**.
+#### 🔍 Explanation
 
-**Gotcha:** Never write locks without a file lock; concurrent writes can corrupt the file.
+- `async function loadFiles()` → lets us use `await` for asynchronous calls.
+- `loadingEl.classList.remove("hidden")` → shows a loading spinner/indicator.
+- `fileListEl.innerHTML = ""` → clears out any previous files.
+- `await apiClient.getFiles()` → fetches files from backend (returns a Promise).
+- On success → `displayFiles(allFiles)`.
+- On error → display a retry message.
+
+➡️ **JavaScript deep dive**:
+
+- `await` pauses execution until the Promise resolves, but doesn’t block the browser.
+- Errors inside `await` must be caught with `try/catch`.
 
 ---
 
-##### Step 5: Checking lock state
+✅ So far we’ve:
 
-```python
-def is_locked(self, filename: str) -> bool:
-    locks = self.load_locks()
-    return filename in locks
+- Imported modules.
+- Created app state.
+- Connected modals.
+- Written a function to fetch and display files.
 
-def get_lock_info(self, filename: str) -> Optional[dict]:
-    locks = self.load_locks()
-    return locks.get(filename)
+---
+
+Perfect 👍 Let’s continue the **code-along tutorial for Section 3.8** — moving to **DOM Rendering**.
+
+We’ll break this into **small chunks**: add some code, then pause to explain how it works and why it’s written this way.
+
+---
+
+## 📘 Section 3.8 — Main Application (Code-Along)
+
+### 🔹 Step 5: Rendering Files (Wrapper Function)
+
+```js
+// ============================================================================
+// SECTION 4: DOM Rendering
+// ============================================================================
+
+function displayFiles(files) {
+  const container = document.getElementById("file-list");
+  container.innerHTML = "";
 ```
 
-- `is_locked` → returns `True` if the file has a lock.
-- `get_lock_info` → returns lock details (user, timestamp, message).
+#### 🔍 Explanation
 
-**Python Tip:**
+- `function displayFiles(files)` → defines a **reusable function** that takes an array of file objects and renders them into the DOM.
+- `document.getElementById("file-list")` → finds the `<div id="file-list">` element where our files will appear.
+- `container.innerHTML = ""` → clears any previous content before rendering fresh data.
 
-- Using `.get()` avoids KeyError when the file isn’t locked.
+➡️ **Why clear first?**
+If we don’t, the old file list will remain, and the new one will just append on top → duplicates.
 
 ---
 
-##### Step 6: Acquiring and releasing locks
+### 🔹 Step 6: Empty State Handling
 
-```python
-def acquire_lock(self, filename: str, user: str, message: str):
-    locks = self.load_locks()
-    if filename in locks:
-        existing = locks[filename]
-        raise ValueError(f"File already locked by {existing['user']}")
-    from datetime import datetime, timezone
-    locks[filename] = {
-        'user': user,
-        'timestamp': datetime.now(timezone.utc).isoformat(),
-        'message': message
+```js
+if (!files || files.length === 0) {
+  container.innerHTML = `
+      <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+        <p>No .mcam files found in repository.</p>
+        <p style="font-size: var(--font-size-sm);">Add files to backend/repo/</p>
+      </div>
+    `;
+  return;
+}
+```
+
+#### 🔍 Explanation
+
+- `if (!files || files.length === 0)` → checks if the `files` array is empty or undefined.
+- If true → replace the container’s content with a **friendly empty state message**.
+- `return;` → exits the function early so we don’t try to loop over `files`.
+
+➡️ **Key pattern**:
+Always handle “nothing to show” cases in UI → improves user experience and prevents runtime errors.
+
+---
+
+### 🔹 Step 7: Looping Through Files
+
+```js
+  files.forEach((file) => {
+    const fileElement = createFileElement(file);
+    container.appendChild(fileElement);
+  });
+}
+```
+
+#### 🔍 Explanation
+
+- `.forEach((file) => { ... })` → loops over every file object.
+- `createFileElement(file)` → builds the HTML for a single file.
+- `container.appendChild(fileElement)` → adds the file’s HTML to the container.
+
+➡️ **Why separate into `createFileElement`?**
+Keeps `displayFiles` clean. It handles **“when and where”** files are displayed, while `createFileElement` handles **“what each file looks like.”**
+
+---
+
+### 🔹 Step 8: Creating a File Element (Start)
+
+```js
+function createFileElement(file) {
+  const div = document.createElement("div");
+  div.className = "file-item";
+```
+
+#### 🔍 Explanation
+
+- `document.createElement("div")` → dynamically creates a `<div>` in memory.
+- `div.className = "file-item"` → applies a CSS class for styling.
+
+➡️ **Why not `innerHTML` here?**
+Using `createElement` is safer — avoids XSS injection risks and gives more flexibility for dynamic child nodes.
+
+---
+
+### 🔹 Step 9: File Info Section
+
+```js
+const infoDiv = document.createElement("div");
+infoDiv.className = "file-info";
+
+const nameSpan = document.createElement("span");
+nameSpan.className = "file-name";
+nameSpan.textContent = file.name;
+
+const statusSpan = document.createElement("span");
+statusSpan.className = `file-status status-${file.status}`;
+statusSpan.textContent = file.status.replace("_", " ").toUpperCase();
+
+infoDiv.appendChild(nameSpan);
+infoDiv.appendChild(statusSpan);
+```
+
+#### 🔍 Explanation
+
+- `infoDiv` → wraps the filename + status.
+- `nameSpan.textContent = file.name` → sets the text to the actual filename.
+- `statusSpan.className = status-${file.status}` → gives dynamic CSS class like `status-available` or `status-locked`.
+- `file.status.replace("_", " ").toUpperCase()` → turns `checked_out` into `CHECKED OUT` (more readable).
+- Finally → `appendChild` adds both spans into `infoDiv`.
+
+➡️ **Lesson:** This shows how to **bind data to DOM elements** dynamically — a key skill in any frontend app.
+
+---
+
+✅ At this point, each file has:
+
+- A wrapper `<div class="file-item">`.
+- Inside it, a file info block with name + status.
+
+---
+
+Got it ✅ — I’ll keep the **teaching focus** front and center: not just what the code does, but why it’s structured this way, what JavaScript concepts it demonstrates, and how it relates to app development best practices.
+
+We’re still in **Section 3.8 → DOM Rendering**, and now we’ll build out the **actions** part of each file row.
+
+---
+
+## 📘 Section 3.8 — DOM Rendering (Part 2)
+
+### 🔹 Step 10: Actions Wrapper
+
+```js
+const actionsDiv = document.createElement("div");
+actionsDiv.className = "file-actions";
+```
+
+#### 🔍 Explanation
+
+- `createElement("div")` → creates a container for buttons and extra metadata (like “locked by”).
+- `actionsDiv.className = "file-actions";` → CSS handles spacing & alignment.
+
+➡️ **Teaching Point**:
+When structuring UI, separate _information display_ (file name/status) from _actions_ (buttons). This separation of concerns makes code and layout cleaner.
+
+---
+
+### 🔹 Step 11: Conditional Rendering – Available File
+
+```js
+if (file.status === "available") {
+  const checkoutBtn = document.createElement("button");
+  checkoutBtn.className = "btn btn-primary btn-sm";
+  checkoutBtn.textContent = "Checkout";
+  checkoutBtn.onclick = () => handleCheckout(file.name);
+  actionsDiv.appendChild(checkoutBtn);
+}
+```
+
+#### 🔍 Explanation
+
+- `if (file.status === "available")` → branching logic: only show “Checkout” if no one has the file locked.
+- `checkoutBtn.textContent = "Checkout";` → sets button label.
+- `checkoutBtn.onclick = () => handleCheckout(file.name);`
+
+  - Here’s **event-driven programming** in action: the UI doesn’t _do_ anything until the user clicks.
+  - The `() => handleCheckout(file.name)` uses an **arrow function** → keeps `file.name` bound to the correct file when the loop runs.
+
+➡️ **Key JS Concept**: Closures in event handlers.
+If we didn’t use arrow functions (or properly scoped functions), we could accidentally bind the wrong file to the click.
+
+---
+
+### 🔹 Step 12: Conditional Rendering – Checked Out File
+
+```js
+  else {
+    const checkinBtn = document.createElement("button");
+    checkinBtn.className = "btn btn-secondary btn-sm";
+    checkinBtn.textContent = "Checkin";
+    checkinBtn.onclick = () => handleCheckin(file.name);
+    actionsDiv.appendChild(checkinBtn);
+```
+
+#### 🔍 Explanation
+
+- If status is **not** `available`, assume it’s checked out.
+- This creates a “Checkin” button with a different CSS class (secondary style).
+- Again, attaches a click handler: `handleCheckin(file.name)`.
+
+➡️ **Lesson**:
+Here, the **UI adapts based on state**. This is a fundamental principle of app development:
+
+- **State → UI.**
+  Whenever state changes (like a file being locked), the UI should reflect that.
+
+---
+
+### 🔹 Step 13: Showing Who Locked It
+
+```js
+    if (file.locked_by) {
+      const lockedBySpan = document.createElement("span");
+      lockedBySpan.style.fontSize = "var(--font-size-sm)";
+      lockedBySpan.style.color = "var(--text-secondary)";
+      lockedBySpan.textContent = `Locked by: ${file.locked_by}`;
+      actionsDiv.appendChild(lockedBySpan);
     }
-    self.save_locks(locks)
-    logger.info(f"Lock acquired: {filename} by {user}")
-
-def release_lock(self, filename: str, user: str):
-    locks = self.load_locks()
-    if filename not in locks:
-        raise ValueError("File is not locked")
-    if locks[filename]['user'] != user:
-        raise ValueError(f"Lock owned by {locks[filename]['user']}, not {user}")
-    del locks[filename]
-    self.save_locks(locks)
-    logger.info(f"Lock released: {filename} by {user}")
+  }
 ```
 
-**Explanation:**
+#### 🔍 Explanation
 
-- `acquire_lock` → checks if already locked, raises `ValueError` if so. Otherwise, adds lock info.
-- `release_lock` → checks ownership before releasing; ensures only the lock owner can release it.
+- `if (file.locked_by)` → only show this if backend returned a username.
+- Instead of a button, we’re adding a `<span>` with inline styles for smaller, muted text.
+- `lockedBySpan.textContent = ...` → shows “Locked by: Alice”.
 
-**Gotchas / Notes:**
+➡️ **Teaching Point**:
 
-- Always verify ownership before releasing a lock — prevents users from accidentally unlocking files they don’t own.
-- Timestamp uses **UTC** for consistency in multi-timezone environments.
-- Frequent `load_locks()` calls ensure latest state but may have **performance overhead** in very large repositories.
+- Here you see **progressive enrichment**: not every file has this info, but if it exists, we render it.
+- Also demonstrates **inline styling vs CSS classes**:
+
+  - Inline styles are fine for one-offs.
+  - For consistency, production apps usually prefer CSS classes.
 
 ---
 
-#### Section II: File Repository
+### 🔹 Step 14: Final Assembly of File Element
 
-Handles **filesystem operations** for your repository.
+```js
+  div.appendChild(infoDiv);
+  div.appendChild(actionsDiv);
 
-##### Step 1: Setup
-
-```python
-class FileRepository:
-    def __init__(self, repo_path: Path):
-        self.repo_path = repo_path
-        self.repo_path.mkdir(parents=True, exist_ok=True)
+  return div;
+}
 ```
 
-- Ensures repository directory exists.
-- `mkdir(parents=True, exist_ok=True)` → creates intermediate folders safely.
+#### 🔍 Explanation
+
+- `appendChild(infoDiv)` → add the name & status block.
+- `appendChild(actionsDiv)` → add the buttons block.
+- Finally → `return div;` → now the full file row is ready to be inserted into the page.
+
+➡️ **Lesson Recap**:
+
+- **DOM creation**: `createElement`, `textContent`, `appendChild`.
+- **Dynamic UI**: conditionally render based on `file.status`.
+- **Events**: attach handlers directly in JS, not inline HTML.
+- **Separation of concerns**:
+
+  - `displayFiles` decides _which_ files to render.
+  - `createFileElement` decides _how_ a file looks.
 
 ---
 
-##### Step 2: Listing files with metadata
+✅ At this point, you can run the app and you’ll see:
 
-```python
-def list_files(self, extension: str = '.mcam') -> List[Dict]:
-    files = []
-    for item in self.repo_path.iterdir():
-        if not item.is_file():
-            continue
-        if not item.name.lower().endswith(extension):
-            continue
-        stat = item.stat()
-        files.append({
-            'name': item.name,
-            'size_bytes': stat.st_size,
-            'modified': stat.st_mtime,
-        })
-    return files
+- Each file shows its name and status.
+- Available → shows **Checkout** button.
+- Locked → shows **Checkin** button and “Locked by …”.
+
+---
+
+Perfect 👍 let’s dive into **Section 5: Event Handlers**.
+This is where our UI buttons (Checkout / Checkin) actually start doing things — turning clicks into app logic.
+I’ll keep it **code-along style**: small code chunks + deep explanation.
+
+---
+
+## 📘 Section 3.8 — Event Handlers (Part 1)
+
+### 🔹 Step 15: Checkout Handler
+
+```js
+function handleCheckout(filename) {
+  currentFilename = filename;
+  document.getElementById("checkout-filename").textContent = filename;
+  checkoutModal.open();
+}
 ```
 
-- Uses `iterdir()` → efficient iterator over directory contents.
-- `stat()` → lightweight way to get file size and modified timestamp.
-- Filters by extension, ignoring directories.
+#### 🔍 Explanation
 
-**Gotchas:**
+- `function handleCheckout(filename)` → normal JS function, triggered when you click a “Checkout” button.
+- `currentFilename = filename;`
 
-- `item.name.lower()` ensures `.MCAM` is recognized as `.mcam`.
-- `stat().st_mtime` is seconds since epoch — may need conversion to human-readable datetime.
+  - We save the selected file’s name in a **global state variable** (defined earlier).
+  - Why? Because when the user fills out the form and submits, we need to know which file they were acting on.
+
+- `document.getElementById("checkout-filename").textContent = filename;`
+
+  - Inside the modal, there’s a `<strong id="checkout-filename">` placeholder.
+  - This line updates that placeholder with the actual filename → gives user visual confirmation.
+
+- `checkoutModal.open();`
+
+  - Calls our `ModalManager` class to actually display the modal.
+  - This handles showing the popup, preventing scroll, and focusing on inputs.
+
+➡️ **Teaching Point**:
+This is the **UI flow pattern**:
+
+1. Store app state (filename).
+2. Update DOM to reflect the state.
+3. Open modal for user interaction.
 
 ---
 
-##### Step 3: Helper methods
+### 🔹 Step 16: Checkin Handler
 
-```python
-def file_exists(self, filename: str) -> bool:
-    return (self.repo_path / filename).exists()
-
-def get_file_path(self, filename: str) -> Path:
-    return self.repo_path / filename
-
-def read_file(self, filename: str) -> bytes:
-    return self.get_file_path(filename).read_bytes()
-
-def write_file(self, filename: str, content: bytes):
-    self.get_file_path(filename).write_bytes(content)
+```js
+function handleCheckin(filename) {
+  currentFilename = filename;
+  document.getElementById("checkin-filename").textContent = filename;
+  checkinModal.open();
+}
 ```
 
-- `file_exists` → quick existence check.
-- `read_bytes` / `write_bytes` → read/write entire file content.
+#### 🔍 Explanation
 
-**Python Tip:** Using `Path` instead of `open()` is simpler and cross-platform.
+- Identical logic, but for **checkin** instead of checkout.
+- Updates `currentFilename`.
+- Displays filename inside the checkin modal.
+- Opens `checkinModal`.
+
+➡️ **Key Idea**:
+Both checkout and checkin follow the **same pattern**, but with different forms.
+This repetition is intentional: it shows how you can reuse code structures with small variations — a common practice in app development.
 
 ---
 
-#### Section III: Combined File Service
+✅ At this stage:
 
-This class **combines repository + locks** to provide high-level operations.
+- Clicking “Checkout” opens the checkout modal with the correct file name filled in.
+- Clicking “Checkin” opens the checkin modal with the correct file name.
 
-##### Step 1: Constructor
+So far, no API calls — just **state + UI updates**.
 
-```python
-class FileService:
-    def __init__(self, repo_path: Path, locks_file: Path):
-        self.repository = FileRepository(repo_path)
-        self.lock_manager = LockManager(locks_file)
+---
+
+Perfect! Let’s move to **Step 17: submitCheckout()**, the first function that actually talks to the backend. We'll break it down **line by line**, and explain **how JavaScript handles forms, events, and async calls**.
+
+---
+
+## 📘 Section 3.8 — Event Handlers (Part 2)
+
+### 🔹 Step 17: submitCheckout
+
+```js
+async function submitCheckout(event) {
+  event.preventDefault();
+
+  const formData = new FormData(event.target);
+  const data = {
+    filename: currentFilename,
+    user: formData.get("user"),
+    message: formData.get("message"),
+  };
+
+  try {
+    await apiClient.post("/api/files/checkout", data);
+
+    showNotification("File checked out successfully!", "success");
+    checkoutModal.close();
+    loadFiles();
+  } catch (error) {
+    showNotification(`Checkout failed: ${error.message}`, "error");
+  }
+}
 ```
 
-- Encapsulates both repository and lock manager.
-- Encourages **separation of concerns**: repository handles filesystem, lock manager handles concurrency.
+---
+
+#### 🔍 Line-by-Line Breakdown
+
+##### 1️⃣ `async function submitCheckout(event) {`
+
+- Declares a function as **async**, which means we can use `await` inside.
+- Why async? Because sending requests to the backend is **asynchronous** (non-blocking).
+- `event` is the **form submission event** automatically passed by the browser.
 
 ---
 
-##### Step 2: Files with status
+##### 2️⃣ `event.preventDefault();`
 
-```python
-def get_files_with_status(self) -> List[Dict]:
-    files = self.repository.list_files()
-    locks = self.lock_manager.load_locks()
-    result = []
-    for file_info in files:
-        filename = file_info['name']
-        lock_info = locks.get(filename)
-        result.append({
-            'name': filename,
-            'size_bytes': file_info['size_bytes'],
-            'status': 'checked_out' if lock_info else 'available',
-            'locked_by': lock_info['user'] if lock_info else None,
-        })
-    return result
+- Forms usually **reload the page** on submit.
+- `preventDefault()` **stops the browser’s default behavior** so we can handle it via JavaScript.
+- Teaching Point: Forms in modern apps almost always use `preventDefault()` with JS submissions.
+
+---
+
+##### 3️⃣ `const formData = new FormData(event.target);`
+
+- `FormData` is a built-in browser API.
+- `event.target` is the `<form>` element that triggered the submit.
+- `FormData` collects all input values from the form automatically.
+- Example: `{ user: "Alice", message: "Fixing a bug" }`
+
+---
+
+##### 4️⃣ Construct the payload
+
+```js
+const data = {
+  filename: currentFilename,
+  user: formData.get("user"),
+  message: formData.get("message"),
+};
 ```
 
-- Combines file metadata with lock state for display or API purposes.
+- Combines **UI state** (`currentFilename`) and **form data** (`user`, `message`) into a single object.
+- Why not just send formData?
 
-**Gotchas:**
-
-- Frequent `load_locks()` reads ensure up-to-date status but can be slow with many files.
-- Optional chaining (`lock_info['user'] if lock_info else None`) avoids KeyError.
+  - Because the backend expects **JSON** (`{ filename, user, message }`), not raw form data.
 
 ---
 
-##### Step 3: Checkout / Checkin
+##### 5️⃣ `try { ... } catch (error) { ... }`
 
-```python
-def checkout_file(self, filename: str, user: str, message: str):
-    if not self.repository.file_exists(filename):
-        raise ValueError(f"File not found: {filename}")
-    self.lock_manager.acquire_lock(filename, user, message)
+- JS **try/catch** block handles errors gracefully.
+- `await apiClient.post(...)` may fail (network down, server error).
+- If it throws, the `catch` block runs instead of crashing the app.
 
-def checkin_file(self, filename: str, user: str):
-    self.lock_manager.release_lock(filename, user)
+---
+
+##### 6️⃣ `await apiClient.post("/api/files/checkout", data);`
+
+- Sends a **POST request** to the backend API.
+- `apiClient` is a wrapper around `fetch()` (or similar).
+- Teaching Point: `await` pauses execution **only in this function**, not the entire page.
+- This allows the browser to remain responsive while waiting for the server.
+
+---
+
+##### 7️⃣ Success Handling
+
+```js
+showNotification("File checked out successfully!", "success");
+checkoutModal.close();
+loadFiles();
 ```
 
-- `checkout_file` → verify file exists, acquire lock.
-- `checkin_file` → release lock safely.
-
-**Python Concept:** By combining repository + lock manager, you create a **transactional workflow**: file access and locking are guaranteed to stay in sync.
-
----
-
-##### ✅ Key Takeaways
-
-- **File locking** prevents race conditions in multi-user / multi-process environments.
-- **Pathlib** is modern and safer than raw strings for file operations.
-- **Atomic JSON operations** are crucial when multiple processes read/write the same file.
-- **Separation of concerns**: repository handles files, lock manager handles concurrency, combined service orchestrates both.
+- `showNotification()` → tells the user the operation succeeded.
+- `checkoutModal.close()` → hides the modal, restores body scroll, clears the form.
+- `loadFiles()` → reloads the file list from backend to reflect the new lock status.
 
 ---
 
-## Incremental Coding Tutorial: File Management with Locking
+##### 8️⃣ Error Handling
 
----
-
-### SECTION I: Lock Management
-
-#### Step 1: Imports and Logger
-
-```python
-from pathlib import Path
-from typing import Dict, Optional
-import json
-import logging
-
-from app.utils.file_locking import LockedFile
-
-logger = logging.getLogger(__name__)
+```js
+catch (error) {
+  showNotification(`Checkout failed: ${error.message}`, "error");
+}
 ```
 
-**Explanation:**
-
-- `Path` → Modern path handling; cross-platform.
-- `Dict` / `Optional` → Type hints improve readability and help static checkers.
-- `json` → store lock state in a human-readable file.
-- `logging` → structured logging, essential for debugging.
-- `LockedFile` → context manager to safely lock JSON files during read/write. Prevents race conditions.
-
-**Gotchas / Notes:**
-
-- Make sure `LockedFile` is imported at the top. Imports inside functions or classes may break **PyInstaller** because it relies on static analysis.
+- If the POST fails, the user sees a clear message.
+- This avoids silent failures, which are **common beginner mistakes**.
 
 ---
 
-#### Step 2: Start the LockManager Class
+#### ✅ Key Teaching Points
 
-```python
-class LockManager:
-    """
-    Manages file lock state.
+1. **Async/Await**: Modern JS pattern for handling asynchronous tasks like network requests.
+2. **FormData API**: Simplifies reading form inputs without manually querying `input.value`.
+3. **State + DOM Integration**: Combines `currentFilename` (app state) with form values (UI input).
+4. **Error Handling**: Always wrap `await` calls in `try/catch` to avoid unhandled rejections.
+5. **UX Flow**: Success → notify user → close modal → refresh data.
 
-    Stores locks in a JSON file with atomic read/write operations.
-    """
+---
+
+Perfect! Let’s do **Step 18: submitCheckin()** the same way. We’ll go **line by line**, highlight similarities and subtle differences from `submitCheckout()`, and explain why those differences exist.
+
+---
+
+## 📘 Section 3.8 — Event Handlers (Part 3)
+
+### 🔹 Step 18: submitCheckin
+
+```js
+async function submitCheckin(event) {
+  event.preventDefault();
+
+  const formData = new FormData(event.target);
+  const data = {
+    filename: currentFilename,
+    user: formData.get("user"),
+  };
+
+  try {
+    await apiClient.post("/api/files/checkin", data);
+
+    showNotification("File checked in successfully!", "success");
+    checkinModal.close();
+    loadFiles();
+  } catch (error) {
+    showNotification(`Checkin failed: ${error.message}`, "error");
+  }
+}
 ```
 
-- Encapsulates **all lock logic** in one class.
-- Using a class makes it easy to reuse in multiple places, e.g., different services or scripts.
+---
+
+#### 🔍 Line-by-Line Breakdown
+
+##### 1️⃣ `async function submitCheckin(event) {`
+
+- Async function because **posting to the backend is asynchronous**.
+- Receives the **form submit event** automatically.
 
 ---
 
-#### Step 3: Constructor
+##### 2️⃣ `event.preventDefault();`
 
-```python
-def __init__(self, locks_file: Path):
-    self.locks_file = locks_file
+- Prevents the form from **refreshing the page**, same as in `submitCheckout()`.
+- Essential for **single-page app behavior**.
 
-    ## Ensure file exists
-    if not self.locks_file.exists():
-        self.locks_file.write_text('{}')
+---
+
+##### 3️⃣ `const formData = new FormData(event.target);`
+
+- Reads all inputs from the check-in form.
+- Teaching Point: `FormData` works with any form, so you don’t have to manually select inputs like `document.getElementById("checkin-user").value`.
+
+---
+
+##### 4️⃣ Construct the payload
+
+```js
+const data = {
+  filename: currentFilename,
+  user: formData.get("user"),
+};
 ```
 
-**Explanation:**
-
-- Stores path to the lock file.
-- Creates an empty JSON `{}` if the file doesn’t exist. This avoids errors on `json.load`.
-
-**Python Concepts:**
-
-- `write_text()` → convenient for writing string content to a file.
-- Using `Path` ensures paths are OS-independent.
-
-**Gotcha:** Don’t forget to check file permissions. If Python can’t write the file, the code will fail silently here.
+- **Difference from checkout**: no `message` field.
+- Backend only needs **filename** and **user** to release the lock.
+- Shows how **different API endpoints require different payloads**, even if the function structure is almost identical.
 
 ---
 
-#### Step 4: Load Locks
+##### 5️⃣ `try { ... } catch (error) { ... }`
 
-```python
-def load_locks(self) -> Dict[str, dict]:
-    if not self.locks_file.exists():
-        return {}
+- Same pattern as `submitCheckout()`.
+- Ensures the app **doesn’t crash** if the network request fails.
 
-    try:
-        with LockedFile(self.locks_file, 'r') as f:
-            content = f.read()
-            if not content.strip():
-                return {}
-            return json.loads(content)
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse locks file: {e}")
-        return {}
-    except Exception as e:
-        logger.error(f"Failed to load locks: {e}")
-        return {}
+---
+
+##### 6️⃣ `await apiClient.post("/api/files/checkin", data);`
+
+- Posts the payload to the **check-in endpoint**.
+- `await` pauses this function until the backend responds.
+- Teaching Point: `await` only blocks this function, not the whole app.
+
+---
+
+##### 7️⃣ Success Handling
+
+```js
+showNotification("File checked in successfully!", "success");
+checkinModal.close();
+loadFiles();
 ```
 
-**Explanation:**
-
-- `LockedFile` ensures **atomic access** to prevent concurrent read/write issues.
-- `content.strip()` → handles empty files.
-- `json.loads()` → converts string JSON into a Python dictionary.
-
-**Gotchas:**
-
-- Always handle `JSONDecodeError` — corrupted files are common when multiple processes write at the same time.
-
-**Extra Concept:**
-
-- Using `return {}` for errors allows the application to **continue running**, instead of crashing.
+- Shows a notification on success.
+- Closes the **check-in modal** instead of checkout modal.
+- Refreshes the file list to reflect the lock release.
+- Teaching Point: You can **reuse the same patterns** for multiple operations by swapping out **modal instances** and **API endpoints**.
 
 ---
 
-#### Step 5: Save Locks
+##### 8️⃣ Error Handling
 
-```python
-def save_locks(self, locks: dict):
-    try:
-        with LockedFile(self.locks_file, 'w') as f:
-            json.dump(locks, f, indent=2)
-    except Exception as e:
-        logger.error(f"Failed to save locks: {e}")
-        raise
+```js
+catch (error) {
+  showNotification(`Checkin failed: ${error.message}`, "error");
+}
 ```
 
-- Writes the updated lock dictionary back to file safely.
-- `indent=2` → makes JSON human-readable.
-
-**Gotchas:** Never write locks without a **file lock**, or simultaneous writes will corrupt the file.
+- Same pattern as checkout: user sees a clear message if something goes wrong.
 
 ---
 
-#### Step 6: Check Lock State
+#### ✅ Key Teaching Points
 
-```python
-def is_locked(self, filename: str) -> bool:
-    locks = self.load_locks()
-    return filename in locks
+1. **Repetition reinforces patterns**: `submitCheckout` and `submitCheckin` share almost the same structure.
+2. **Payload differences**: Always check backend requirements; sending extra fields may be ignored or cause errors.
+3. **Modularity**: By separating checkout vs checkin, the modal manager and apiClient can be reused.
+4. **Event-driven design**: Forms submit → JS intercepts → backend call → UI update. This pattern is **core to modern web apps**.
+5. **Error-first mindset**: Always anticipate failures and provide user feedback.
 
-def get_lock_info(self, filename: str) -> Optional[dict]:
-    locks = self.load_locks()
-    return locks.get(filename)
+---
+
+Perfect! Let’s tackle **Step 19: DOMContentLoaded initialization**. This is the final glue that ties all the previous pieces together, and it’s a great opportunity to teach **DOM events, event listeners, and app initialization patterns** in JavaScript.
+
+We’ll break it **line by line**, explaining everything and showing why each piece matters.
+
+---
+
+## 📘 Section 3.8 — Initialization (Step 19)
+
+```js
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("PDM App initialized");
+
+  // Theme toggle
+  document
+    .getElementById("theme-toggle")
+    .addEventListener("click", () => themeManager.toggle());
+
+  // Form submissions
+  document
+    .getElementById("checkout-form")
+    .addEventListener("submit", submitCheckout);
+
+  document
+    .getElementById("checkin-form")
+    .addEventListener("submit", submitCheckin);
+
+  // Load initial data
+  loadFiles();
+});
 ```
 
-- `is_locked` → returns True if the file has a lock.
-- `get_lock_info` → returns lock metadata (user, timestamp, message) or `None`.
+---
 
-**Python Tip:** `.get()` avoids `KeyError` for missing keys.
+#### 🔍 Line-by-Line Breakdown
+
+##### 1️⃣ `document.addEventListener("DOMContentLoaded", () => {`
+
+- This registers a **callback function** that runs **only after the HTML document has been fully loaded and parsed**.
+- Teaching Point: Unlike `window.onload`, `DOMContentLoaded` fires **before images and other external assets are fully loaded**, so your app feels faster.
+- Ensures **all `getElementById` calls succeed** because the elements exist in the DOM.
 
 ---
 
-#### Step 7: Acquire and Release Locks
+##### 2️⃣ `console.log("PDM App initialized");`
 
-```python
-def acquire_lock(self, filename: str, user: str, message: str):
-    locks = self.load_locks()
-    if filename in locks:
-        existing = locks[filename]
-        raise ValueError(f"File already locked by {existing['user']}")
+- Debugging / teaching tool. Shows that your initialization code ran.
+- Helps beginners **verify event listeners are registered**.
 
-    from datetime import datetime, timezone
-    locks[filename] = {
-        'user': user,
-        'timestamp': datetime.now(timezone.utc).isoformat(),
-        'message': message
-    }
-    self.save_locks(locks)
-    logger.info(f"Lock acquired: {filename} by {user}")
+---
 
-def release_lock(self, filename: str, user: str):
-    locks = self.load_locks()
-    if filename not in locks:
-        raise ValueError("File is not locked")
-    if locks[filename]['user'] != user:
-        raise ValueError(f"Lock owned by {locks[filename]['user']}, not {user}")
-    del locks[filename]
-    self.save_locks(locks)
-    logger.info(f"Lock released: {filename} by {user}")
+##### 3️⃣ Theme toggle
+
+```js
+document
+  .getElementById("theme-toggle")
+  .addEventListener("click", () => themeManager.toggle());
 ```
 
-- `acquire_lock` → checks existing locks, stores user, timestamp, message.
-- `release_lock` → ensures **only the owner** can release a lock.
-- `datetime.now(timezone.utc)` → use UTC for consistency across time zones.
+- Selects the **theme toggle button** by its `id`.
+- Registers a **click event listener** that calls `themeManager.toggle()`.
+- Teaching Points:
 
-**Gotchas:**
-
-- Always verify ownership before releasing a lock.
-- Frequent `load_locks()` reads ensure latest state but may impact performance for large repositories.
+  1. `getElementById` is the most direct way to select elements by ID.
+  2. Event listeners allow **decoupling UI from logic**.
+  3. Arrow functions are used here to maintain **lexical `this`** (though not critical here, it’s a good habit).
 
 ---
 
-### SECTION II: File Repository
+##### 4️⃣ Form submission handlers
 
-#### Step 1: Repository Class
+```js
+document
+  .getElementById("checkout-form")
+  .addEventListener("submit", submitCheckout);
 
-```python
-class FileRepository:
-    def __init__(self, repo_path: Path):
-        self.repo_path = repo_path
-        self.repo_path.mkdir(parents=True, exist_ok=True)
+document
+  .getElementById("checkin-form")
+  .addEventListener("submit", submitCheckin);
 ```
 
-- Ensures the repository folder exists.
-- `mkdir(parents=True, exist_ok=True)` creates intermediate directories safely.
+- Each form is selected and an event listener is attached to **intercept submission**.
+- Teaching Points:
+
+  1. This is where `submitCheckout` and `submitCheckin` are **connected to the UI**.
+  2. `addEventListener("submit", ...)` is preferred over `onsubmit=` in HTML because it allows **multiple listeners** and keeps JS separate from HTML.
+  3. The forms will **not refresh the page**, thanks to `event.preventDefault()` inside each handler.
 
 ---
 
-#### Step 2: List Files
+##### 5️⃣ Load initial data
 
-```python
-def list_files(self, extension: str = '.mcam') -> list[dict]:
-    files = []
-    for item in self.repo_path.iterdir():
-        if not item.is_file():
-            continue
-        if not item.name.lower().endswith(extension):
-            continue
-        stat = item.stat()
-        files.append({
-            'name': item.name,
-            'size_bytes': stat.st_size,
-            'modified': stat.st_mtime,
-        })
-    return files
+```js
+loadFiles();
 ```
 
-- Iterates through the directory.
-- Filters **files only**, matches extension, gets metadata.
-- `stat()` → fast access to file info.
+- Calls the function we discussed earlier to **fetch all files from the backend and render them**.
+
+- Teaching Point: App initialization is a pattern:
+
+  1. Wait for DOM → ensure elements exist.
+  2. Register UI event listeners → enable user interaction.
+  3. Fetch initial data → populate the UI.
+
+- This pattern is **core to almost every JS single-page application (SPA)**.
 
 ---
 
-#### Step 3: Helper Methods
+#### ✅ Key Teaching Points
 
-```python
-def file_exists(self, filename: str) -> bool:
-    return (self.repo_path / filename).exists()
-
-def get_file_path(self, filename: str) -> Path:
-    return self.repo_path / filename
-
-def read_file(self, filename: str) -> bytes:
-    return self.get_file_path(filename).read_bytes()
-
-def write_file(self, filename: str, content: bytes):
-    self.get_file_path(filename).write_bytes(content)
-```
-
-- Encapsulates file operations.
-- Using `Path` methods makes it **cross-platform**.
+1. **DOMContentLoaded vs window.onload**: `DOMContentLoaded` fires earlier and is ideal for setting up **event listeners**.
+2. **Separation of concerns**: JS initializes the app, attaches events, and then fetches data. HTML remains declarative.
+3. **Reusability**: By using `submitCheckout`, `submitCheckin`, and `loadFiles` as separate functions, the initialization code is **short, readable, and maintainable**.
+4. **Debugging habits**: Using `console.log` at init points helps verify app flow.
 
 ---
 
-### SECTION III: Combined File Service
-
-#### Step 1: Service Constructor
-
-```python
-class FileService:
-    def __init__(self, repo_path: Path, locks_file: Path):
-        self.repository = FileRepository(repo_path)
-        self.lock_manager = LockManager(locks_file)
-```
-
-- Orchestrates **repository + lock manager**.
-- Keeps code modular.
+💡 **Teaching Tip:**
+You can expand this pattern to any SPA: setup state → attach UI events → fetch data → render UI. Everything in this app follows this **modular and event-driven design**, which is a best practice.
 
 ---
-
-#### Step 2: Files with Status
-
-```python
-def get_files_with_status(self) -> list[dict]:
-    files = self.repository.list_files()
-    locks = self.lock_manager.load_locks()
-    result = []
-    for file_info in files:
-        filename = file_info['name']
-        lock_info = locks.get(filename)
-        result.append({
-            'name': filename,
-            'size_bytes': file_info['size_bytes'],
-            'status': 'checked_out' if lock_info else 'available',
-            'locked_by': lock_info['user'] if lock_info else None,
-        })
-    return result
-```
-
-- Combines **file metadata + lock state**.
-- Ideal for APIs or UI display.
-
----
-
-#### Step 3: Checkout / Checkin
-
-```python
-def checkout_file(self, filename: str, user: str, message: str):
-    if not self.repository.file_exists(filename):
-        raise ValueError(f"File not found: {filename}")
-    self.lock_manager.acquire_lock(filename, user, message)
-
-def checkin_file(self, filename: str, user: str):
-    self.lock_manager.release_lock(filename, user)
-```
-
-- Simple, high-level methods to **manage file access safely**.
-- Throws `ValueError` if file doesn’t exist or lock is invalid.
-
----
-
-✅ **Next Steps / Practice**
-
-- Add **unit tests** for LockManager to simulate multiple users trying to acquire/release locks.
-- Try **checking files in/out** from multiple scripts to see the locks in action.
-- Consider **FileLock library** as a cross-platform alternative if you run into weird locking behavior on Windows
