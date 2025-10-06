@@ -1,6 +1,7 @@
 site_name: My Docs
 docs_dir: "docs"
 nav:
+  - Fix: FixingApp.md
   - Grokking:
       - SECTION 0: section 0.md
       - SECTION 1: section 1.md
