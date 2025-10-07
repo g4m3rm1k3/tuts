@@ -1,0 +1,135 @@
+/**
+ * Design Tokens - The Single Source of Truth for our UI
+ *
+ * These CSS custom properties (variables) are defined in the :root selector,
+ * which makes them globally available throughout the entire application.
+ * They are the "atoms" of our design system.
+ */
+
+:root {
+  /* =========================================================================
+     COLOR PALETTE - These are the raw, primitive colors available.
+     We use a 50-900 scale (e.g., --color-primary-50 to --color-primary-900),
+     where 500 is the base color. This is a professional standard that allows
+     for a wide range of shades for different UI states (backgrounds, borders, text).
+     ========================================================================= */
+
+  /* Primary Brand Color: A professional, cool-toned indigo. */
+  --color-primary-50: #f5f7ff; /* For very subtle hover states or backgrounds. */
+  --color-primary-100: #ebf0ff;
+  --color-primary-200: #d6e0ff;
+  --color-primary-300: #b3c7ff;
+  --color-primary-400: #8da9ff;
+  --color-primary-500: #667eea; /* The main brand color for primary buttons and links. */
+  --color-primary-600: #5568d3; /* A slightly darker shade for hover states. */
+  --color-primary-700: #4453b8; /* Even darker, for active/pressed states. */
+  --color-primary-800: #353f8f;
+  --color-primary-900: #2a3166; /* Darkest shade, suitable for text on light backgrounds. */
+
+  /* Neutral Grays: The backbone of any UI for text, borders, and backgrounds. */
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f5f5f5;
+  --color-gray-200: #e5e5e5;
+  --color-gray-300: #d4d4d4;
+  --color-gray-400: #a3a3a3;
+  --color-gray-500: #737373;
+  --color-gray-600: #525252;
+  --color-gray-700: #404040;
+  --color-gray-800: #262626;
+  --color-gray-900: #171717;
+
+  /* Semantic Colors: Colors that have a specific meaning. */
+  --color-success-500: #10b981; /* For success states, "available" status. */
+  --color-success-600: #059669;
+  --color-warning-500: #f59e0b; /* For warnings, "checked-out" status. */
+  --color-warning-600: #d97706;
+  --color-danger-500: #ef4444; /* For errors and destructive actions. */
+  --color-danger-600: #dc2626;
+  --color-info-500: #3b82f6; /* For informational messages and highlights. */
+  --color-info-600: #2563eb;
+
+  /* =========================================================================
+     SPACING SCALE - A consistent scale for margins, padding, and gaps.
+     Using a mathematical scale (like 4px or 8px increments) creates visual harmony.
+     The 'rem' unit is relative to the root font size, making the UI scalable.
+     ========================================================================= */
+  --spacing-1: 0.25rem; /* 4px (assuming root font-size is 16px) */
+  --spacing-2: 0.5rem; /* 8px */
+  --spacing-3: 0.75rem; /* 12px */
+  --spacing-4: 1rem; /* 16px - our most common base unit. */
+  --spacing-6: 1.5rem; /* 24px */
+  --spacing-8: 2rem; /* 32px */
+
+  /* =========================================================================
+     TYPOGRAPHY SCALE - For a consistent and readable text hierarchy.
+     ========================================================================= */
+  /* Font Families */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif; /* Uses the native font of the user's OS for a familiar feel. */
+  --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas,
+    "Courier New", monospace; /* For code or other fixed-width text. */
+
+  /* Font Sizes - Using a modular scale makes the hierarchy look intentional and professional. */
+  --font-size-sm: 0.875rem; /* 14px - For small text like hints or metadata. */
+  --font-size-base: 1rem; /* 16px - The default body text size. */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px - For subheadings. */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem; /* 36px - For main headings. */
+
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line Heights - For optimal text readability. */
+  --line-height-tight: 1.25; /* For headings. */
+  --line-height-base: 1.5; /* For body text. */
+
+  /* =========================================================================
+     SEMANTIC TOKENS - LIGHT THEME (Default)
+     These tokens give our primitive tokens meaning. Instead of using a raw color
+     like '--color-gray-900', we'll use '--text-primary'. This abstraction
+     is what allows us to create themes easily.
+     ========================================================================= */
+  /* Backgrounds */
+  --bg-primary: #ffffff; /* The main page background. */
+  --bg-secondary: var(
+    --color-gray-50
+  ); /* A slightly off-white for subtle contrast. */
+  --bg-tertiary: var(--color-gray-100); /* Background for cards and sections. */
+
+  /* Text */
+  --text-primary: var(--color-gray-900); /* Main body text. High contrast. */
+  --text-secondary: var(
+    --color-gray-600
+  ); /* Lighter text for subtitles, metadata. */
+  --text-inverse: #ffffff; /* Text used on dark/colored backgrounds. */
+  --text-link: var(--color-primary-600); /* The color for hyperlinks. */
+
+  /* Borders */
+  --border-default: var(--color-gray-200); /* The default color for borders. */
+  --border-focus: var(--color-primary-500); /* The color for focused inputs. */
+
+  /* Statuses */
+  --status-success-bg: rgba(
+    16,
+    185,
+    129,
+    0.1
+  ); /* Background for the 'available' badge. */
+  --status-success-text: var(
+    --color-success-600
+  ); /* Text color for the 'available' badge. */
+  --status-warning-bg: rgba(
+    245,
+    158,
+    11,
+    0.1
+  ); /* Background for the 'checked-out' badge. */
+  --status-warning-text: var(
+    --color-warning-600
+  ); /* Text color for the 'checked-out' badge. */
+}

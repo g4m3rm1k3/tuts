@@ -1,0 +1,122 @@
+/**
+ * Component Styles
+ *
+ * This file contains styles for our reusable UI components, like the header,
+ * main layout, and the file list.
+ */
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+}
+
+header {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-500),
+    var(--color-primary-700)
+  );
+  color: var(--text-inverse);
+  padding: var(--spacing-6);
+  box-shadow: var(--shadow-md);
+}
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+  max-width: 1200px; /* To align with the main container */
+  margin: 0 auto;
+}
+.header-content h1 {
+  color: var(--text-inverse); /* Override the default h1 color */
+  font-size: var(--font-size-3xl);
+  margin-bottom: 0;
+}
+.header-content p {
+  color: var(--text-inverse);
+  opacity: 0.8;
+  margin-bottom: 0;
+}
+
+main {
+  padding: var(--spacing-8) 0;
+}
+
+footer {
+  text-align: center;
+  padding: var(--spacing-8);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  border-top: 1px solid var(--border-default);
+}
+
+section {
+  background: var(--bg-primary);
+  padding: var(--spacing-6);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-base);
+  border: 1px solid var(--border-default);
+  margin-bottom: var(--spacing-8);
+}
+
+#file-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.file-item {
+  padding: var(--spacing-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-base);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-secondary);
+  transition: all 150ms ease-in-out;
+}
+.file-item:hover {
+  border-color: var(--border-focus);
+  transform: translateX(5px);
+  box-shadow: var(--shadow-sm);
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+.file-name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.file-status {
+  padding: var(--spacing-1) var(--spacing-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.status-available {
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+.status-checked_out {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.loading {
+  text-align: center;
+  padding: var(--spacing-8);
+  color: var(--text-secondary);
+  font-style: italic;
+}

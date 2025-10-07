@@ -1,0 +1,66 @@
+/**
+ * Base Styles & CSS Reset
+ *
+ * This file normalizes browser styles and sets defaults for raw HTML elements
+ * using the design tokens we defined in tokens.css.
+ */
+
+/* A modern, targeted CSS reset to ensure cross-browser consistency. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box; /* This makes layout math predictable. width + padding + border = total width. */
+  margin: 0; /* Removes inconsistent default margins. */
+  padding: 0; /* Removes inconsistent default padding. */
+}
+
+/* Base styles for the entire page. */
+body {
+  font-family: var(--font-sans); /* Use our defined sans-serif font stack. */
+  font-size: var(--font-size-base); /* Set the default font size. */
+  line-height: var(
+    --line-height-base
+  ); /* Improve readability with a good line height. */
+  color: var(
+    --text-primary
+  ); /* Use our semantic token for primary text color. */
+  background-color: var(
+    --bg-primary
+  ); /* Use our semantic token for the main background. */
+}
+
+/* Default styles for headings. */
+h1 {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin-bottom: var(
+    --spacing-2
+  ); /* Consistent spacing below the main heading. */
+}
+
+h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin-bottom: var(--spacing-6); /* More space below section headings. */
+  color: var(--text-link); /* Use the link color for emphasis. */
+}
+
+/* Default style for paragraphs. */
+p {
+  margin-bottom: var(--spacing-4); /* Consistent spacing between paragraphs. */
+  color: var(
+    --text-secondary
+  ); /* Use the secondary text color for less emphasis. */
+}
+
+/* Default style for links. */
+a {
+  color: var(--text-link);
+  text-decoration: none; /* Remove the default underline. */
+  transition: color 150ms ease-in-out; /* Smooth color transition on hover. */
+}
+a:hover {
+  text-decoration: underline; /* Add underline back on hover for affordance. */
+}
