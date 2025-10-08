@@ -1,6 +1,23 @@
 site_name: My Docs
 docs_dir: "docs"
 nav:
+  - FULL:
+      - Gclass1: Gclass1.md
+      - Dclass1: Dclass1.md
+      - Gclass2: Gclass2.md
+      - Dclass2: Dclass2.md
+      - Gclass3: Gclass3.md
+      - Dclass3: Dclass3.md
+      - Gclass4: Gclass4.md
+      - Dclass4: Dclass4.md
+      - Gclass5: Gclass5.md
+      - Dclass5: Dclass5.md
+      - Gclass6: Gclass6.md
+      - Dclass6: Dclass6.md
+      - Gclass7: Gclass7.md
+      - Dclass7: Dclass7.md
+      - Gclass8: Gclass8.md
+      - Dclass8: Dclass8.md
   - MasterClass:
       - Masterclass0: Masterclass0.md
       - Masterclass1: Masterclass1.md
