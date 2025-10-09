@@ -8,11 +8,33 @@
 
 **How**: JS FormData (safe POST), backend bcrypt (hash), JWT (token). Gotcha: Tokens expire—validate on load.
 
-**Pre-Step**: Branch: `git checkout -b step-2-auth`. Add to header: `<button data-action="login">Login</button>`. Create simple modal in index.html: `<div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50"><div class="bg-white p-6 rounded"><input id="loginUsername" placeholder="Username" class="block w-full mb-2 p-2 border" /><input id="loginPassword" type="password" placeholder="Password" class="block w-full mb-2 p-2 border" /><button data-action="submitLogin">Submit</button></div></div>`.
+**Pre-Step**: Branch: `git checkout -b step-2-auth`. Add to header: `<button data-action="login">Login</button>`. Create simple modal in index.html:
+
+```html
+<div
+  id="loginModal"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50"
+>
+  <div class="bg-white p-6 rounded">
+    <input
+      id="loginUsername"
+      placeholder="Username"
+      class="block w-full mb-2 p-2 border"
+    />
+    <input
+      id="loginPassword"
+      type="password"
+      placeholder="Password"
+      class="block w-full mb-2 p-2 border"
+    />
+    <button data-action="submitLogin">Submit</button>
+  </div>
+</div>
+```
 
 ---
 
-### 2a: Client-Side State – Remembering the User (Persistence Basics)
+## 2a: Client-Side State – Remembering the User (Persistence Basics)
 
 **Question**: How do we "remember" login across refreshes? We need a spot for the token (login proof) and user name, without re-sending passwords.
 
@@ -155,7 +177,7 @@ def generate_token(username: str) -> str:
 **Try This (10s)**: Refresh → button? (No JS yet = no action.) Reflect: "Why data-action? Button rename = no JS change."
 
 **Micro-Topic 2: Modal Overlay for Form**  
-**Type This (add before </body> in index.html)**:
+**Type This (add before `</body>` in index.html)**:
 
 ```html
 <div

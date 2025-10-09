@@ -1,11 +1,3 @@
-# Redone Steps 1 & 2: Masterclass Style (Micro-Bites, Typed Learning)
-
-Absolutely—Step 3 nailed the sweet spot (question → snippet → explain → test → lens), so let's retro-fit Steps 1 & 2 the same way. This keeps the flow tight: **Question pose** (problem for curiosity), **1-3 line type** (muscle memory), **inline 3D** (what/why/how right after), **Try/Tweak** (10-20s hands-on), **inline Lens** (principle tie to code), **Mini-Summary** (1-line retain). Jargon? Plain (e.g., "dependencies = modules imported"). Density? One concept/micro. Visuals? Mermaid for flows.
-
-Pre: Same setup (folder, Git branch `git checkout -b step-1-redo`). Type each snippet—test immediate. Ready? Let's rewind and rebuild.
-
----
-
 # Step 1: UI Shell – From Blank Page to Clickable Prototype (Engineer Mindset: Design for Change – 1hr)
 
 **Big Picture Goal**: Build a responsive page with header, main content, and settings panel. No data yet—just structure + one interactive button (Refresh). By end, you'll understand **separation of concerns** (HTML = structure, JS = behavior) and **event delegation** (one listener for many buttons).
@@ -20,7 +12,7 @@ Pre: Same setup (folder, Git branch `git checkout -b step-1-redo`). Type each sn
 
 ---
 
-### 1a: The Blank Canvas – Semantic HTML Doctype & Head
+## 1a: The Blank Canvas – Semantic HTML Doctype & Head
 
 **Question**: How do we tell browsers "use modern standards" and set up basics (charset, mobile zoom)? Without, page breaks on old browsers.
 
@@ -58,7 +50,7 @@ Pre: Same setup (folder, Git branch `git checkout -b step-1-redo`). Type each sn
 
 ---
 
-### 1b: Body Structure – Header & Main Tags
+## 1b: Body Structure – Header & Main Tags
 
 **Question**: How do we stack header (nav) + main (content) full-height, without fixed pixels (breaks mobile)?
 
@@ -82,15 +74,15 @@ Pre: Same setup (folder, Git branch `git checkout -b step-1-redo`). Type each sn
 
 **Inline 3D Explain**:
 
-- **What**: <header> = block for logos/nav. <main> = unique content (one per page).
+- **What**: `<header>` = block for logos/nav. `<main>` = unique content (one per page).
 - **Why**: Semantic = readable (engineers scan: "Ah, header"). Screen readers announce ("Heading: Mastercam"). **Deep Dive**: ARIA role="main" = explicit for old tools. Resource: [MDN Semantic HTML](https://developer.mozilla.org/en-US/docs/Glossary/Semantics) – 3min, "Why semantic?"
-- **How**: No class = default styles. Gotcha: Multiple <main> = invalid (only one primary). **Alternative**: <div class="header"> = fast, but un-semantic (no announce).
+- **How**: No class = default styles. Gotcha: Multiple `<main>` = invalid (only one primary). **Alternative**: `<div class="header">` = fast, but un-semantic (no announce).
 
-**Try This (15s)**: Refresh → header above main? Add <footer>Test</footer> → stacks below? Tweak: Remove <header> tags → same look? (Yes—semantics invisible but useful). Reflect: "Why `<h1>`? Hierarchy—search engines rank it high."
+**Try This (15s)**: Refresh → header above main? Add `<footer>Test</footer>` → stacks below? Tweak: Remove `<header>` tags → same look? (Yes—semantics invisible but useful). Reflect: "Why `<h1>`? Hierarchy—search engines rank it high."
 
 **Inline Lens (Separation of Concerns Integration)**: HTML = "what" (structure). CSS = "how" (look). Violate? Inline style = tight coupling (change color = hunt HTML).
 
-**Mini-Summary**: Semantic tags = self-documenting structure. One <main> = focus.
+**Mini-Summary**: Semantic tags = self-documenting structure. One `<main>` = focus.
 
 ---
 
@@ -99,7 +91,7 @@ Pre: Same setup (folder, Git branch `git checkout -b step-1-redo`). Type each sn
 **Question**: How do we make it full-screen, stacked vertically, with scroll in main (header fixed)?
 
 **Micro-Topic 1: Tailwind CDN & Flex Classes**  
-**Type This (add to <head> + <body>)**:
+**Type This (add to `<head>` + `<body>`)**:
 
 ```html
 <head>

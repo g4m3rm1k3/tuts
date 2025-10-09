@@ -1,22 +1,3 @@
-### Thanks for the Sharp Feedback – Let's Level Up
-
-Appreciate the breakdown—it's like a code review from a peer who's _lived_ this stuff. You're nailing the "masterclass" essence: Not just "build it," but "build it _right_," with tweaks for real learners (density = overwhelm, jargon = barrier). I'll incorporate _all_ your suggestions:
-
-- **Micro-er Steps**: 1-3 lines/snippet, one concept/micro.
-- **Simplified Jargon**: Plain English (e.g., "dependencies = modules we import").
-- **Inline 3D**: Short, right after code.
-- **Optional Deep Dives**: Marked [Optional]—skip if time-tight.
-- **Granular Tests**: "Try This" = 10-20s, with reflection.
-- **Inline Lens**: Tie principles to code (no separate box).
-- **Mini-Summaries**: 1-line takeaway/end micro.
-- **Gotchas**: **Bold boxes**.
-- **Consistency**: "username/password" everywhere.
-- **Split Heavy**: Step 3 = 4 micros (state → backend → wiring → validate).
-
-This keeps repetition (principles inline) but bite-sized. Visuals: Mermaid diagram for flow (paste to mermaid.live). Let's roll Step 3—type as you go, test fast.
-
----
-
 # Step 3: Configuration – Loading & Saving Settings (User Preferences – 1hr)
 
 **Big Picture Goal**: Add a settings panel for GitLab URL/token. JS loads from /config, fills form; submit saves to /config/gitlab. Understand **data flow** (fetch → state → UI → save).
@@ -27,11 +8,21 @@ This keeps repetition (principles inline) but bite-sized. Visuals: Mermaid diagr
 
 **How**: Fetch GET /config, FormData POST save. Gotcha: Encrypt token backend-side (plain = leak risk).
 
-**Pre-Step**: Branch: `git checkout -b step-3-config`. Add to #configPanel: `<form id="configForm"><input id="gitlabUrl" placeholder="GitLab URL" /><input id="token" type="password" placeholder="Token" /><button data-action="saveConfig">Save</button></form>` (stub for test).
+**Pre-Step**: Branch: `git checkout -b step-3-config`. Add to #configPanel:
+
+```html
+<form id="configForm">
+  <input id="gitlabUrl" placeholder="GitLab URL" />
+  <input id="token" type="password" placeholder="Token" />
+  <button data-action="saveConfig">Save</button>
+</form>
+```
+
+(stub for test).
 
 ---
 
-### 3a: Client-Side Config State – Storing Preferences
+## 3a: Client-Side Config State – Storing Preferences
 
 **Question**: How do we keep GitLab URL/token in one place for easy access (e.g., fileManager uses it)?
 
@@ -84,7 +75,7 @@ export function setConfig(newConfig) {
 
 ---
 
-### 3b: Backend Config – Storing & Retrieving JSON
+## 3b: Backend Config – Storing & Retrieving JSON
 
 **Question**: How does the server store URL/token (persistent across restarts)? We need a simple JSON file + load/save.
 
@@ -269,7 +260,7 @@ async def update_config(gitlab_url: str = Form(...), token: str = Form(...)):
 - **Why**: Server validate = secure (client tamper-proof). **Deep Dive**: HTTPException = auto 400 JSON ({"detail": "msg"}). Resource: [FastAPI Validation](https://fastapi.tiangolo.com/tutorial/body-fields/) – 3min, "Form models."
 - **How**: startswith = string method. Gotcha: No check = bad data saved. **Alternative**: Pydantic model = auto-validate (type hints).
 
-**Try This (15s)**: Backend run. Postman POST /config/gitlab (body: gitlab_url=http://bad, token=ok) → 400 "URL must be https"? Good → 200? Tweak: Remove check → saves bad. Reflect: "Why server too? Client = fast, server = truth."
+**Try This (15s)**: Backend run. Postman POST /config/gitlab (body: I gitlab_url=http://bad, token=ok) → 400 "URL must be https"? Good → 200? Tweak: Remove check → saves bad. Reflect: "Why server too? Client = fast, server = truth."
 
 **Inline Lens (Validation Integration)**: Guard clauses = "fail fast" (early return on bad). Violate? Deep nesting = unreadable.
 
