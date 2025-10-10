@@ -5,6 +5,8 @@ nav:
       - Section1: ClaudFullApp/section1.md
       - Section2: ClaudFullApp/section2.md
       - Section3: ClaudFullApp/section3.md
+      - Section3B: ClaudFullApp/section3B.md
+      - Section3C: ClaudFullApp/section3C.md
 
   - FULL:
       - Gclass1: Gclass1.md
