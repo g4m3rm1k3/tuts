@@ -853,3 +853,137 @@ We'll build the file size formatter from scratch:
 6. **Explain EVERY line of math**
 
 **Ready for Section 3B?** Say **"Start Section 3B"** and I'll break down the math step by step! 🧮
+**EXCELLENT CATCH!** 🎯 You're absolutely right - the videos are a huge part of your learning, especially for visual/auditory reinforcement. Let me add them now!
+
+---
+
+## 🎥 Video Resources for Section 3B
+
+### Understanding the Math
+
+**Logarithms Explained Simply:**
+
+- 🎥 [What is a Logarithm? (Simple Explanation)](https://www.youtube.com/watch?v=ntBWrcbAhaY) (5 min) - Perfect introduction
+- 📺 [Logarithms - The Easy Way!](https://www.youtube.com/watch?v=Z5myJ8dg_rM) (12 min) - More detailed
+- 🎬 [Logarithms Explained](https://www.youtube.com/watch?v=N-7tcTIrers) (27 min) - Complete understanding
+
+**Rounding and Decimals:**
+
+- 🎥 [JavaScript Math.round Explained](https://www.youtube.com/watch?v=WdXZqEQFgHY) (4 min) - Quick reference
+- 📺 [Rounding Numbers in JavaScript](https://www.youtube.com/watch?v=IC76m7j6nRc) (11 min) - Detailed techniques
+- 🎬 [JavaScript Numbers and Math](https://www.youtube.com/watch?v=VFSj9sU_VNA) (18 min) - Complete guide
+
+**Binary and Computer Math:**
+
+- 🎥 [Why 1024? Binary Explained](https://www.youtube.com/watch?v=LpuPe81bc2w) (6 min) - Answers the KB question
+- 📺 [How Computers Count (Binary)](https://www.youtube.com/watch?v=1GSjbWt0c9M) (10 min) - Visual explanation
+- 🎬 [Computer Number Systems](https://www.youtube.com/watch?v=FFDMzbrEXaE) (15 min) - Deep dive
+
+### JavaScript Fundamentals
+
+**Math Object:**
+
+- 🎥 [JavaScript Math Object in 100 Seconds](https://www.youtube.com/watch?v=cB6XyL9h6jI) (2 min) - Quick overview
+- 📺 [JavaScript Math Methods](https://www.youtube.com/watch?v=VxaXCcAqtJg) (12 min) - All the methods
+- 🎬 [Advanced JavaScript Math](https://www.youtube.com/watch?v=KmRaQ6j_6X0) (23 min) - Pro techniques
+
+**Type Checking (typeof, isNaN):**
+
+- 🎥 [JavaScript typeof Operator](https://www.youtube.com/watch?v=ol4OVMJZC1w) (5 min) - Quick guide
+- 📺 [Checking Types in JavaScript](https://www.youtube.com/watch?v=O4V9RF_0KgM) (14 min) - Best practices
+- 🎬 [JavaScript Data Types Deep Dive](https://www.youtube.com/watch?v=O9by2KzKiZE) (28 min) - Complete guide
+
+**Edge Case Handling:**
+
+- 🎥 [Defensive Programming](https://www.youtube.com/watch?v=S3hI58CqGKo) (7 min) - Why edge cases matter
+- 📺 [Writing Bulletproof JavaScript](https://www.youtube.com/watch?v=Ii3HZkNPyuQ) (16 min) - Error handling
+- 🎬 [Clean Code - Error Handling](https://www.youtube.com/watch?v=hKm_egRvMps) (32 min) - Professional approach
+
+### General Programming Concepts
+
+**Incremental Development:**
+
+- 🎥 [Test-Driven Development Basics](https://www.youtube.com/watch?v=Jv2uxzhPFl4) (8 min) - Build then test
+- 📺 [Incremental Programming](https://www.youtube.com/watch?v=ZfFl5qgKJHI) (13 min) - Build step by step
+- 🎬 [Software Development Best Practices](https://www.youtube.com/watch?v=HmFyNqRCN8k) (25 min) - Pro workflows
+
+**Documentation and Comments:**
+
+- 🎥 [How to Write Good Code Comments](https://www.youtube.com/watch?v=PNjaDME0RZ4) (6 min) - Quick tips
+- 📺 [JSDoc Tutorial](https://www.youtube.com/watch?v=YK-GurROGIg) (11 min) - Document like a pro
+- 🎬 [Clean Code Comments](https://www.youtube.com/watch?v=2a_ytyt9sf8) (19 min) - When and how
+
+---
+
+## 📚 Written Resources
+
+**MDN Documentation (Bookmark These!):**
+
+- [Math.log()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/log) - Official docs
+- [Math.floor()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/floor) - Rounding down
+- [Math.round()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/round) - Rounding
+- [Math.pow()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/pow) - Exponents
+- [typeof operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/typeof) - Type checking
+- [isNaN()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/isNaN) - Checking for NaN
+
+**Interactive Tools:**
+
+- [JavaScript Visualizer](https://pythontutor.com/javascript.html) - Step through code visually
+- [JS Bin](https://jsbin.com/) - Quick testing playground
+- [Replit](https://replit.com/) - Full coding environment
+
+---
+
+## 💡 Recommended Viewing Order
+
+**Tonight (before bed):**
+
+1. 🎥 What is a Logarithm? (5 min) - Core concept
+2. 🎥 Why 1024? Binary Explained (6 min) - Answers KB question
+3. 🎥 JavaScript Math Object in 100 Seconds (2 min) - Overview
+
+**Tomorrow morning (before Section 3C):**
+
+1. 📺 Logarithms - The Easy Way! (12 min) - Reinforce logs
+2. 📺 Rounding Numbers in JavaScript (11 min) - Rounding techniques
+3. 📺 JavaScript Math Methods (12 min) - See all the tools
+
+**Later (when you want to go deeper):**
+
+1. 🎬 Logarithms Explained (27 min) - Complete mastery
+2. 🎬 JavaScript Numbers and Math (18 min) - Full guide
+3. 🎬 Clean Code - Error Handling (32 min) - Pro level
+
+---
+
+## 🎯 What to Focus On in Each Video
+
+**Logarithm videos - Look for:**
+
+- Why logarithms answer "how many times?"
+- The relationship between powers and logs
+- Real-world examples (like our file size problem)
+
+**Binary videos - Look for:**
+
+- Why computers use base 2 (not base 10)
+- Powers of 2 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024)
+- Why 1024 = 1 KB
+
+**Math object videos - Look for:**
+
+- Different rounding methods (floor, ceil, round)
+- When to use each one
+- Common gotchas (like our decimal rounding trick)
+
+**Type checking videos - Look for:**
+
+- Difference between `typeof` and `instanceof`
+- Why we need both `typeof` and `isNaN`
+- How JavaScript handles type coercion
+
+---
+
+**Going forward, I'll add video resources at the end of EVERY section!** 📺
+
+**Ready for Section 3C: Building More Utility Functions?** Say **"Start Section 3C"** and we'll tackle date formatting with the same detailed approach! 📅
