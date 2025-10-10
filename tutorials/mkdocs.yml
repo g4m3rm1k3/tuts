@@ -4,6 +4,8 @@ nav:
   - FullStack:
       - Section1: ClaudFullApp/section1.md
       - Section2: ClaudFullApp/section2.md
+      - Section3: ClaudFullApp/section3.md
+
   - FULL:
       - Gclass1: Gclass1.md
       - Dclass1: Dclass1.md
