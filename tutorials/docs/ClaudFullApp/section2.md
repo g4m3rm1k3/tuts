@@ -2312,3 +2312,446 @@ When you're ready, we'll cover:
 - **Template literals** (better strings)
 
 **Ready to continue?** Just say "Continue" and we'll keep going! 🚀
+
+**PERFECT!** 🎯 You're absolutely right. The console is tricky because you need to be in an async context to see results properly. Let's power through the rest of Section 2 quickly, and then **Section 3 is where we START BUILDING** and everything will click!
+
+---
+
+## Part 5: Modules (Quick Overview - 10 minutes)
+
+You saw this in Section 1. Here's the TLDR:
+
+### Import/Export Basics
+
+**File: utils.js**
+
+```javascript
+export function formatDate(date) {
+  return date.toLocaleDateString();
+}
+
+export function formatFileSize(bytes) {
+  return `${(bytes / 1024).toFixed(2)} KB`;
+}
+```
+
+**File: main.js**
+
+```javascript
+import { formatDate, formatFileSize } from "./utils.js";
+
+console.log(formatDate(new Date())); // "10/10/2025"
+console.log(formatFileSize(2048)); // "2.00 KB"
+```
+
+**That's it!** We'll use this heavily when building the app.
+
+**🎥 Quick Reference:** [ES6 Modules in 7 minutes](https://www.youtube.com/watch?v=cRHQNNcYf6s)
+
+---
+
+## Part 6: Array Methods (15 minutes - Important!)
+
+**These are CRITICAL for your app.** Your file list is an array, and you'll transform it constantly.
+
+### The Data
+
+```javascript
+const files = [
+  { name: "part1.mcam", size: 2048, locked: false, user: null },
+  { name: "part2.mcam", size: 4096, locked: true, user: "john" },
+  { name: "part3.mcam", size: 1024, locked: false, user: null },
+  { name: "part4.mcam", size: 8192, locked: true, user: "mike" },
+];
+```
+
+---
+
+### 1. `.filter()` - Keep items that match
+
+**Get all unlocked files:**
+
+```javascript
+const unlocked = files.filter((file) => !file.locked);
+// Result: [part1, part3]
+```
+
+**How it works:**
+
+```javascript
+// JavaScript loops through each file
+// Calls your function with each one
+// If function returns TRUE, keep it
+// If function returns FALSE, skip it
+
+files.filter((file) => !file.locked);
+//             ↑          ↑
+//           name it    return true/false
+```
+
+**More examples:**
+
+```javascript
+// Files larger than 2KB
+const large = files.filter((file) => file.size > 2048);
+
+// Files locked by john
+const johnsFiles = files.filter((file) => file.user === "john");
+```
+
+---
+
+### 2. `.map()` - Transform each item
+
+**Get just the filenames:**
+
+```javascript
+const names = files.map((file) => file.name);
+// Result: ['part1.mcam', 'part2.mcam', 'part3.mcam', 'part4.mcam']
+```
+
+**How it works:**
+
+```javascript
+// JavaScript loops through each file
+// Calls your function with each one
+// Whatever you RETURN becomes the new value
+// Returns NEW array with transformed values
+
+files.map((file) => file.name);
+//        ↑           ↑
+//      name it    return something
+```
+
+**More examples:**
+
+```javascript
+// Convert sizes to KB
+const sizesInKB = files.map((file) => file.size / 1024);
+// [2, 4, 1, 8]
+
+// Create display labels
+const labels = files.map((file) => `${file.name} (${file.size} bytes)`);
+// ['part1.mcam (2048 bytes)', ...]
+```
+
+---
+
+### 3. `.reduce()` - Combine into single value
+
+**Get total size of all files:**
+
+```javascript
+const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+//                               ↑     ↑              ↑        ↑
+//                           accumulator current    formula  starting value
+// Result: 15360
+```
+
+**How it works step by step:**
+
+```javascript
+Step 1: sum = 0 (starting value), file = part1
+        return 0 + 2048 = 2048
+
+Step 2: sum = 2048, file = part2
+        return 2048 + 4096 = 6144
+
+Step 3: sum = 6144, file = part3
+        return 6144 + 1024 = 7168
+
+Step 4: sum = 7168, file = part4
+        return 7168 + 8192 = 15360
+
+Final: 15360
+```
+
+**More examples:**
+
+```javascript
+// Count locked files
+const lockedCount = files.reduce((count, file) => {
+  return file.locked ? count + 1 : count;
+}, 0);
+// Result: 2
+
+// Build object with filenames as keys
+const fileMap = files.reduce((obj, file) => {
+  obj[file.name] = file;
+  return obj;
+}, {});
+// Result: { 'part1.mcam': {...}, 'part2.mcam': {...}, ... }
+```
+
+---
+
+### 4. Chaining Methods (The Power!)
+
+**Get names of unlocked files, sorted:**
+
+```javascript
+const unlockedNames = files
+  .filter((file) => !file.locked) // Keep unlocked
+  .map((file) => file.name) // Get names
+  .sort(); // Sort alphabetically
+
+// Result: ['part1.mcam', 'part3.mcam']
+```
+
+**Visual flow:**
+
+```javascript
+files = [part1, part2, part3, part4]
+  ↓ .filter(unlocked)
+[part1, part3]
+  ↓ .map(get name)
+['part1.mcam', 'part3.mcam']
+  ↓ .sort()
+['part1.mcam', 'part3.mcam']
+```
+
+**More complex example:**
+
+```javascript
+// Get total size of files locked by john
+const johnsTotalSize = files
+  .filter((file) => file.user === "john")
+  .reduce((sum, file) => sum + file.size, 0);
+```
+
+---
+
+### Quick Reference Card
+
+```javascript
+// FILTER: Keep items that match
+array.filter((item) => condition);
+
+// MAP: Transform each item
+array.map((item) => newValue);
+
+// REDUCE: Combine into single value
+array.reduce((accumulator, item) => newAccumulator, startValue);
+
+// FIND: Get first match
+array.find((item) => condition);
+
+// SOME: Check if ANY match
+array.some((item) => condition);
+
+// EVERY: Check if ALL match
+array.every((item) => condition);
+
+// SORT: Arrange in order
+array.sort((a, b) => a - b);
+```
+
+**🎥 Quick Reference:** [Array Methods in 10 minutes](https://www.youtube.com/watch?v=R8rmfD9Y5-c)
+
+---
+
+## Part 7: Destructuring & Spread (5 minutes)
+
+### Destructuring - Unpacking values
+
+**Objects:**
+
+```javascript
+const file = { name: "part1.mcam", size: 2048, locked: false };
+
+// Old way:
+const name = file.name;
+const size = file.size;
+
+// New way (destructuring):
+const { name, size } = file;
+// name = 'part1.mcam'
+// size = 2048
+```
+
+**Arrays:**
+
+```javascript
+const colors = ["red", "green", "blue"];
+
+const [first, second] = colors;
+// first = 'red'
+// second = 'green'
+```
+
+**You'll see this in function parameters:**
+
+```javascript
+function displayFile({ name, size }) {
+  console.log(`${name} is ${size} bytes`);
+}
+
+displayFile(file); // part1.mcam is 2048 bytes
+```
+
+---
+
+### Spread Operator - Copying/Combining
+
+**Copy array:**
+
+```javascript
+const original = [1, 2, 3];
+const copy = [...original]; // [1, 2, 3]
+```
+
+**Combine arrays:**
+
+```javascript
+const arr1 = [1, 2];
+const arr2 = [3, 4];
+const combined = [...arr1, ...arr2]; // [1, 2, 3, 4]
+```
+
+**Copy object:**
+
+```javascript
+const file = { name: "part1.mcam", size: 2048 };
+const copy = { ...file };
+```
+
+**Update object (immutably):**
+
+```javascript
+const file = { name: "part1.mcam", locked: false };
+const lockedFile = { ...file, locked: true };
+// lockedFile = { name: 'part1.mcam', locked: true }
+// original 'file' unchanged
+```
+
+**This is HUGE for state management in your app!**
+
+---
+
+## Part 8: Template Literals (5 minutes)
+
+**Old way:**
+
+```javascript
+const name = "part1.mcam";
+const size = 2048;
+const message = "File " + name + " is " + size + " bytes";
+```
+
+**New way:**
+
+```javascript
+const message = `File ${name} is ${size} bytes`;
+```
+
+**Multi-line:**
+
+```javascript
+const html = `
+  <div class="file">
+    <h3>${name}</h3>
+    <p>${size} bytes</p>
+  </div>
+`;
+```
+
+**With expressions:**
+
+```javascript
+const label = `${name} (${(size / 1024).toFixed(2)} KB)`;
+```
+
+**You'll use this for building HTML in your app!**
+
+---
+
+## Section 2 Complete! 🎉
+
+### What You Learned
+
+✅ **Variables** - let/const (never var)  
+✅ **Arrow Functions** - shorter syntax, inherits `this`  
+✅ **Promises** - handling async operations  
+✅ **Async/Await** - making async code readable  
+✅ **Modules** - organizing code into files  
+✅ **Array Methods** - transforming data (filter/map/reduce)  
+✅ **Destructuring** - unpacking values  
+✅ **Spread** - copying/combining  
+✅ **Template Literals** - better strings
+
+---
+
+## Your Gut Feeling is RIGHT
+
+You said:
+
+> "I think building the app and explaining will give me the ah-ha moment"
+
+**You're 100% correct.** These concepts make sense in isolation, but you need to see them WORKING TOGETHER in real code.
+
+**In Section 3, we START BUILDING.** You'll see:
+
+- How async/await is used in button click handlers
+- How array methods transform your file list
+- How modules organize your code
+- How template literals build your UI
+- How it all connects
+
+**And I'll explain EVERY LINE as we build.**
+
+---
+
+## Checkpoint Questions (Quick!)
+
+1. What's the difference between `let` and `const`?
+2. When do you use arrow functions vs regular functions?
+3. What does `await` do?
+4. What does `.map()` return?
+5. How do you create a copy of an object?
+
+<details>
+<summary>Answers</summary>
+
+1. `let` = can reassign, `const` = cannot reassign (but can mutate objects)
+2. Arrow for callbacks/arrays (inherits `this`), regular for object methods (needs own `this`)
+3. Pauses execution until Promise resolves, returns the resolved value
+4. New array with transformed values
+5. `const copy = { ...original }`
+
+</details>
+
+---
+
+## What's Next: Section 3 Preview
+
+**Section 3: Project Setup & First Build**
+
+**What we'll do:**
+
+- Set up the actual project structure
+- Create your first module (utils.js)
+- Build a file card component
+- Make an API call
+- Display real data
+- **See everything you learned WORKING**
+
+**Time:** 1.5 hours  
+**Difficulty:** Hands-on (finally!)  
+**Approach:** Build, explain, understand
+
+---
+
+**Ready for Section 3?** Say **"Start Section 3"** and we'll set up your project and start building the real app! 🚀
+
+This is where it gets FUN because you'll see:
+
+```javascript
+async function loadFiles() {
+  const files = await fetchFiles(); // async/await ✅
+  const unlocked = files.filter((f) => !f.locked); // array methods ✅
+  const html = unlocked.map((f) => `<div>${f.name}</div>`); // template literals ✅
+  // IT ALL WORKS TOGETHER!
+}
+```
+
+**Let's build!** 💪
