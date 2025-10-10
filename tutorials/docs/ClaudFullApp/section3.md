@@ -1,137 +1,663 @@
-# Section 3: Project Setup & Building Your First Feature
+**PERFECT!** 🎯 Let's start completely fresh with the proper pace and detail level.
 
-**Goal for This Section:** Set up the actual project structure and build your first working feature - a file list that fetches data and displays it. You'll see ALL the Section 2 concepts working together in real code.
+I totally understand the "darts blindfolded" CSS approach - you're guessing at class combinations and adding `!important` when things don't work. **We're going to fix that.**
 
-**Time:** 1.5 hours
+---
 
-**What You'll Build:**
+# Section 3A: Project Setup with Tailwind (Proper Way)
 
-- Complete project structure (folders, files)
-- API module (handles all backend calls)
-- Utils module (helper functions)
-- File list component (displays files)
-- **A working feature you can see in the browser!**
+**Goal:** Set up the project with npm, install Tailwind properly, create a Mastercam color theme, and understand exactly how the styling system works.
+
+**Time:** 30-40 minutes
 
 **What You'll Learn:**
 
-- How to structure a real project
-- Where different code belongs (and why)
-- How modules work together
-- How async/await fits into user interactions
-- Common pitfalls and how to avoid them
-
-**Prerequisites:**
-
-- Completed Section 2 (or comfortable with modern JS)
-- Text editor (VS Code recommended)
-- Modern browser
-- Basic terminal/command line knowledge
+- How npm manages dependencies (no magic CDN links)
+- How Tailwind's build process works
+- How to create custom color themes
+- How CSS specificity works (why you need !important and how to avoid it)
+- How to organize styles so they're maintainable
 
 ---
 
-## Part 1: Project Structure Setup (15 minutes)
+## Part 1: Understanding the Setup (5 minutes)
 
-### Creating the Folder Structure
+### What We're Building
 
-**Open your terminal and create this structure:**
+**Current approach (from your existing app):**
+
+```html
+<script src="https://cdn.tailwindcss.com"></script>
+```
+
+**Problems with CDN:**
+
+- ❌ Can't customize colors easily
+- ❌ Needs internet
+- ❌ Limited configuration
+- ❌ Large file size (includes everything)
+- ❌ Can't use Tailwind's advanced features
+
+**New approach (npm + build process):**
+
+```
+Your Code → Tailwind Build → Optimized CSS
+```
+
+**Benefits:**
+
+- ✅ Custom Mastercam colors
+- ✅ Works offline
+- ✅ Only includes classes you use (small file)
+- ✅ Full configuration control
+- ✅ Can extend with custom utilities
+
+---
+
+## Part 2: Project Structure Setup (10 minutes)
+
+### Step 1: Navigate to Your Project
+
+**Open your terminal and go to where you want the project:**
 
 ```bash
-mkdir mastercam-pdm
-cd mastercam-pdm
-
-# Create folders
-mkdir frontend
-mkdir frontend/js
-mkdir frontend/js/components
-mkdir frontend/js/utils
-mkdir frontend/css
-mkdir backend
-
-# Create files
-touch frontend/index.html
-touch frontend/js/main.js
-touch frontend/js/api.js
-touch frontend/js/utils/formatting.js
-touch frontend/js/utils/validation.js
-touch frontend/js/components/FileCard.js
-touch frontend/css/styles.css
+cd Desktop  # Or wherever you want it
+mkdir mastercam-pdm-rebuild
+cd mastercam-pdm-rebuild
 ```
 
-**Your structure should look like:**
+**What this does:**
 
-```
-mastercam-pdm/
-├── frontend/
-│   ├── index.html
-│   ├── css/
-│   │   └── styles.css
-│   └── js/
-│       ├── main.js           (entry point - wires everything)
-│       ├── api.js            (all backend communication)
-│       ├── components/
-│       │   └── FileCard.js   (file display component)
-│       └── utils/
-│           ├── formatting.js (date/size formatting)
-│           └── validation.js (file name validation)
-└── backend/
-    └── (we'll build this later)
-```
+- `mkdir` = make directory (creates folder)
+- `cd` = change directory (moves into folder)
 
 ---
 
-### Why This Structure?
+### Step 2: Initialize npm
 
-**Let me explain each piece:**
+**Run this command:**
 
-**`frontend/` - All user-facing code**
+```bash
+npm init -y
+```
 
-- Everything the browser loads
-- HTML, CSS, JavaScript
+**What you'll see:**
 
-**`js/main.js` - Entry point**
+```
+Wrote to /path/to/mastercam-pdm-rebuild/package.json:
 
-- Like `index.js` in React
-- Initializes the app
-- Wires everything together
-- Loads other modules
+{
+  "name": "mastercam-pdm-rebuild",
+  "version": "1.0.0",
+  "description": "",
+  ...
+}
+```
 
-**`js/api.js` - API layer**
+**What this does:**
 
-- ALL backend communication goes here
-- Separates network logic from UI logic
-- Easy to mock for testing
-- Single place to change API endpoints
+- Creates `package.json` file
+- This file tracks all your project dependencies
+- `-y` = "yes to all defaults" (skip the questions)
 
-**Why separate?** If you change backend, you only edit `api.js`, not 50 different files.
+**What's a dependency?**
+Think of it like a parts list for a machine:
 
-**`js/components/` - UI components**
-
-- Reusable pieces of UI
-- Each file = one component
-- Like React components, but vanilla JS
-
-**`js/utils/` - Helper functions**
-
-- Pure functions (no side effects)
-- Used across the app
-- Easy to test
-- Examples: formatting, validation, calculations
+- Your project needs Tailwind CSS
+- Tailwind might need other libraries
+- npm tracks all of this
 
 **Manufacturing analogy:**
 
-```
-Shop Floor (frontend)
-├── Main Assembly Station (main.js)
-├── Supplier Interface (api.js)
-├── Workstations (components/)
-└── Tool Crib (utils/)
-```
+- `package.json` = Bill of Materials (BOM)
+- Lists all parts (libraries) needed
+- Tracks versions (revision numbers)
 
 ---
 
-## Part 2: Building the HTML Foundation (10 minutes)
+### Step 3: Install Tailwind and Dependencies
 
-**Open `frontend/index.html` and create this:**
+**Run these commands one at a time:**
+
+```bash
+npm install -D tailwindcss
+npm install -D postcss
+npm install -D autoprefixer
+```
+
+**What each one does:**
+
+**1. tailwindcss**
+
+- The actual Tailwind CSS library
+- Provides all the utility classes
+
+**2. postcss**
+
+- Processes CSS files
+- Transforms your code
+- Like a CNC controller for CSS
+
+**3. autoprefixer**
+
+- Adds browser-specific prefixes
+- Makes CSS work in all browsers
+- Example: `-webkit-transform` for Safari
+
+**What's `-D`?**
+
+- Means "development dependency"
+- Only needed while building
+- Won't be included in final app
+
+**What you'll see:**
+
+```
+added 100 packages, and audited 101 packages in 5s
+```
+
+**Where did it install?**
+Look at your folder - you'll see:
+
+- `node_modules/` folder (contains all the code)
+- `package-lock.json` (exact versions installed)
+
+**Don't commit `node_modules/` to git!** (We'll set up .gitignore later)
+
+---
+
+### Step 4: Create Folder Structure
+
+**Run these commands:**
+
+```bash
+mkdir -p src/css
+mkdir -p src/js
+mkdir -p public
+touch src/css/input.css
+touch src/index.html
+```
+
+**What `-p` does:**
+
+- Creates parent folders if needed
+- `mkdir -p src/css` creates both `src` and `src/css`
+
+**What `touch` does:**
+
+- Creates an empty file
+- Like "New File" in Windows Explorer
+
+**Your structure now:**
+
+```
+mastercam-pdm-rebuild/
+├── node_modules/          (installed packages)
+├── package.json           (project config)
+├── package-lock.json      (exact versions)
+├── src/                   (your source code)
+│   ├── css/
+│   │   └── input.css      (Tailwind source)
+│   ├── js/
+│   └── index.html         (main HTML)
+└── public/                (built files - browser loads these)
+```
+
+**Why separate src/ and public/?**
+
+**src/** = Your code (what you edit)
+
+- Raw HTML with Tailwind classes
+- Needs to be processed
+
+**public/** = Built code (what browser loads)
+
+- Processed CSS (optimized)
+- Copied HTML
+- Ready for production
+
+**Manufacturing analogy:**
+
+- src/ = Raw materials and blueprints
+- public/ = Finished parts ready to ship
+
+---
+
+## Part 3: Initialize Tailwind Configuration (10 minutes)
+
+### Step 5: Create Tailwind Config
+
+**Run this command:**
+
+```bash
+npx tailwindcss init
+```
+
+**What's `npx`?**
+
+- Runs packages without installing globally
+- Like borrowing a tool instead of buying it
+
+**What you'll see:**
+
+```
+Created Tailwind CSS config file: tailwind.config.js
+```
+
+**This creates a file. Open it - it looks like:**
+
+```javascript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+```
+
+**What each part means:**
+
+**1. content: []**
+
+- Tells Tailwind WHERE to look for classes
+- Scans your HTML/JS files
+- Only includes classes you actually use
+
+**2. theme: { extend: {} }**
+
+- Where you add custom colors, fonts, spacing
+- `extend` means "add to defaults, don't replace"
+
+**3. plugins: []**
+
+- Extra Tailwind features
+- We won't use any for now
+
+---
+
+### Step 6: Configure Content Paths
+
+**Replace the `content: []` line with this:**
+
+```javascript
+module.exports = {
+  content: ["./src/**/*.{html,js}", "./public/**/*.html"],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+```
+
+**What `"./src/**/\*.{html,js}"` means:\*\*
+
+Let me break it down piece by piece:
+
+**`./src/`** = Start in the src folder
+
+- `.` = current directory
+- `./src/` = src folder in current directory
+
+**`**`\*\* = All subfolders (recursive)
+
+- `*` = any folder name
+- `**` = any level of nesting
+- So it looks in `src/`, `src/js/`, `src/js/utils/`, etc.
+
+**`*.{html,js}`** = Any .html or .js file
+
+- `*` = any filename
+- `{html,js}` = either .html OR .js extension
+
+**Full meaning:**
+"Look in src folder and ALL its subfolders, find ANY file ending in .html or .js"
+
+**Why do we need this?**
+Tailwind scans these files for class names like:
+
+```html
+<div class="bg-blue-500"></div>
+```
+
+It sees `bg-blue-500` is used, so includes it in the final CSS.
+
+If a class isn't used anywhere, it's NOT included → smaller file!
+
+**Manufacturing analogy:**
+
+- Like doing an inventory before ordering parts
+- Only stock what you actually use
+- Don't fill warehouse with unused items
+
+---
+
+## Part 4: Create Mastercam Color Theme (15 minutes)
+
+### Step 7: Understanding Mastercam Colors
+
+**Mastercam's typical color scheme:**
+
+**Dark Mode (Primary):**
+
+- Background: Dark navy/slate
+- Panels: Slightly lighter slate
+- Text: White/light gray
+- Accents: Teal/cyan (Mastercam's signature color)
+- Success: Green
+- Danger: Red/orange
+
+**Light Mode (Secondary):**
+
+- Background: Very light gray
+- Panels: White
+- Text: Dark gray/black
+- Accents: Teal/cyan (same as dark)
+
+**Let me research Mastercam's exact colors...**
+
+Based on Mastercam's branding:
+
+- **Teal/Cyan accent:** `#00A3E0` (Mastercam blue)
+- **Dark backgrounds:** `#1a1d29` to `#2d3142`
+- **Success green:** `#00C48C`
+- **Warning orange:** `#FF6B35`
+
+---
+
+### Step 8: Add Custom Colors to Config
+
+**Open `tailwind.config.js` and replace it with this:**
+
+```javascript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./src/**/*.{html,js}", "./public/**/*.html"],
+  theme: {
+    extend: {
+      colors: {
+        // Mastercam Brand Colors
+        mastercam: {
+          // Main accent color (Mastercam cyan/teal)
+          50: "#e6f7ff", // Lightest - for hover states
+          100: "#b3e5ff",
+          200: "#80d4ff",
+          300: "#4dc2ff",
+          400: "#1ab1ff",
+          500: "#00A3E0", // Main Mastercam blue
+          600: "#0082b3",
+          700: "#006286",
+          800: "#00415a",
+          900: "#00202d", // Darkest - for backgrounds
+        },
+
+        // Dark theme background colors
+        dark: {
+          900: "#0f1117", // Darkest background
+          800: "#1a1d29", // Main background
+          700: "#2d3142", // Elevated panels
+          600: "#3e4357", // Hover states
+          500: "#4f5469", // Borders
+        },
+
+        // Light theme colors
+        light: {
+          50: "#ffffff", // Pure white
+          100: "#f7f8fa", // Main background
+          200: "#e8eaed", // Panels
+          300: "#d1d5db", // Borders
+        },
+
+        // Status colors
+        success: "#00C48C",
+        warning: "#FF6B35",
+        danger: "#EF4444",
+      },
+    },
+  },
+  plugins: [],
+};
+```
+
+**Let me explain each color set:**
+
+---
+
+### Understanding the Color Scale (50-900)
+
+**Why numbers instead of names?**
+
+Tailwind uses a numeric scale where:
+
+- **50** = Lightest (almost white)
+- **500** = Medium (the "main" color)
+- **900** = Darkest (almost black)
+
+**Visual scale for `mastercam` color:**
+
+```
+50  ███░░░░░░░  10% intensity (barely visible)
+100 ████░░░░░░  20%
+200 █████░░░░░  30%
+300 ██████░░░░  40%
+400 ███████░░░  50%
+500 ████████░░  60% ← Main color (Mastercam blue)
+600 █████████░  70%
+700 ██████████  80%
+800 ██████████  90%
+900 ██████████  100% (darkest)
+```
+
+**How you'll use these:**
+
+```html
+<!-- Light hover state -->
+<button class="bg-mastercam-500 hover:bg-mastercam-400">Hover me</button>
+
+<!-- Background → slightly lighter on hover -->
+```
+
+**Why this matters:**
+With a proper scale, colors RELATE to each other:
+
+- ✅ `mastercam-400` to `mastercam-500` = subtle change
+- ✅ All shades work together
+- ❌ Random colors = jarring transitions
+
+---
+
+### Understanding the Dark Theme Colors
+
+```javascript
+dark: {
+  900: '#0f1117',  // Darkest background
+  800: '#1a1d29',  // Main background
+  700: '#2d3142',  // Elevated panels
+  600: '#3e4357',  // Hover states
+  500: '#4f5469',  // Borders
+},
+```
+
+**How these work together:**
+
+**900 = Page background** (darkest)
+
+```html
+<body class="bg-dark-900"></body>
+```
+
+Think: The machine shop floor (dark foundation)
+
+**800 = Main panels** (slightly lighter)
+
+```html
+<div class="bg-dark-800">
+  <!-- File cards, modals -->
+</div>
+```
+
+Think: The machine enclosure (stands out from floor)
+
+**700 = Elevated elements** (lighter still)
+
+```html
+<div class="bg-dark-700">
+  <!-- Headers, active items -->
+</div>
+```
+
+Think: Control panel (most visible)
+
+**600 = Hover states**
+
+```html
+<button class="bg-dark-700 hover:bg-dark-600"></button>
+```
+
+Think: Visual feedback when touching controls
+
+**500 = Borders**
+
+```html
+<div class="border border-dark-500"></div>
+```
+
+Think: Subtle lines separating areas
+
+**Visual hierarchy:**
+
+```
+┌─────────────────────────────────┐  ← dark-500 (border)
+│  bg-dark-700 (elevated panel)   │
+│  ┌──────────────────────────┐   │
+│  │  bg-dark-800 (card)      │   │  ← All on dark-900 page
+│  │                          │   │
+│  └──────────────────────────┘   │
+└─────────────────────────────────┘
+```
+
+Each level is SLIGHTLY lighter → creates depth!
+
+---
+
+### Understanding Status Colors
+
+```javascript
+success: '#00C48C',  // Green
+warning: '#FF6B35',  // Orange
+danger: '#EF4444',   // Red
+```
+
+**These don't need scales because:**
+
+- Used for specific states only
+- Not used for backgrounds/borders
+- Just need ONE shade each
+
+**How you'll use them:**
+
+```html
+<!-- File available -->
+<span class="bg-green-900 text-success"> Available </span>
+
+<!-- File locked (danger) -->
+<span class="bg-red-900 text-danger"> Locked </span>
+```
+
+**Notice the pattern:**
+
+- Background: dark version of color (`bg-green-900`)
+- Text: bright version (`text-success`)
+- Creates READABLE badges
+
+---
+
+### Step 9: Save and Test the Config
+
+**Save `tailwind.config.js`**
+
+**Let's test that it works. Open `src/css/input.css` and add:**
+
+```css
+/* This imports Tailwind's base styles, components, and utilities */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+**What these directives do:**
+
+**@tailwind base;**
+
+- Resets browser defaults
+- Normalizes styles across browsers
+- Example: All browsers have different default margins - this fixes that
+
+**@tailwind components;**
+
+- Pre-built component classes
+- Things like `.btn`, `.card` (we won't use these much)
+
+**@tailwind utilities;**
+
+- All the utility classes like `bg-blue-500`, `p-4`, etc.
+- This is the main Tailwind magic
+
+---
+
+### Step 10: Build Tailwind CSS
+
+**Run this command:**
+
+```bash
+npx tailwindcss -i ./src/css/input.css -o ./public/output.css --watch
+```
+
+**What this command does (piece by piece):**
+
+**`npx tailwindcss`** = Run the Tailwind CLI tool
+
+**`-i ./src/css/input.css`** = Input file
+
+- Read from `src/css/input.css`
+- This has the `@tailwind` directives
+
+**`-o ./public/output.css`** = Output file
+
+- Write processed CSS to `public/output.css`
+- This is what your HTML will link to
+
+**`--watch`** = Watch mode
+
+- Keeps running
+- Watches for changes
+- Rebuilds automatically when you edit files
+
+**What you'll see:**
+
+```
+Rebuilding...
+Done in 123ms.
+```
+
+**Check your `public/` folder - you should now see `output.css`!**
+
+**Don't stop this command!** Keep it running. Open a NEW terminal window for other commands.
+
+**Manufacturing analogy:**
+
+- This is like a CNC machine running continuously
+- Watches for new drawings (your HTML changes)
+- Automatically produces parts (updated CSS)
+
+---
+
+## Part 5: Create Your First HTML File (10 minutes)
+
+### Step 11: Build the HTML Structure
+
+**Open `src/index.html` and type this:**
 
 ```html
 <!DOCTYPE html>
@@ -141,1202 +667,189 @@ Shop Floor (frontend)
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mastercam PDM</title>
 
-    <!-- Tailwind CSS (for styling - same as your current app) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Font Awesome (for icons) -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <!-- Link to our built CSS -->
+    <link rel="stylesheet" href="../public/output.css" />
   </head>
-  <body class="bg-gray-900 text-white min-h-screen">
+  <body class="min-h-screen bg-dark-900 text-white">
     <!-- Header -->
-    <header class="bg-gray-800 border-b border-gray-700 p-4">
-      <div class="container mx-auto">
-        <h1 class="text-2xl font-bold">Mastercam PDM System</h1>
-      </div>
+    <header class="bg-dark-800 border-b border-dark-500 p-4">
+      <h1 class="text-2xl font-bold text-mastercam-500">Mastercam PDM</h1>
     </header>
 
     <!-- Main Content -->
-    <main class="container mx-auto p-4">
-      <!-- Loading State -->
-      <div id="loading" class="text-center py-8">
-        <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
-        <p class="mt-2 text-gray-400">Loading files...</p>
-      </div>
-
-      <!-- Error State -->
-      <div
-        id="error"
-        class="hidden bg-red-900 border border-red-700 rounded p-4 mb-4"
-      >
-        <i class="fas fa-exclamation-triangle"></i>
-        <span id="error-message"></span>
-      </div>
-
-      <!-- File List Container -->
-      <div id="file-list" class="hidden">
-        <!-- Files will be inserted here by JavaScript -->
-      </div>
+    <main class="container mx-auto p-6">
+      <h2 class="text-xl font-semibold mb-4">Welcome</h2>
+      <p class="text-gray-400">Your project is set up correctly!</p>
     </main>
-
-    <!-- JavaScript - type="module" enables imports! -->
-    <script type="module" src="js/main.js"></script>
   </body>
 </html>
 ```
 
-**Key points to understand:**
+**Save the file.**
 
-### 1. Three States (Pattern You'll Use Everywhere)
+---
+
+### Step 12: View in Browser
+
+**Option 1: VS Code Live Server**
+
+1. Install "Live Server" extension
+2. Right-click `src/index.html`
+3. Click "Open with Live Server"
+
+**Option 2: Python server**
+
+```bash
+cd src
+python -m http.server 8000
+```
+
+Then open `http://localhost:8000`
+
+**What you should see:**
+
+- Dark background (`bg-dark-900`)
+- Darker header (`bg-dark-800`)
+- Mastercam cyan title (`text-mastercam-500`)
+- White text
+- Subtle border under header
+
+---
+
+### Step 13: Test the Theme
+
+**Let's verify all our colors work. Add this to your `<main>`:**
 
 ```html
-<div id="loading">...</div>
-<!-- Shown while fetching -->
-<div id="error">...</div>
-<!-- Shown on error -->
-<div id="file-list">...</div>
-<!-- Shown on success -->
-```
-
-**This is a CRITICAL pattern:**
-
-```
-Initial:    loading=visible, error=hidden, file-list=hidden
-Success:    loading=hidden,  error=hidden, file-list=visible
-Error:      loading=hidden,  error=visible, file-list=hidden
-```
-
-**You'll use this pattern for EVERY async operation.**
-
-### 2. The `type="module"` Script Tag
-
-```html
-<script type="module" src="js/main.js"></script>
-```
-
-**What this does:**
-
-- Enables `import` and `export` keywords
-- JavaScript runs in strict mode automatically
-- Script is deferred (runs after HTML loads)
-- Each module has its own scope (no global pollution)
-
-**Without `type="module"`, imports won't work!**
-
-### 3. IDs for JavaScript Access
-
-```html
-<div id="loading">
-  <div id="error">
-    <div id="file-list"></div>
-  </div>
-</div>
-```
-
-**We'll target these from JavaScript:**
-
-```javascript
-document.getElementById("loading"); // Get the element
-```
-
-**Naming convention:** Use kebab-case for IDs (`file-list`, not `fileList`)
-
----
-
-## Part 3: Building the Utils Module (15 minutes)
-
-### File: `frontend/js/utils/formatting.js`
-
-**This contains pure, reusable functions. Open it and type:**
-
-```javascript
-/**
- * Formatting utilities for dates, file sizes, etc.
- * Pure functions - no side effects
- */
-
-/**
- * Formats a date into readable string
- * @param {Date|string} date - Date to format
- * @returns {string} Formatted date like "Oct 10, 2025, 2:30 PM"
- *
- * @example
- * formatDate(new Date()) // "Oct 10, 2025, 2:30 PM"
- * formatDate("2025-10-10T14:30:00Z") // "Oct 10, 2025, 2:30 PM"
- */
-export function formatDate(date) {
-  // Handle string dates (from backend)
-  if (typeof date === "string") {
-    date = new Date(date);
-  }
-
-  // Validate it's a valid date
-  if (!(date instanceof Date) || isNaN(date)) {
-    return "Invalid date";
-  }
-
-  return date.toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-/**
- * Formats bytes into human-readable file size
- * @param {number} bytes - File size in bytes
- * @returns {string} Formatted size like "1.5 MB"
- *
- * @example
- * formatFileSize(0)       // "0 Bytes"
- * formatFileSize(1024)    // "1 KB"
- * formatFileSize(1536)    // "1.5 KB"
- * formatFileSize(2097152) // "2 MB"
- */
-export function formatFileSize(bytes) {
-  // Edge case: zero bytes
-  if (bytes === 0) return "0 Bytes";
-
-  // Edge case: negative (shouldn't happen, but defensive)
-  if (bytes < 0) return "Invalid size";
-
-  // Edge case: not a number
-  if (typeof bytes !== "number" || isNaN(bytes)) {
-    return "Invalid size";
-  }
-
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-
-  // Calculate which unit to use
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  // Prevent array out of bounds (files over 1 PB!)
-  const index = Math.min(i, sizes.length - 1);
-
-  // Calculate value and round to 2 decimals
-  const value = bytes / Math.pow(k, index);
-  const rounded = Math.round(value * 100) / 100;
-
-  return `${rounded} ${sizes[index]}`;
-}
-
-/**
- * Formats time duration in seconds to readable string
- * @param {number} seconds - Duration in seconds
- * @returns {string} Formatted duration like "2h 30m" or "45s"
- *
- * @example
- * formatDuration(30)    // "30s"
- * formatDuration(90)    // "1m 30s"
- * formatDuration(3665)  // "1h 1m"
- */
-export function formatDuration(seconds) {
-  // Edge cases
-  if (typeof seconds !== "number" || isNaN(seconds) || seconds < 0) {
-    return "Invalid duration";
-  }
-
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-
-  const parts = [];
-  if (hours > 0) parts.push(`${hours}h`);
-  if (minutes > 0) parts.push(`${minutes}m`);
-  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
-
-  return parts.join(" ");
-}
-
-/**
- * Gets relative time string (e.g., "2 hours ago")
- * @param {Date|string} date - Date to compare
- * @returns {string} Relative time like "2 hours ago" or "just now"
- *
- * @example
- * getRelativeTime(new Date()) // "just now"
- * getRelativeTime(new Date(Date.now() - 3600000)) // "1 hour ago"
- */
-export function getRelativeTime(date) {
-  // Handle string dates
-  if (typeof date === "string") {
-    date = new Date(date);
-  }
-
-  // Validate
-  if (!(date instanceof Date) || isNaN(date)) {
-    return "Invalid date";
-  }
-
-  const seconds = Math.floor((new Date() - date) / 1000);
-
-  // Future dates (edge case)
-  if (seconds < 0) {
-    return "in the future";
-  }
-
-  // Just now
-  if (seconds < 60) {
-    return "just now";
-  }
-
-  const intervals = {
-    year: 31536000,
-    month: 2592000,
-    week: 604800,
-    day: 86400,
-    hour: 3600,
-    minute: 60,
-  };
-
-  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-    const interval = Math.floor(seconds / secondsInUnit);
-    if (interval >= 1) {
-      return `${interval} ${unit}${interval > 1 ? "s" : ""} ago`;
-    }
-  }
-
-  return "just now";
-}
-```
-
-**Let's break down the key concepts:**
-
----
-
-### Understanding Edge Cases (Why We Check Everything)
-
-**Example: formatFileSize**
-
-```javascript
-export function formatFileSize(bytes) {
-  // Edge case 1: Zero
-  if (bytes === 0) return '0 Bytes';
-```
-
-**Why check?** Without this:
-
-```javascript
-Math.log(0); // -Infinity
-Math.floor(-Infinity / Math.log(1024)); // -Infinity
-sizes[-Infinity]; // undefined
-// Result: "NaN undefined" 💥
-```
-
----
-
-```javascript
-// Edge case 2: Negative
-if (bytes < 0) return "Invalid size";
-```
-
-**Why check?** File sizes should never be negative. If you see this, something's wrong with the data.
-
-**Better to show "Invalid size" than "-5 KB"**
-
----
-
-```javascript
-// Edge case 3: Not a number
-if (typeof bytes !== "number" || isNaN(bytes)) {
-  return "Invalid size";
-}
-```
-
-**Why check?** JavaScript is loosely typed:
-
-```javascript
-formatFileSize("hello"); // Without check: "NaN undefined"
-formatFileSize(null); // Without check: "0 Bytes" (null == 0!)
-formatFileSize(undefined); // Without check: "NaN undefined"
-```
-
-**These are REAL bugs that happen in production!**
-
----
-
-```javascript
-// Calculate which unit to use
-const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-// Edge case 4: Prevent array out of bounds
-const index = Math.min(i, sizes.length - 1);
-```
-
-**Why?** Our sizes array is `['Bytes', 'KB', 'MB', 'GB', 'TB']`.
-
-What if someone uploads a 1 PB file? (1024 TB)
-
-```javascript
-i = 5; // Would try to access sizes[5]
-sizes[5]; // undefined
-// Result: "1024 undefined" 💥
-```
-
-**With Math.min:**
-
-```javascript
-index = Math.min(5, 4); // 4
-sizes[4]; // "TB"
-// Result: "1024 TB" ✅
-```
-
----
-
-### Understanding Pure Functions
-
-**What makes these functions "pure"?**
-
-✅ **Same input = Same output**
-
-```javascript
-formatFileSize(1024); // Always returns "1 KB"
-```
-
-✅ **No side effects**
-
-```javascript
-// Doesn't modify external variables
-// Doesn't make API calls
-// Doesn't change the DOM
-// Just takes input, returns output
-```
-
-✅ **Easy to test**
-
-```javascript
-// Test is simple:
-expect(formatFileSize(1024)).toBe("1 KB");
-```
-
-✅ **Reusable anywhere**
-
-```javascript
-// Can use in:
-// - Main app
-// - Admin panel
-// - CLI tools
-// - Other projects
-```
-
-**Manufacturing analogy:** A measuring tool. Give it a part, get a measurement. Doesn't change the part, doesn't affect anything else.
-
----
-
-### Save and Test
-
-**You can test these immediately in the browser console!**
-
-Open `index.html` in browser, open console (F12), and try:
-
-```javascript
-// Won't work yet! Need to serve with a local server
-```
-
-**Wait - why not?** ES6 modules require HTTP, not `file://`.
-
-**Quick fix - Use VS Code Live Server:**
-
-1. Install "Live Server" extension in VS Code
-2. Right-click `index.html` → "Open with Live Server"
-3. Browser opens at `http://localhost:5500`
-
-**Now you can test!** (But we haven't imported them yet, so wait for main.js)
-
----
-
-## Part 4: Building the API Module (20 minutes)
-
-### File: `frontend/js/api.js`
-
-**This handles ALL communication with the backend:**
-
-```javascript
-/**
- * API Module - All backend communication
- * Separates network logic from UI logic
- */
-
-// API base URL - will be configured later
-const API_BASE = ""; // Empty = same origin (localhost:8000)
-
-/**
- * Base fetch wrapper with error handling
- * @param {string} endpoint - API endpoint (e.g., '/files')
- * @param {Object} options - Fetch options
- * @returns {Promise<any>} Response data
- * @throws {Error} On network or API errors
- */
-async function apiFetch(endpoint, options = {}) {
-  try {
-    const url = `${API_BASE}${endpoint}`;
-
-    // Set default headers
-    const headers = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    };
-
-    // Make request
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
-    // Check if response is OK (status 200-299)
-    if (!response.ok) {
-      // Try to get error message from backend
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.detail || errorData.message || errorMessage;
-      } catch {
-        // Response wasn't JSON, use default message
-      }
-
-      throw new Error(errorMessage);
-    }
-
-    // Parse and return JSON
-    return await response.json();
-  } catch (error) {
-    // Re-throw with more context
-    throw new Error(`API Error: ${error.message}`);
-  }
-}
-
-/**
- * Gets list of all files
- * @returns {Promise<Object>} Grouped files object
- *
- * @example
- * const files = await getFiles();
- * // { "Active Jobs": [...], "Archive": [...] }
- */
-export async function getFiles() {
-  // FOR NOW: Return mock data (until backend is ready)
-  // We'll replace this with real API call later
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        "Active Jobs": [
-          {
-            filename: "1234567_ABC123.mcam",
-            path: "1234567_ABC123.mcam",
-            size: 2048576,
-            modified_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-            status: "unlocked",
-            locked_by: null,
-            locked_at: null,
-            description: "Main housing part",
-            revision: "2.0",
-            is_link: false,
-          },
-          {
-            filename: "1234568_DEF456.mcam",
-            path: "1234568_DEF456.mcam",
-            size: 1536000,
-            modified_at: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-            status: "locked",
-            locked_by: "john_doe",
-            locked_at: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
-            description: "Fixture plate",
-            revision: "1.5",
-            is_link: false,
-          },
-          {
-            filename: "1234569_GHI789.mcam",
-            path: "1234569_GHI789.mcam",
-            size: 4096000,
-            modified_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-            status: "checked_out_by_user",
-            locked_by: "current_user",
-            locked_at: new Date(Date.now() - 600000).toISOString(), // 10 min ago
-            description: "Cover plate",
-            revision: "3.2",
-            is_link: false,
-          },
-        ],
-        Archive: [
-          {
-            filename: "1234560_OLD001.mcam",
-            path: "1234560_OLD001.mcam",
-            size: 3145728,
-            modified_at: new Date(Date.now() - 2592000000).toISOString(), // 30 days ago
-            status: "unlocked",
-            locked_by: null,
-            locked_at: null,
-            description: "Old prototype",
-            revision: "12.0",
-            is_link: false,
-          },
-        ],
-      });
-    }, 1000); // Simulate network delay
-  });
-}
-
-/**
- * Checks out a file (locks it for editing)
- * @param {string} filename - Name of file to checkout
- * @param {string} username - User performing checkout
- * @returns {Promise<Object>} Result object
- */
-export async function checkoutFile(filename, username) {
-  // FOR NOW: Mock implementation
-  console.log(`Checking out ${filename} for ${username}`);
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true, message: "File checked out" });
-    }, 500);
-  });
-}
-
-/**
- * Checks in a file (uploads new version and unlocks)
- * @param {string} filename - Name of file
- * @param {File} fileData - File object from input
- * @param {string} message - Commit message
- * @returns {Promise<Object>} Result object
- */
-export async function checkinFile(filename, fileData, message) {
-  // FOR NOW: Mock implementation
-  console.log(`Checking in ${filename}: ${message}`);
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true, message: "File checked in" });
-    }, 1000);
-  });
-}
-
-/**
- * Cancels a checkout (unlocks without uploading)
- * @param {string} filename - Name of file
- * @param {string} username - User canceling checkout
- * @returns {Promise<Object>} Result object
- */
-export async function cancelCheckout(filename, username) {
-  // FOR NOW: Mock implementation
-  console.log(`Canceling checkout of ${filename} by ${username}`);
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true, message: "Checkout canceled" });
-    }, 500);
-  });
-}
-```
-
-**Let's break down the key patterns:**
-
----
-
-### Pattern 1: The apiFetch Wrapper
-
-**Why wrap fetch()?**
-
-```javascript
-async function apiFetch(endpoint, options = {}) {
-  // Centralized error handling
-  // Centralized header management
-  // Centralized base URL
-  // One place to add authentication later
-}
-```
-
-**Without wrapper (scattered everywhere):**
-
-```javascript
-// In 20 different files:
-const response = await fetch(`http://localhost:8000/files`);
-if (!response.ok) throw new Error(...);
-const data = await response.json();
-```
-
-**With wrapper (clean):**
-
-```javascript
-// In 20 different files:
-const data = await apiFetch("/files");
-```
-
-**Benefits:**
-
-- Change base URL once
-- Add auth token once
-- Fix error handling once
-- DRY (Don't Repeat Yourself)
-
----
-
-### Pattern 2: Error Handling Chain
-
-```javascript
-// Check if response is OK
-if (!response.ok) {
-  // Try to get detailed error from backend
-  try {
-    const errorData = await response.json();
-    errorMessage = errorData.detail || errorData.message || errorMessage;
-  } catch {
-    // Backend didn't send JSON, use default
-  }
-  throw new Error(errorMessage);
-}
-```
-
-**Why this complexity?**
-
-**Backend might send:**
-
-```json
-// Option 1: FastAPI error
-{ "detail": "File not found" }
-
-// Option 2: Custom error
-{ "message": "File is locked" }
-
-// Option 3: No JSON (500 server error)
-<html>Internal Server Error</html>
-```
-
-**Our code handles ALL three cases!**
-
----
-
-### Pattern 3: Mock Data Structure
-
-**Why such detailed mock data?**
-
-```javascript
-{
-  filename: '1234567_ABC123.mcam',
-  path: '1234567_ABC123.mcam',
-  size: 2048576,
-  modified_at: new Date(Date.now() - 3600000).toISOString(),
-  status: 'unlocked',
-  // ... lots more fields
-}
-```
-
-**Because we need to build the UI!**
-
-Without realistic data, we can't:
-
-- Test edge cases (long filenames, huge files)
-- Design the UI properly
-- Test status indicators
-- Test relative timestamps
-
-**Mock data = Real data structure**
-
----
-
-### Pattern 4: Promises for Mocking
-
-```javascript
-export async function getFiles() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        /* data */
-      });
-    }, 1000); // Simulate network delay
-  });
-}
-```
-
-**Why the setTimeout?**
-
-**Real networks have delays!** Instant responses hide bugs:
-
-- Loading states never show
-- Race conditions don't appear
-- Users see "flash of loading"
-
-**1 second delay = realistic testing**
-
----
-
-## Part 5: Building the Main Entry Point (15 minutes)
-
-### File: `frontend/js/main.js`
-
-**This is where everything comes together:**
-
-```javascript
-/**
- * Main Entry Point
- * Initializes the app and wires everything together
- */
-
-// Import utilities
-import {
-  formatDate,
-  formatFileSize,
-  getRelativeTime,
-} from "./utils/formatting.js";
-
-// Import API functions
-import { getFiles } from "./api.js";
-
-// DOM elements (cached for performance)
-const elements = {
-  loading: document.getElementById("loading"),
-  error: document.getElementById("error"),
-  errorMessage: document.getElementById("error-message"),
-  fileList: document.getElementById("file-list"),
-};
-
-/**
- * Shows loading state
- */
-function showLoading() {
-  elements.loading.classList.remove("hidden");
-  elements.error.classList.add("hidden");
-  elements.fileList.classList.add("hidden");
-}
-
-/**
- * Shows error state
- * @param {string} message - Error message to display
- */
-function showError(message) {
-  elements.loading.classList.add("hidden");
-  elements.error.classList.remove("hidden");
-  elements.errorMessage.textContent = message;
-  elements.fileList.classList.add("hidden");
-}
-
-/**
- * Shows success state (file list)
- */
-function showFileList() {
-  elements.loading.classList.add("hidden");
-  elements.error.classList.add("hidden");
-  elements.fileList.classList.remove("hidden");
-}
-
-/**
- * Renders a single file card
- * @param {Object} file - File data object
- * @returns {string} HTML string for file card
- */
-function renderFileCard(file) {
-  // Determine status color and icon
-  const statusConfig = {
-    unlocked: {
-      color: "green",
-      icon: "unlock",
-      text: "Available",
-    },
-    locked: {
-      color: "red",
-      icon: "lock",
-      text: `Locked by ${file.locked_by}`,
-    },
-    checked_out_by_user: {
-      color: "blue",
-      icon: "edit",
-      text: "Checked out by you",
-    },
-  };
-
-  const status = statusConfig[file.status] || statusConfig["unlocked"];
-
-  // Build HTML using template literals
-  return `
-    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-semibold text-white truncate flex-1">
-          ${file.filename}
-        </h3>
-        <span class="ml-2 px-2 py-1 text-xs rounded bg-${
-          status.color
-        }-900 text-${status.color}-300 border border-${status.color}-700">
-          <i class="fas fa-${status.icon} mr-1"></i>
-          ${status.text}
-        </span>
+<main class="container mx-auto p-6 space-y-6">
+  <!-- Test color scales -->
+  <div class="space-y-2">
+    <h2 class="text-xl font-semibold">Mastercam Color Scale</h2>
+    <div class="flex gap-2">
+      <div
+        class="w-20 h-20 bg-mastercam-50 flex items-center justify-center text-xs text-black"
+      >
+        50
       </div>
-      
-      <!-- Info -->
-      <div class="space-y-1 text-sm text-gray-400">
-        <div>
-          <i class="fas fa-file-alt w-4"></i>
-          ${formatFileSize(file.size)}
-        </div>
-        <div>
-          <i class="fas fa-clock w-4"></i>
-          Modified ${getRelativeTime(file.modified_at)}
-        </div>
-        <div>
-          <i class="fas fa-code-branch w-4"></i>
-          Rev ${file.revision}
-        </div>
-        ${
-          file.description
-            ? `
-          <div class="mt-2 pt-2 border-t border-gray-700">
-            <i class="fas fa-comment w-4"></i>
-            ${file.description}
-          </div>
-        `
-            : ""
-        }
+      <div
+        class="w-20 h-20 bg-mastercam-100 flex items-center justify-center text-xs text-black"
+      >
+        100
       </div>
-      
-      <!-- Actions -->
-      <div class="mt-4 flex gap-2">
-        ${
-          file.status === "unlocked"
-            ? `
-          <button class="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">
-            <i class="fas fa-download mr-1"></i>
-            Checkout
-          </button>
-        `
-            : ""
-        }
-        
-        ${
-          file.status === "checked_out_by_user"
-            ? `
-          <button class="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors">
-            <i class="fas fa-upload mr-1"></i>
-            Check In
-          </button>
-          <button class="px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-sm transition-colors">
-            <i class="fas fa-times mr-1"></i>
-            Cancel
-          </button>
-        `
-            : ""
-        }
-        
-        <button class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors ml-auto">
-          <i class="fas fa-history mr-1"></i>
-          History
-        </button>
+      <div
+        class="w-20 h-20 bg-mastercam-200 flex items-center justify-center text-xs text-black"
+      >
+        200
+      </div>
+      <div
+        class="w-20 h-20 bg-mastercam-300 flex items-center justify-center text-xs text-black"
+      >
+        300
+      </div>
+      <div
+        class="w-20 h-20 bg-mastercam-400 flex items-center justify-center text-xs"
+      >
+        400
+      </div>
+      <div
+        class="w-20 h-20 bg-mastercam-500 flex items-center justify-center text-xs"
+      >
+        500
+      </div>
+      <div
+        class="w-20 h-20 bg-mastercam-600 flex items-center justify-center text-xs"
+      >
+        600
+      </div>
+      <div
+        class="w-20 h-20 bg-mastercam-700 flex items-center justify-center text-xs"
+      >
+        700
+      </div>
+      <div
+        class="w-20 h-20 bg-mastercam-800 flex items-center justify-center text-xs"
+      >
+        800
+      </div>
+      <div
+        class="w-20 h-20 bg-mastercam-900 flex items-center justify-center text-xs"
+      >
+        900
       </div>
     </div>
-  `;
-}
-
-/**
- * Renders all files grouped by category
- * @param {Object} groupedFiles - Files grouped by category
- */
-function renderFiles(groupedFiles) {
-  let html = "";
-
-  // Iterate through each group
-  for (const [groupName, files] of Object.entries(groupedFiles)) {
-    html += `
-      <div class="mb-6">
-        <h2 class="text-xl font-bold mb-3 text-gray-300">
-          ${groupName}
-          <span class="text-sm font-normal text-gray-500">(${
-            files.length
-          })</span>
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          ${files.map((file) => renderFileCard(file)).join("")}
-        </div>
-      </div>
-    `;
-  }
-
-  elements.fileList.innerHTML = html;
-}
-
-/**
- * Loads and displays files
- */
-async function loadFiles() {
-  try {
-    // Show loading state
-    showLoading();
-
-    // Fetch files from API
-    const groupedFiles = await getFiles();
-
-    // Render files
-    renderFiles(groupedFiles);
-
-    // Show success state
-    showFileList();
-  } catch (error) {
-    // Show error state
-    console.error("Failed to load files:", error);
-    showError(error.message);
-  }
-}
-
-/**
- * Initialize app on page load
- */
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("App initializing...");
-  loadFiles();
-});
-```
-
----
-
-### Understanding the Flow
-
-**Let's trace what happens when you load the page:**
-
-```
-1. Browser loads index.html
-   ↓
-2. Browser sees <script type="module" src="js/main.js">
-   ↓
-3. Browser loads main.js
-   ↓
-4. main.js has imports:
-   - import from './utils/formatting.js' → Browser loads formatting.js
-   - import from './api.js' → Browser loads api.js
-   ↓
-5. All imports loaded, main.js executes
-   ↓
-6. DOMContentLoaded event fires
-   ↓
-7. Event listener calls loadFiles()
-   ↓
-8. loadFiles() runs:
-   - Calls showLoading()
-   - Calls await getFiles() (pauses here)
-   - getFiles() waits 1 second (mock delay)
-   - getFiles() resolves with data
-   - Calls renderFiles(data)
-   - Calls showFileList()
-   ↓
-9. User sees file list!
-```
-
----
-
-### The State Machine Pattern
-
-```javascript
-function showLoading() {
-  elements.loading.classList.remove("hidden");
-  elements.error.classList.add("hidden");
-  elements.fileList.classList.add("hidden");
-}
-```
-
-**This ensures only ONE state is visible:**
-
-```
-State: LOADING
-  loading:   visible
-  error:     hidden
-  fileList:  hidden
-
-State: ERROR
-  loading:   hidden
-  error:     visible
-  fileList:  hidden
-
-State: SUCCESS
-  loading:   hidden
-  error:     hidden
-  fileList:  visible
-```
-
-**No overlaps, no confusion!**
-
----
-
-### Template Literals for HTML
-
-**This is where template literals shine:**
-
-```javascript
-return `
-  <div class="bg-gray-800 rounded-lg p-4">
-    <h3>${file.filename}</h3>
-    <div>${formatFileSize(file.size)}</div>
-    ${file.description ? `<p>${file.description}</p>` : ""}
   </div>
-`;
+
+  <!-- Test status colors -->
+  <div class="space-y-2">
+    <h2 class="text-xl font-semibold">Status Colors</h2>
+    <div class="flex gap-4">
+      <span class="px-3 py-1 bg-green-900 text-success rounded">Success</span>
+      <span class="px-3 py-1 bg-orange-900 text-warning rounded">Warning</span>
+      <span class="px-3 py-1 bg-red-900 text-danger rounded">Danger</span>
+    </div>
+  </div>
+
+  <!-- Test buttons with hover -->
+  <div class="space-y-2">
+    <h2 class="text-xl font-semibold">Button States</h2>
+    <div class="flex gap-4">
+      <button
+        class="px-4 py-2 bg-mastercam-500 hover:bg-mastercam-400 rounded transition-colors"
+      >
+        Hover Me
+      </button>
+      <button
+        class="px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded transition-colors"
+      >
+        Secondary
+      </button>
+    </div>
+  </div>
+</main>
 ```
 
-**Notice:**
+**Save and check your browser. You should see:**
 
-- Multi-line strings (no `+` concatenation)
-- Variables inserted with `${}`
-- Function calls inside `${formatFileSize(file.size)}`
-- Conditional rendering `${condition ? html : ''}`
+- Color gradient from light to dark
+- Status badges with proper colors
+- Buttons that change color on hover
 
-**This is basically React JSX, but in vanilla JS!**
+**Try hovering the buttons!** They should smoothly transition to lighter shades.
 
 ---
 
-## Part 6: See It Work! (5 minutes)
+## Understanding What Just Happened
 
-**Open in browser with Live Server. You should see:**
+**You now have:**
 
-1. **Loading spinner** (1 second)
-2. **File list appears** with:
-   - Active Jobs group (3 files)
-   - Archive group (1 file)
-   - Different status colors
-   - Formatted sizes ("2 MB", etc.)
-   - Relative times ("1 hour ago", etc.)
-   - Action buttons
+1. ✅ npm managing your dependencies (no CDN!)
+2. ✅ Tailwind properly installed and configured
+3. ✅ Custom Mastercam color theme
+4. ✅ Build process that watches for changes
+5. ✅ Clean project structure
 
-**Open the console (F12) - you should see:**
+**More importantly, you understand:**
 
-```
-App initializing...
-```
-
-**No errors!**
+- Why npm instead of CDN
+- How Tailwind's build process works
+- How color scales create visual hierarchy
+- How the `content` config works
 
 ---
 
-## Part 7: Testing the Components (10 minutes)
+## Section 3A Complete! 🎉
 
-**Let's test individual functions in the console:**
+### What's Next
 
-### Test 1: Formatting functions
+**Section 3B: Building formatFileSize (Line by Line)**
 
-```javascript
-// Import utils (console supports imports in modules!)
-import {
-  formatFileSize,
-  formatDate,
-  getRelativeTime,
-} from "./js/utils/formatting.js";
+We'll build the file size formatter from scratch:
 
-// Test formatFileSize
-formatFileSize(0); // "0 Bytes"
-formatFileSize(1024); // "1 KB"
-formatFileSize(2048576); // "2 MB"
-formatFileSize(-100); // "Invalid size"
-formatFileSize("hello"); // "Invalid size"
+1. Start with just bytes
+2. Add KB conversion
+3. Understand the rounding math
+4. Add MB, GB, TB
+5. Add edge case handling
+6. **Explain EVERY line of math**
 
-// Test formatDate
-formatDate(new Date()); // "Oct 10, 2025, 3:45 PM"
-formatDate("invalid"); // "Invalid date"
-
-// Test getRelativeTime
-getRelativeTime(new Date()); // "just now"
-getRelativeTime(new Date(Date.now() - 60000)); // "1 minute ago"
-```
-
-**Everything works!** ✅
-
-### Test 2: API functions
-
-```javascript
-import { getFiles } from "./js/api.js";
-
-// This returns a Promise
-const filesPromise = getFiles();
-console.log(filesPromise); // Promise { <pending> }
-
-// To get the data, use await (only in async context)
-// In console, top-level await works:
-const files = await getFiles();
-console.log(files); // { 'Active Jobs': [...], 'Archive': [...] }
-```
-
-**You see the data!** ✅
-
----
-
-## Section 3 Complete! 🎉
-
-### What You Just Built
-
-✅ **Project structure** - organized folders and files  
-✅ **Utils module** - pure, reusable functions  
-✅ **API module** - centralized backend communication  
-✅ **Main app** - wires everything together  
-✅ **Working feature** - file list that displays real(ish) data
-
-### The "Aha!" Moments
-
-**1. Async/await in action:**
-
-```javascript
-async function loadFiles() {
-  const files = await getFiles(); // Pauses here!
-  renderFiles(files); // Then continues
-}
-```
-
-**2. Array methods transforming data:**
-
-```javascript
-files.map((file) => renderFileCard(file)).join("");
-```
-
-**3. Template literals building UI:**
-
-```javascript
-`<div>${file.filename}</div>`;
-```
-
-**4. Modules organizing code:**
-
-```javascript
-import { formatDate } from "./utils/formatting.js";
-```
-
-**5. All the concepts working TOGETHER!**
-
----
-
-## Checkpoint Questions
-
-1. Why do we use three separate state elements (loading, error, fileList)?
-2. Why wrap fetch() in an apiFetch function?
-3. What makes the formatting functions "pure"?
-4. Why do we check for edge cases like negative file sizes?
-5. How does the file card know which buttons to show?
-
-<details>
-<summary>Answers</summary>
-
-1. To ensure only ONE state is visible at a time - prevents UI glitches where loading AND content show simultaneously
-2. Centralized error handling, base URL, headers - change once instead of everywhere
-3. Same input = same output, no side effects, don't modify external state
-4. Defensive programming - better to show "Invalid size" than crash with "NaN undefined"
-5. Conditional rendering based on `file.status` - uses ternary operator in template literal
-
-</details>
-
----
-
-## What's Next: Section 4 Preview
-
-**Section 4: Event Handling & User Interactions**
-
-**What we'll build:**
-
-- Click handlers for buttons
-- Checkout/checkin flow
-- Form handling
-- Real-time updates
-- Error handling
-- Loading states
-
-**This is where it gets REALLY interactive!**
-
----
-
-**Ready for Section 4?** Say **"Start Section 4"** and we'll make those buttons actually DO something! 🚀
-
-Or if you have questions about Section 3, ask away! This was a LOT of code. 💪
+**Ready for Section 3B?** Say **"Start Section 3B"** and I'll break down the math step by step! 🧮
