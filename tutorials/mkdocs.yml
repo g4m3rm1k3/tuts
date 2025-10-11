@@ -1,10 +1,10 @@
 site_name: My Docs
 docs_dir: docs/
 nav:
-  - PDM:
-      - Module 1: try/1.md
-      - Module 2: try/2.md
-      - Module 3: try/3.md
+  - code:
+      - main.py: explain/main.py.md
+      - run.py: explain/run.py.md
+      - websockets.py: explain/websockets.py.md
 
   - FullStack:
       - Section1: ClaudFullApp/section1.md
