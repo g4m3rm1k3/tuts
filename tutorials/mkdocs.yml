@@ -13,6 +13,30 @@ nav:
       - Section3D: ClaudFullApp/section3D.md
       - Section3D2: ClaudFullApp/section3D2.md
       - Section3E: ClaudFullApp/section3E.md
+      - Part5: ClaudFullApp/Part5.md
+
+  - Digital Machinists MasterCalss:
+      - Module 1: TDMM/Module1.md
+
+  - Discrete Math:
+      - Rubric: DiscreteMath/rubric.md
+
+  - Grock CS MasterClass:
+      - phase 1:
+          - module 1: GrockCSMasterClass/phase1/module1.md
+
+  - GPT MasterClass:
+      - Module1:
+          - start here: GPTCSMasterClass/Module1/0.md
+          - rubric: GPTCSMasterClass/Module1/rubric.md
+          - PowerSHell: GPTCSMasterClass/Module1/poweshell.md
+          - Terminal: GPTCSMasterClass/Module1/terminal.md
+          - Module 1: GPTCSMasterClass/Module1/1.md
+          - Module 2: GPTCSMasterClass/Module1/2.md
+          - Module 3: GPTCSMasterClass/Module1/3.md
+      - Module2:
+          - Module 1: GPTCSMasterClass/Module2/1.md
+          - Module 2: GPTCSMasterClass/Module2/2.md
 
   - FULL:
       - Gclass1: Gclass1.md
