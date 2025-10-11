@@ -5,6 +5,7 @@ nav:
       - main.py: explain/main.py.md
       - run.py: explain/run.py.md
       - websockets.py: explain/websockets.py.md
+      - auth.py: explain/auth.py.md
 
   - FullStack:
       - Section1: ClaudFullApp/section1.md
