@@ -13,13 +13,20 @@ nav:
       - Section3D: ClaudFullApp/section3D.md
       - Section3D2: ClaudFullApp/section3D2.md
       - Section3E: ClaudFullApp/section3E.md
-      - Part5: ClaudFullApp/Part5.md
+      - Section3E2: ClaudFullApp/section3E2.md
+      - Section3E3: ClaudFullApp/section3E3.md
 
   - Digital Machinists MasterCalss:
       - Module 1: TDMM/Module1.md
 
   - Discrete Math:
       - Rubric: DiscreteMath/rubric.md
+      - Phase 1:
+          - Section 0: DiscreteMath/phase1/section0.md
+          - Section 1: DiscreteMath/phase1/section1.md
+          - Section 1a: DiscreteMath/phase1/section1a.md
+          - Section 1b: DiscreteMath/phase1/section1b.md
+          - Section 1c: DiscreteMath/phase1/section1c.md
 
   - Grock CS MasterClass:
       - phase 1:
@@ -87,6 +94,9 @@ nav:
       - SECTION 6: section 6.md
       - SECTION 7: section 7.md
       - SECTION 8: section 8.md
+  - pilotMC:
+      - Chapter 1:
+          - Module 1: pilotMC/Chapter1/m1.md
   - Chatting:
       - Stage0: gptStage0.md
       - Stage2.1: gptStage2.1.md
